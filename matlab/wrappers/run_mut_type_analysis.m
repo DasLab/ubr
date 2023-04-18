@@ -5,16 +5,17 @@ clf
 mut_types = {'AC','AG','AT','CA','CG','CT','GA','GC','GT','TA','TC','TG','ins','del'};
 mut_rate_matrix = [];
 for i = 1:length(tags)
-    if length(tags)<= 6; subplot( length(tags),1,i); end;
+    if length(tags)<= 10; subplot( length(tags),1,i); end;
     mut_count_matrix = squeeze(sum(rc(:,:,:,i)));
     coverage_matrix = repmat(squeeze(sum(c(:,:,i),1)),length(mut_types),1)';
     mut_rate_matrix(:,:,i) = mut_count_matrix./coverage_matrix;
     imagesc(mut_rate_matrix(:,:,i)',[0 0.01])
     set(gca,'ytick',[1:length(mut_types)],'YTickLabels',mut_types,'tickdir','out')
     title( conditions{i},'interp','none');
+    if length(tags)> 10; pause; end;
     colorbar();
-    pause
 end
+xlabel( 'Position')
 
 %% Mutation rates (by MutType)
 set(figure(6),'color','white','pos',[1000        1109         613         228]);
