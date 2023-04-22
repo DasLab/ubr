@@ -27,7 +27,7 @@ if ~exist('tags','var') tags = {'SHAPE, no Mg2+','SHAPE, +Mg2+'}; end
 if ~exist('create_figure_window','var') create_figure_window = 1; end
 
 labels = {'sequence'};
-d = squeeze(r_norm(idx,:,:))';
+d = shiftdim(r_norm(idx,:,:),1)';
 labels = [labels,tags];
 Ndata = size(r_norm,3);
 
