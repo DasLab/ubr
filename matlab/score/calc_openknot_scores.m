@@ -1,5 +1,5 @@
-function [eterna_scores,crossed_pair_scores, best_cc, structures] = calc_openknot_scores( r_norm, mfe_structures, good_idx, mfe_tags, BLANK_OUT3, BLANK_OUT5, headers);
-% [eterna_scores,crossed_pair_scores, best_cc, structures] = calc_openknot_scores( r_norm, mfe_structures, good_idx, mfe_tags, BLANK_OUT3, BLANK_OUT5, headers);
+function [eterna_scores,crossed_pair_scores, best_cc, structures, crossed_pair_quality_scores ] = calc_openknot_scores( r_norm, mfe_structures, good_idx, mfe_tags, BLANK_OUT3, BLANK_OUT5, headers);
+% [eterna_scores,crossed_pair_scores, best_cc, structures, crossed_pair_quality_scores ] = calc_openknot_scores( r_norm, mfe_structures, good_idx, mfe_tags, BLANK_OUT3, BLANK_OUT5, headers);
 %
 %
 %  r_norm = [Ndesign x Nres] Reactivity matrix, normalized.
@@ -18,19 +18,22 @@ eterna_scores = [];
 crossed_pair_scores = [];
 best_cc = [];
 structures = {};
+crossed_pair_quality_scores = [];
 
 for idx = good_idx'
-    [eterna_score, crossed_pair_score, cc, structure ] = calc_openknot_score( r_norm, mfe_structures, idx, mfe_tags, BLANK_OUT3, BLANK_OUT5, headers );
+    [eterna_score, crossed_pair_score, cc, structure, crossed_pair_quality_score ] = calc_openknot_score( r_norm, mfe_structures, idx, mfe_tags, BLANK_OUT3, BLANK_OUT5, headers );
 
     eterna_scores = [eterna_scores, eterna_score];
     crossed_pair_scores = [crossed_pair_scores, crossed_pair_score];
     best_cc = [best_cc, cc];
     structures = [structures, {structure}];
+    crossed_pair_quality_scores = [crossed_pair_quality_scores, crossed_pair_quality_score];
+
 end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [eterna_classic_score, crossed_pair_score, best_cc, structure ] = calc_openknot_score( r_norm, mfe_structures, idx, mfe_tags, BLANK_OUT3, BLANK_OUT5, headers )
+function [eterna_classic_score, crossed_pair_score, best_cc, structure, crossed_pair_quality_score ] = calc_openknot_score( r_norm, mfe_structures, idx, mfe_tags, BLANK_OUT3, BLANK_OUT5, headers )
 
 data = r_norm(idx,:,1);
 
@@ -48,7 +51,7 @@ mfe_structure_map = get_mfe_structure_map( mfe_structures, idx );
 for n = 1:length(mfe_tags)
     pred = squeeze(mfe_structure_map(idx,:,n));
     eterna_classic_scores(n) = calc_eterna_score_classic( data, pred, BLANK_OUT5, BLANK_OUT3);
-    crossed_pair_scores(n) = calc_crossed_pair_score(data, mfe_structures{n}{idx}, BLANK_OUT5, BLANK_OUT3 );
+    [crossed_pair_scores(n),crossed_pair_quality_scores(n)] = calc_crossed_pair_score(data, mfe_structures{n}{idx}, BLANK_OUT5, BLANK_OUT3 );
 end
 plot( cc, eterna_classic_scores,'.')
 xlabel('Correlation coefficient');
@@ -91,16 +94,18 @@ best_model_idx = find( eterna_classic_scores >= (eterna_classic_score - eterna_s
 best_model_idx = best_model_idx( sortidx(end:-1:1) );
 %eterna_classic_score = mean( eterna_classic_scores( best_model_idx) );
 crossed_pair_score   = mean( crossed_pair_scores( best_model_idx) );
+crossed_pair_quality_score   = mean( crossed_pair_quality_scores( best_model_idx) );
 
 
 for n = best_model_idx;
     fprintf( '%30s %s\n',mfe_tags{n},mfe_structures{n}{idx});
 end
 
-fprintf( '\nBest model for %s.  Correlation coefficient: %4.2f  Eterna score classic: %5.2f  Crossed pair score: %5.2f\n',...
+fprintf( '\nBest model for %s.  CC: %4.2f  Eterna classic: %5.2f  Crossed pair score: %5.2f  Crossed quality: %5.2f\n',...
     headers{idx},best_cc,...
     eterna_classic_score,...
-    crossed_pair_score);
+    crossed_pair_score, ...
+    crossed_pair_quality_score);
 
 %for n = best_model_idx;
 %    fprintf( '%30s %s\n',mfe_tags{n},mfe_structures{n}{idx});

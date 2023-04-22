@@ -1,9 +1,14 @@
-function crossed_pair_score = calc_crossed_pair_score(data, structure, BLANK_OUT5, BLANK_OUT3 );
+function [crossed_pair_score, crossed_pair_quality_score] = calc_crossed_pair_score(data, structure, BLANK_OUT5, BLANK_OUT3 );
 % calc_crossed_pair_score( data, structure, BLANK_OUT5, BLANK_OUT3);
 %
+% crossed_pair_score = 
 %  100 x
 %   (number of residues in crossed pairs with data < 0.25) /
 %     [0.7*(length of region with data - 20)]
+%
+%  crossed_pair_quality_score =
+%  100 x (number of residues in crossed pairs with data < 0.25) /
+%          ( number of residues modeled to be crossed pairs in structure )
 %
 %  data = [Nres] data, normalized to go from 0 to 1 (~90th percentile)
 %  structure = [Nres] dot-parens notation for structure, with pseudoknots
@@ -46,6 +51,10 @@ end
 data_region_length = length(data)- BLANK_OUT5 - BLANK_OUT3;
 max_crossed_pairs = 0.7 * max(data_region_length-20, 20);
 crossed_pair_score = 100 * min( num_crossed_pairs/max_crossed_pairs, 1.0);
+
+crossed_pair_quality_score = 0;
+if max_count > 0; crossed_pair_quality_score = 100 * (num_crossed_pairs/max_count); end;
+
 %fprintf('%s %f\n',structure,crossed_pair_score)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
