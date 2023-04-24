@@ -13,7 +13,7 @@ function [eterna_scores,crossed_pair_scores, best_cc, structures, crossed_pair_q
 %  plot)
 %
 % (C) Rhiju Das, Stanford, HHMI, 2023
-
+if length(good_idx) == 0; good_idx = [1:size(r_norm,1)]';end;
 eterna_scores = [];
 crossed_pair_scores = [];
 best_cc = [];

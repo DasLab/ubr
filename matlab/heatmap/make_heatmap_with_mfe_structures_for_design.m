@@ -32,7 +32,11 @@ labels = [labels,tags];
 Ndata = size(r_norm,3);
 
 if isempty(pkg_sort_idx)
-    [all_corr_coef, pkg_sort_idx] = get_corr_coeff( mean(r_norm,3), mfe_structure_map, idx, mfe_tags, BLANK_OUT3, BLANK_OUT5);
+    %[all_corr_coef, pkg_sort_idx] = get_corr_coeff( mean(r_norm,3), mfe_structure_map, idx, mfe_tags, BLANK_OUT3, BLANK_OUT5);
+    for n = 1:size(mfe_structure_map,3);
+        eterna_scores(n) = calc_eterna_score_classic( mean(r_norm(idx,:,:),3), squeeze(mfe_structure_map(idx,:,n)), BLANK_OUT5, BLANK_OUT3);
+    end
+    [~,pkg_sort_idx] = sort(eterna_scores);
 end
 
 best_structure = '';
