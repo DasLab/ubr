@@ -46,7 +46,8 @@ for i = 1:length(shape_nomod_idx)
         r(:,:,i) = f(:,:,shape_idx);
         r_err(:,:,i) = f_err(:,:,shape_idx);
     end
-    signal_to_noise(:,i) = mean(abs(r(:,good_seqpos,i)),2)./mean(r_err(:,good_seqpos,i),2);
-
+    for m = 1:size(r,1)
+        signal_to_noise(m,i) = estimate_signal_to_noise_ratio_COPY(r(m,good_seqpos,i)',r_err(m,good_seqpos,i)'); %mean(abs(r(:,good_seqpos,i)),2)./mean(r_err(:,good_seqpos,i),2);
+    end
 end
 coverage = squeeze(max(c,[],2));
