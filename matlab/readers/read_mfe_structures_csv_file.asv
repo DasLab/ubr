@@ -29,7 +29,6 @@ for n = 1:length(x.Properties.VariableNames);
             strcmp(tag,'eterna_nupack') ) | ...
             (ischar(structures{1}) & contains(structures{1},'('))
         if ~ischar( structures{1}); continue; end;
-        if contains(tag,'eternafold_threshknot_'); continue; end;
         count = count + 1;
         mfe_tags{count} = strrep(strrep(tag,'__mfe',''),'_mfe','');
         mfe_structures{count} = structures;
@@ -44,19 +43,9 @@ end
 % match sequences 
 if exist('ordered_sequences','var')
     assert(length(unique(ordered_sequences))==length(ordered_sequences)); % check uniqueness
-    sequence_col = find(strcmp(x.Properties.VariableNames,'sequence'));
+    sequence_col = find(x.Properties.VariableNames,'sequence');
     assert(~isempty(sequence_col));
-    sequences = table2cell(x(:,sequence_col));
-    assert(length(unique(sequences))==length(sequences)); % check uniqueness
-    reorder = [];
-    for i = 1:length(sequences)
-        idx = find( strcmp(ordered_sequences, sequences{i} ));
-        assert( ~isempty(idx));
-        reorder(i) = idx;
-    end
-    for n = 1:length(mfe_structures)
-        mfe_structures{n} = mfe_structures{n}(reorder);
-    end
+    sequences = sequence_col
 end
 
 mfe_structure_map = get_mfe_structure_map( mfe_structures );
