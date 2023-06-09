@@ -1,5 +1,5 @@
-function [ids,titles,authors,headers,sequences] = get_sequence_info( fasta_file );
-% [ids,titles,authors,headers,sequences] = get_sequence_info( fasta_file );
+function [ids,titles,authors,headers,sequences,id_strings] = get_sequence_info( fasta_file );
+% [ids,titles,authors,headers,sequencesid_strings] = get_sequence_info( fasta_file );
 % Read in sequences and Eterna information
 %
 % Inputs
@@ -12,6 +12,7 @@ function [ids,titles,authors,headers,sequences] = get_sequence_info( fasta_file 
 %  authors = (cell of strings)  Eterna authors (column 3 in header)
 %  headers = (cell of strings)  Full headers
 %  sequences = (cell of strings) RNA sequences
+%  id_strings = (cell of strings) ids as strings
 %
 % TODO: make this a bit more robust -- should be OK if FASTA file is not
 % formatted correctly.
@@ -19,14 +20,21 @@ function [ids,titles,authors,headers,sequences] = get_sequence_info( fasta_file 
 % (C) R. Das, HHMI/Stanford University 2023.
 
 seqs = fastaread(fasta_file);
+
 ids = [];
+id_strings = repmat({''},1,length(seqs));
+titles = repmat({''},1,length(seqs));
+authors = repmat({''},1,length(seqs));
 for i =1:length(seqs)
     headers{i} = strrep(seqs(i).Header,'%23','#');
     sequences{i} = seqs(i).Sequence;
     cols = strsplit(seqs(i).Header,'\t');
-    ids(i)=str2num(cols{1});
-    titles{i}=strip(strrep(cols{2},'%23','#'));
-    authors{i}=strip(cols{3});
+    id_strings{i} = cols{1};
+    ids(i) = NaN;
+    id = str2num(cols{1});
+    if ~isempty(id) ids(i) = id; end;
+    if length(cols) > 1; titles{i}=strip(strrep(cols{2},'%23','#')); end
+    if length(cols) > 2; authors{i}=strip(cols{3}); end;
 end
 
 fprintf( 'Read in %d sequences from %s.\n', length(sequences),fasta_file)
