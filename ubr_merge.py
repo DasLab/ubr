@@ -66,6 +66,13 @@ else:
                     if len(counts[i])<=j: counts[i].append(0)
                     counts[i][j] += int(count)
         nseq = len(counts)
+
+        # pad all counts lines to same length
+        max_seq_length = max( map( len, counts ) )
+        for i in range(nseq):
+            for j in range(len(counts[i]),max_seq_length):
+                counts[i].append(0)
+
         tot_counts = 0
         outfile = filename
         fid = open( outdir+outfile, 'w' )
