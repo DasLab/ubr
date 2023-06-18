@@ -66,7 +66,7 @@ for j = squeeze(good_idx)'
   
     data_annotation = {};
     data_annotation  = [data_annotation,  ['sequence:',sequences{j}] ];
-    if exist( 'structures','var'); data_annotation  = [data_annotation,  ['structure:',structures{j}] ]; end;
+    if exist( 'structures','var') & length(structures)>=j; data_annotation  = [data_annotation,  ['structure:',structures{j}] ]; end;
     data_annotation = [data_annotation, ['signal_to_noise:',SN_classification,':',num2str(SN_ratio(count),'%8.3f') ] ];
     if length( extra_data_annotations   ) > 0;  data_annotation  = [data_annotation,  extra_data_annotations{j} ]; end;
     data_annotations{count} = data_annotation;
