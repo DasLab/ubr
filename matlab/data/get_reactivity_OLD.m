@@ -1,4 +1,4 @@
-function [r,r_err,f,f_err,coverage,signal_to_noise] = get_reactivity(m,c,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3);
+function [r,r_err,f,f_err,coverage,signal_to_noise,r_nomod] = get_reactivity(m,c,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,nomod_error_scalefactor);
 % [r,r_err,f,f_err,signal_to_noise] = get_reactivity(m,c,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3);
 %
 % Inputs
@@ -22,8 +22,11 @@ function [r,r_err,f,f_err,coverage,signal_to_noise] = get_reactivity(m,c,shape_n
 %  signal_to_noise = [Ndesign x Nmodconditions] Estimated signal-to-noise for each
 %  design under each experimental modification condition. [Mean of signal
 %  divided by mean of error across design]
+%  r_nomod = [Ndesign x Nres x Nmodconditions] No mod values subtracted out to get r
 % 
 % (C) R. Das, HHMI/Stanford University 2023.
+
+if ~exist('nomod_error_scalefactor','var') nomod_error_scalefactor = 0; end;
 
 f = m./c;
 f_err = sqrt(2*m)./c; % RNAframework typically spits out 2, not 1, for each paired read!
@@ -40,11 +43,13 @@ for i = 1:length(shape_nomod_idx)
         shape_idx = shape_nomod_idx{i}(1);
         nomod_idx = shape_nomod_idx{i}(2);
         r(:,:,i) = f(:,:,shape_idx)-f(:,:,nomod_idx);
-        r_err(:,:,i) = sqrt( f_err(:,:,shape_idx).^2 + f_err(:,:,nomod_idx).^2);
+        r_err(:,:,i) = sqrt( f_err(:,:,shape_idx).^2 + f_err(:,:,nomod_idx).^2 + (nomod_error_scalefactor*f(:,:,nomod_idx)).^2);
+        r_nomod(:,:,i) = f(:,:,nomod_idx);
     else
         shape_idx = shape_nomod_idx{i};
         r(:,:,i) = f(:,:,shape_idx);
         r_err(:,:,i) = f_err(:,:,shape_idx);
+        r_nomod(:,:,i) = 0*f(:,:,shape_idx);
     end
     for m = 1:size(r,1)
         signal_to_noise(m,i) = estimate_signal_to_noise_ratio_COPY(r(m,good_seqpos,i)',r_err(m,good_seqpos,i)'); %mean(abs(r(:,good_seqpos,i)),2)./mean(r_err(:,good_seqpos,i),2);
