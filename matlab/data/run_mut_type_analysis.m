@@ -38,8 +38,10 @@ strictmuts_dels = sum(mean_mut_rate_by_type([1:12,14],:),1);
 
 rfcount_mut_rate_profiles = squeeze(sum(m,1)./sum(c,1));
 rfcount_mut_rate = mean(rfcount_mut_rate_profiles(mutpos,:),1);
+
 fprintf('\n\n')
 for i = 1:length(tags)
-    fprintf( 'strictmuts:%f ins:%f del:%f strictmuts+dels:%f rf-count:%f %s %s\n',...
+    if strcmp(tags{i},conditions{i}) conditions{i} = ''; end; 
+    fprintf( 'strictmuts:%8.5f ins:%8.5f del:%8.5f strictmuts+dels:%8.5f rf-count:%8.5f  %s %s\n',...
         strictmuts(i),inserts(i),dels(i),strictmuts_dels(i),rfcount_mut_rate(i),tags{i},conditions{i})
 end

@@ -1,4 +1,4 @@
-function [r_norm, r_norm_err] = normalize_reactivity(r,r_err,good_idx,BLANK_OUT5, BLANK_OUT3, tags_conditions );
+function [r_norm, r_norm_err,r_norm_nomod] = normalize_reactivity(r,r_err,good_idx,BLANK_OUT5, BLANK_OUT3, tags_conditions, r_nomod );
 % [r_norm, r_norm_err] = normalize_reactivity(r,r_err,good_idx,BLANK_OUT5, BLANK_OUT3, tags_conditions);
 %
 % Inputs
@@ -9,10 +9,15 @@ function [r_norm, r_norm_err] = normalize_reactivity(r,r_err,good_idx,BLANK_OUT5
 %  BLANK_OUT3 = gray out this number of 3' residues 
 %  tags_conditions = tags for each condition in r (leave out to show
 %                           blanks)
+%  r_nomod = [Optional] [Ndesign x Nres x Nmodconditions] No mod values subtracted out to get r
 %
 % Outputs
 %  r_norm     = [Ndesign x Nres] Reactivity matrix, normalized.
 %  r_norm_err = [Ndesign x Nres] Reactivity error matrix, normalized.
+%  r_norm_nomod = [Ndesign x Nres] Nomod value matrix, normalized, can be
+%                      used for systematic error estimate. 
+%                       (Zeros if r_nomod not provided)
+%                      
 %
 % (C) R. Das, HHMI/Stanford University 2023.
 
@@ -27,4 +32,6 @@ for i = 1:size(r,3)
     fprintf( 'Normalizing reactivity profiles for %d %s with value %f.\n', i, tags_conditions{i}, val_norm);
     r_norm(:,:,i) = r(:,:,i)/val_norm;
     r_norm_err(:,:,i) = r_err(:,:,i)/val_norm;
-end
+    r_norm_nomod(:,:,i) = 0*r_norm(:,:,i);
+    if exist('r_nomod','var') r_norm_nomod(:,:,i) = r_nomod(:,:,i)/val_norm; end;
+end;
