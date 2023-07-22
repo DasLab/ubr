@@ -21,6 +21,7 @@ parser.add_argument('-j','--jobs_per_slurm_node', default=24,type=int )
 parser.add_argument('-ow','--overwrite',action = 'store_true')
 parser.add_argument('-orc','--output_raw_counts',action = 'store_true')
 parser.add_argument('-nlc','--no_length_cutoff',action = 'store_true')
+parser.add_argument('-nm','--no_mixed',action = 'store_true')
 
 args = parser.parse_args()
 
@@ -135,6 +136,7 @@ for i in range(1,nsplits+1):
     extra_flags = ''
     if args.output_raw_counts: extra_flags += ' --output_raw_counts'
     if args.no_length_cutoff:  extra_flags += ' --no_length_cutoff'
+    if args.no_mixed:  extra_flags += ' --no_mixed'
 
     fid = open( outdir + '/'+ubr_run_sh_name, 'w' )
     fid.write( 'ubr_run.py -s %s -b %s -1 %s -2 %s%s > ubr_run.out 2> ubr_run.err & \n' % ( os.path.basename(args.sequences_fasta), os.path.basename(args.primer_barcodes_fasta), os.path.basename(f1), os.path.basename(f2),extra_flags) )

@@ -16,6 +16,7 @@ parser.add_argument('-2','--read2_fastq', required=True)
 parser.add_argument('-ow','--overwrite',action = 'store_true')
 parser.add_argument('-orc','--output_raw_counts',action = 'store_true')
 parser.add_argument('-nlc','--no_length_cutoff',action = 'store_true')
+parser.add_argument('-nm','--no_mixed',action = 'store_true')
 parser.add_argument('-O','--outdir',default='')
 parser.add_argument('-t','--threads',default=1, type=int)
 
@@ -124,9 +125,11 @@ for primer_barcode,primer_name in zip(primer_barcodes,primer_names):
 
     # bowtie2-align
     sam_file = '%s/bowtie2.sam' % outdir
+    no_mixed_flag = ''
+    if args.no_mixed: no_mixed_flag = ' --no-mixed'
     if not os.path.isfile( sam_file ) or args.overwrite:
         # previously used --local --sensitive-local, but bowtie2 would punt on aligning 3' ends and misalign reads to some short parasite replicons.
-        command = 'bowtie2 --end-to-end --sensitive --maxins=800 --ignore-quals --no-unal --mp 3,1 --rdg 5,1 --rfg 5,1 --dpad 30 -x %s -1 %s -2 %s -S %s --threads %d > %s/bowtie2.out 2> %s/bowtie2.err' % (bt2_prefix,i1,i2,sam_file,args.threads,outdir,outdir)
+        command = 'bowtie2 --end-to-end --sensitive --maxins=800 --ignore-quals --no-unal --mp 3,1 --rdg 5,1 --rfg 5,1 --dpad 30 -x %s -1 %s -2 %s -S %s --threads %d %s > %s/bowtie2.out 2> %s/bowtie2.err' % (bt2_prefix,i1,i2,sam_file,args.threads,no_mixed_flag,outdir,outdir)
         print(command)
         os.system( command )
     else:
