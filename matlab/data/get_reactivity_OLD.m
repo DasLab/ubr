@@ -1,4 +1,4 @@
-function [r,r_err,f,f_err,coverage,signal_to_noise,r_nomod] = get_reactivity(m,c,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,nomod_error_scalefactor);
+function [r,r_err,f,f_err,coverage,signal_to_noise,r_nomod] = get_reactivity_OLD(m,c,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,nomod_error_scalefactor);
 % [r,r_err,f,f_err,signal_to_noise] = get_reactivity(m,c,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3);
 %
 % Inputs
@@ -52,7 +52,7 @@ for i = 1:length(shape_nomod_idx)
         r_nomod(:,:,i) = 0*f(:,:,shape_idx);
     end
     for m = 1:size(r,1)
-        signal_to_noise(m,i) = estimate_signal_to_noise_ratio_COPY(r(m,good_seqpos,i)',r_err(m,good_seqpos,i)'); %mean(abs(r(:,good_seqpos,i)),2)./mean(r_err(:,good_seqpos,i),2);
+        signal_to_noise(m,i) = ubr_estimate_signal_to_noise_ratio(r(m,good_seqpos,i)',r_err(m,good_seqpos,i)'); %mean(abs(r(:,good_seqpos,i)),2)./mean(r_err(:,good_seqpos,i),2);
     end
 end
 coverage = squeeze(max(c,[],2));

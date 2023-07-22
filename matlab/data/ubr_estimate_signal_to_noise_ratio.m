@@ -16,7 +16,7 @@ if nargin==0; help( mfilename ); return; end;
 
 all_ratio = 0;
 for i = 1:size( signal, 2 )
-  good_points = find( noise(:,i) > 0 );
+  good_points = find( noise(:,i) > 0 & ~isnan(signal) & ~isnan(noise) );
 
   if length( good_points ) > 3
 

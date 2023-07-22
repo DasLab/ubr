@@ -78,6 +78,8 @@ rsub_strictmut_err = squeeze(sqrt(sum(rsub_err(:,:,1:12,:).^2,3)));
 rsub_del     = squeeze(rsub(:,:,14,:));
 rsub_del_err = squeeze(rsub_err(:,:,14,:));
 
+r_nomod = squeeze(sum(r_nomod(:,:,[1:12 14],:),3));
+
 if ~exist('sequences') | isempty(sequences)
     fprintf(['\n\nWARNING! Get_reactivity requires sequences to spread out deletions at same-nt stretches.\nPlease provide sequences as last input.\nFor now, proceeding without spread out of deletion.\n\n']);
     [r, r_err, signal_to_noise] = get_r_from_strictmut_del( rsub_strictmut, rsub_del, rsub_strictmut_err, rsub_del_err, BLANK_OUT5, BLANK_OUT3);
@@ -147,6 +149,6 @@ N = size(r,2);
 good_seqpos = [(BLANK_OUT5+1):(N-BLANK_OUT3)];
 for i = 1:size(r,3)
     for m = 1:size(r,1)
-        signal_to_noise(m,i) = estimate_signal_to_noise_ratio_COPY(r(m,good_seqpos,i)',r_err(m,good_seqpos,i)');
+        signal_to_noise(m,i) = ubr_estimate_signal_to_noise_ratio(r(m,good_seqpos,i)',r_err(m,good_seqpos,i)');
     end
 end

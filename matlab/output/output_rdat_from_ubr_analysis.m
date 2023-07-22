@@ -25,7 +25,7 @@ function rdat = output_rdat_from_ubr_analysis( filename, name, good_idx, r_norm,
 %
 
 if nargin == 0; help( mfilename ); return; end;
-
+if ~exist('extra_data_annotations','var') ; extra_data_annotations = {}; end;
 if ~exist( 'output_workspace_to_rdat_file', 'file' )
   fprintf( '\nCannot find function output_workspace_to_rdat_file() ...\nWill not output RDAT: %s.\n', filename );
   fprintf( 'Install RDATkit and include   rdatkit/matlab_scripts/   in MATLAB path.\n\n' );
@@ -44,7 +44,7 @@ if length( sequences ) ~= Ndesigns;   fprintf( 'Number of sequences does not mat
 Nres = size(r_norm,2);
 if length( sequences{1} ) ~= Nres;   fprintf( 'Sequence length does not match Nres in r_norm\n' ); return; end
 
-if isempty(good_idx); good_idx = [1 : size( r_norm, 1)]; end;
+if isempty(good_idx); good_idx = [1 : size( r_norm, 1)]'; end;
 
 which_res = [(1+BLANK_OUT5):(Nres-BLANK_OUT3)];
 
@@ -55,7 +55,7 @@ for j = squeeze(good_idx)'
     reactivity(:,count) = r_norm(j,which_res)';
     reactivity_err(:,count) = r_norm_err(j,which_res)';
 
-    SN_ratio(count)   = estimate_signal_to_noise_ratio_COPY( reactivity(:,count), reactivity_err(:,count) );
+    SN_ratio(count)   = ubr_estimate_signal_to_noise_ratio( reactivity(:,count), reactivity_err(:,count) );
     SN_classification = classify_signal_to_noise_ratio( SN_ratio(count) );
 
     modifier = '';
@@ -68,7 +68,7 @@ for j = squeeze(good_idx)'
     data_annotation  = [data_annotation,  ['sequence:',sequences{j}] ];
     if exist( 'structures','var') & length(structures)>=j; data_annotation  = [data_annotation,  ['structure:',structures{j}] ]; end;
     data_annotation = [data_annotation, ['signal_to_noise:',SN_classification,':',num2str(SN_ratio(count),'%8.3f') ] ];
-    if length( extra_data_annotations   ) > 0;  data_annotation  = [data_annotation,  extra_data_annotations{j} ]; end;
+    if length(extra_data_annotations) > 0;  data_annotation  = [data_annotation,  extra_data_annotations{j} ]; end;
     data_annotations{count} = data_annotation;
     
 end
