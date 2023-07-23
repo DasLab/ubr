@@ -22,6 +22,7 @@ parser.add_argument('-ow','--overwrite',action = 'store_true')
 parser.add_argument('-orc','--output_raw_counts',action = 'store_true')
 parser.add_argument('-nlc','--no_length_cutoff',action = 'store_true')
 parser.add_argument('-nm','--no_mixed',action = 'store_true')
+parser.add_argument('-sm','--score_min')
 
 args = parser.parse_args()
 
@@ -137,6 +138,7 @@ for i in range(1,nsplits+1):
     if args.output_raw_counts: extra_flags += ' --output_raw_counts'
     if args.no_length_cutoff:  extra_flags += ' --no_length_cutoff'
     if args.no_mixed:  extra_flags += ' --no_mixed'
+    if len(args.score_min) > 0:  extra_flags += ' --score_min %s' % args.score_min
 
     fid = open( outdir + '/'+ubr_run_sh_name, 'w' )
     fid.write( 'ubr_run.py -s %s -b %s -1 %s -2 %s%s > ubr_run.out 2> ubr_run.err & \n' % ( os.path.basename(args.sequences_fasta), os.path.basename(args.primer_barcodes_fasta), os.path.basename(f1), os.path.basename(f2),extra_flags) )
