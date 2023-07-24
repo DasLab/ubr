@@ -23,6 +23,7 @@ parser.add_argument('-orc','--output_raw_counts',action = 'store_true')
 parser.add_argument('-nlc','--no_length_cutoff',action = 'store_true')
 parser.add_argument('-nm','--no_mixed',action = 'store_true')
 parser.add_argument('-sm','--score_min')
+parser.add_argument('-mq','--map_quality',default=10,type=int,help='minimum Bowtie2 MAPQ to consider read')
 
 args = parser.parse_args()
 
@@ -138,6 +139,7 @@ for i in range(1,nsplits+1):
     if args.output_raw_counts: extra_flags += ' --output_raw_counts'
     if args.no_length_cutoff:  extra_flags += ' --no_length_cutoff'
     if args.no_mixed:  extra_flags += ' --no_mixed'
+    if args.map_quality != 10:  extra_flags += ' --map_quality %d' % args.map_quality
     if len(args.score_min) > 0:  extra_flags += ' --score_min %s' % args.score_min
 
     fid = open( outdir + '/'+ubr_run_sh_name, 'w' )

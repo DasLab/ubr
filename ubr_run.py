@@ -18,6 +18,7 @@ parser.add_argument('-orc','--output_raw_counts',action = 'store_true')
 parser.add_argument('-nlc','--no_length_cutoff',action = 'store_true')
 parser.add_argument('-nm','--no_mixed',action = 'store_true')
 parser.add_argument('-sm','--score_min')
+parser.add_argument('-mq','--map_quality',default=10,type=int,help='minimum Bowtie2 MAPQ to consider read')
 parser.add_argument('-O','--outdir',default='')
 parser.add_argument('-t','--threads',default=1, type=int)
 
@@ -156,9 +157,10 @@ for primer_name in primer_names:
     outdir = wd  + '3_rf_count/%s' % (primer_name)
     if args.overwrite or not os.path.isfile(outdir+'/bowtie2.rc'):
         os.makedirs(outdir,exist_ok = True)
-        orc_string = ''
-        if args.output_raw_counts: orc_string = '-orc '
-        command = 'rf-count --processors %d -f %s -m -cc -rd -ni -ds %d %s-ow -o %s %s > %s/rf-count.out 2> %s/rf-count.err' % (args.threads, seq_file, MIN_READ_LENGTH, orc_string, outdir, sam_file, outdir,outdir)
+        extra_flags = ''
+        if args.output_raw_counts: extra_flags = ' -orc '
+        if args.map_quality != 10:  extra_flags += ' --map-quality %d' % args.map_quality
+        command = 'rf-count --processors %d -f %s -m -cc -rd -ni -ds %d %s -ow -o %s %s > %s/rf-count.out 2> %s/rf-count.err' % (args.threads, seq_file, MIN_READ_LENGTH, extra_flags, outdir, sam_file, outdir,outdir)
         print(command)
         os.system( command )
     else:
