@@ -13,6 +13,7 @@ parser = argparse.ArgumentParser(
 args = parser.add_argument( 'split_dir',default='UBR',help='name of directory with 001/,002/ job directories (default UBR)' )
 args = parser.add_argument( '--merge_files' ,nargs='+',help='Filenames to find and merge')
 args = parser.add_argument( '-s','--setup_slurm', action='store_true',help='Instead of running, create sbatch script' )
+args = parser.add_argument('-j','--jobs_per_slurm_node', default=16,type=int )
 args = parser.parse_args()
 
 merge_files = args.merge_files
@@ -37,16 +38,42 @@ if merge_files == None:
 print( merge_files )
 
 if args.setup_slurm:
-    sbatch_file = 'run_ubr_merge.sh'
-    fid_slurm = open( sbatch_file, 'w' )
-    sbatch_preface = '#!/bin/bash\n#SBATCH --job-name=ubr_merge\n#SBATCH --output=ubr_merge.o%%j\n#SBATCH --error=ubr_merge.e%%j\n#SBATCH --partition=biochem,owners\n#SBATCH --time=8:00:00\n#SBATCH -n %d\n#SBATCH -N 1\n\n' % len(merge_files)
-    fid_slurm.write( sbatch_preface )
-    for merge_file in merge_files:
-        command = 'ubr_merge.py %s --merge_files %s &' % ( args.split_dir, merge_file )
-        fid_slurm.write( command +'\n' )
-    fid_slurm.write('\nwait\n')
-    fid_slurm.close()
-    print( '\nCreated %s with %d commands. Run:\n sbatch %s\n\n' % (sbatch_file,len(merge_files),sbatch_file) )
+    if len(merge_files) < args.jobs_per_slurm_node:
+        sbatch_file = 'run_ubr_merge.sh'
+        fid_slurm = open( sbatch_file, 'w' )
+        sbatch_preface = '#!/bin/bash\n#SBATCH --job-name=ubr_merge\n#SBATCH --output=ubr_merge.o%%j\n#SBATCH --error=ubr_merge.e%%j\n#SBATCH --partition=biochem,owners\n#SBATCH --time=8:00:00\n#SBATCH -n %d\n#SBATCH -N 1\n\n' % len(merge_files)
+        fid_slurm.write( sbatch_preface )
+        for merge_file in merge_files:
+            command = 'ubr_merge.py %s --merge_files %s &' % ( args.split_dir, merge_file )
+            fid_slurm.write( command +'\n' )
+        fid_slurm.write('\nwait\n')
+        fid_slurm.close()
+        print( '\nCreated %s with %d commands. Run:\n sbatch %s\n\n' % (sbatch_file,len(merge_files),sbatch_file) )
+    else:
+        slurm_file_dir = 'slurm_files'
+        os.makedirs(slurm_file_dir, exist_ok=True )
+
+        slurm_file_count = 1
+        fid_slurm = open( '%s/run_ubr_merge_%03d.sh' % (slurm_file_dir, slurm_file_count), 'w' )
+        sbatch_preface = '#!/bin/bash\n#SBATCH --job-name=ubr_merge\n#SBATCH --output=ubr_merge.o%%j\n#SBATCH --error=ubr_merge.e%%j\n#SBATCH --partition=biochem,owners\n#SBATCH --time=2:00:00\n#SBATCH -n %d\n#SBATCH -N 1\n\n' % args.jobs_per_slurm_node
+        fid_slurm.write( sbatch_preface )
+        fid_sbatch_commands = open( 'sbatch_merge_commands.sh', 'w')
+
+        for (i,merge_file) in enumerate(merge_files):
+            command = 'ubr_merge.py %s --merge_files %s &' % ( args.split_dir, merge_file )
+            fid_slurm.write( command +'\n' )
+            if ( (i+1) % args.jobs_per_slurm_node == 0 ) or i == len(merge_files)-1:
+                fid_sbatch_commands.write('sbatch %s\n' % fid_slurm.name )
+                fid_slurm.write('\nwait\necho "DONE"\n')
+                fid_slurm.close()
+                if i < len(merge_files)-1:
+                    slurm_file_count += 1
+                    fid_slurm = open( '%s/run_ubr_merge_%03d.sh' % (slurm_file_dir, slurm_file_count), 'w' )
+                    fid_slurm.write( sbatch_preface )
+        fid_sbatch_commands.close()
+        print( '\nCreated %s slurm files containing %d commands. Run:\n source %s\n\n' % (slurm_file_count,len(merge_files),fid_sbatch_commands.name) )
+    exit(0)
+
 else:
     # Do the merges
     for filename in merge_files:
