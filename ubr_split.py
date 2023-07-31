@@ -19,11 +19,15 @@ parser.add_argument('-n','--nsplits', default=0, type=int, help='number of separ
 parser.add_argument('-q','--sequences_per_partition', default=0, type=int, help='number of sequences in each partition. overrides -n/--nsplits.' )
 parser.add_argument('-j','--jobs_per_slurm_node', default=24,type=int )
 parser.add_argument('-ow','--overwrite',action = 'store_true')
-parser.add_argument('-orc','--output_raw_counts',action = 'store_true')
-parser.add_argument('-nlc','--no_length_cutoff',action = 'store_true')
-parser.add_argument('-nm','--no_mixed',action = 'store_true')
-parser.add_argument('-sm','--score_min')
+
+parser.add_argument('-nm','--no_mixed',action = 'store_true',help='No mixed reads in Bowtie2')
+parser.add_argument('-sm','--score_min',help='minimum score for Bowtie2')
 parser.add_argument('-mq','--map_quality',default=10,type=int,help='minimum Bowtie2 MAPQ to consider read')
+
+parser.add_argument('-lc','--length_cutoff',action = 'store_true',help='Use length cutoff of 0.92 length for RNAframework')
+parser.add_argument('-nlc','--no_length_cutoff',action = 'store_true')
+parser.add_argument('-norc','--no_output_raw_counts',action = 'store_true',help='do not output raw counts from RNAframework')
+parser.add_argument('-orc','--output_raw_counts',action = 'store_true')
 parser.add_argument('-me','--max_edit_distance',default=0.0,type=float,help='max edit distance for RNAFramework (0.15)')
 
 args = parser.parse_args()
@@ -31,6 +35,8 @@ args = parser.parse_args()
 if ( args.nsplits == 0 and args.sequences_per_partition == 0 ):
     print( "Must specify either -n/--nsplits or -q/--sequences_per_partition" )
     exit()
+if args.no_length_cutoff:  print( '\n--no_length_cutoff is on by default now!\n' )
+if args.output_raw_counts: print( '\n--output_raw_counts is on by default now!\n' )
 
 time_start = time.time()
 
@@ -137,8 +143,8 @@ for i in range(1,nsplits+1):
     assert( os.path.isfile(outdir+'/'+f2) )
 
     extra_flags = ''
-    if args.output_raw_counts: extra_flags += ' --output_raw_counts'
-    if args.no_length_cutoff:  extra_flags += ' --no_length_cutoff'
+    if args.no_output_raw_counts: extra_flags += ' --no_output_raw_counts'
+    if args.length_cutoff:  extra_flags += ' --length_cutoff'
     if args.no_mixed:  extra_flags += ' --no_mixed'
     if args.map_quality != 10:  extra_flags += ' --map_quality %d' % args.map_quality
     if args.max_edit_distance > 0:  extra_flags += ' --max_edit_distance %f' % args.max_edit_distance

@@ -14,16 +14,23 @@ parser.add_argument('-b','--primer_barcodes_fasta', required=True)
 parser.add_argument('-1','--read1_fastq', required=True)
 parser.add_argument('-2','--read2_fastq', required=True)
 parser.add_argument('-ow','--overwrite',action = 'store_true')
-parser.add_argument('-orc','--output_raw_counts',action = 'store_true')
-parser.add_argument('-nlc','--no_length_cutoff',action = 'store_true')
-parser.add_argument('-nm','--no_mixed',action = 'store_true')
-parser.add_argument('-sm','--score_min')
-parser.add_argument('-mq','--map_quality',default=10,type=int,help='minimum Bowtie2 MAPQ to consider read')
-parser.add_argument('-me','--max_edit_distance',default=0.0,type=float,help='max edit distance for RNAFramework (0.15)')
 parser.add_argument('-O','--outdir',default='')
 parser.add_argument('-t','--threads',default=1, type=int)
 
+parser.add_argument('-nm','--no_mixed',action = 'store_true',help='No mixed reads in Bowtie2')
+parser.add_argument('-sm','--score_min',help='minimum score for Bowtie2')
+parser.add_argument('-mq','--map_quality',default=10,type=int,help='minimum Bowtie2 MAPQ to consider read')
+
+parser.add_argument('-lc','--length_cutoff',action = 'store_true',help='Use length cutoff of 0.92 length for RNAframework')
+parser.add_argument('-nlc','--no_length_cutoff',action = 'store_true',help=argparse.SUPPRESS)
+parser.add_argument('-norc','--no_output_raw_counts',action = 'store_true',help='do not output raw counts from RNAframework')
+parser.add_argument('-orc','--output_raw_counts',action = 'store_true',help=argparse.SUPPRESS)
+parser.add_argument('-me','--max_edit_distance',default=0.0,type=float,help='max edit distance for RNAFramework (0.15)')
+
+
 args = parser.parse_args()
+if args.no_length_cutoff: print( '--no_length_cutoff is on by default now! Flag will be deprecated later.' )
+if args.output_raw_counts:  print( '--output_raw_counts is on by default now! Flag Will be deprecated later.' )
 
 time_start = time.time()
 
@@ -141,12 +148,13 @@ for primer_barcode,primer_name in zip(primer_barcodes,primer_names):
 
 time_bowtie2 = time.time()
 
-if args.no_length_cutoff:
-    MIN_READ_LENGTH = 1
-else:
+# Some deprecated options
+if args.length_cutoff:
     min_seq_length = min( map( lambda x:len(x), sequences ) )
     MIN_READ_LENGTH = int(min_seq_length * 0.92)
     print( '\nrf-count will throw out reads with length smaller than 92%% of minimal sequence length: %d' % MIN_READ_LENGTH )
+else:
+    MIN_READ_LENGTH = 1
 
 # rf-count to assign muts/dels/inserts
 print()
@@ -159,7 +167,7 @@ for primer_name in primer_names:
     if args.overwrite or not os.path.isfile(outdir+'/bowtie2.rc'):
         os.makedirs(outdir,exist_ok = True)
         extra_flags = ''
-        if args.output_raw_counts: extra_flags = ' -orc '
+        if not args.no_output_raw_counts: extra_flags = ' -orc '
         if args.map_quality != 10:  extra_flags += ' --map-quality %d' % args.map_quality
         if args.max_edit_distance > 0:  extra_flags += ' --max-edit-distance %f' % args.max_edit_distance
 
@@ -183,6 +191,7 @@ for primer_name in primer_names:
         command = 'rf-rctools view %s > %s' % (rc_file, rf_count_file)
         print(command)
         os.system( command )
+        assert( len(open(rf_count_file).readlines()) == 5 * len(sequences) )
     else:
         print( 'Skipping rf-rctools into: %s' % outdir )
 time_rctools = time.time()
