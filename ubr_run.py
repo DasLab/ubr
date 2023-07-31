@@ -19,6 +19,7 @@ parser.add_argument('-nlc','--no_length_cutoff',action = 'store_true')
 parser.add_argument('-nm','--no_mixed',action = 'store_true')
 parser.add_argument('-sm','--score_min')
 parser.add_argument('-mq','--map_quality',default=10,type=int,help='minimum Bowtie2 MAPQ to consider read')
+parser.add_argument('-me','--max_edit_distance',default=0.0,type=float,help='max edit distance for RNAFramework (0.15)')
 parser.add_argument('-O','--outdir',default='')
 parser.add_argument('-t','--threads',default=1, type=int)
 
@@ -129,7 +130,7 @@ for primer_barcode,primer_name in zip(primer_barcodes,primer_names):
     sam_file = '%s/bowtie2.sam' % outdir
     extra_flags = ''
     if args.no_mixed: extra_flags += ' --no-mixed'
-    if len(args.score_min) > 0:  extra_flags += ' --score-min %s' % args.score_min
+    if args.score_min != None:  extra_flags += ' --score-min %s' % args.score_min
     if not os.path.isfile( sam_file ) or args.overwrite:
         # previously used --local --sensitive-local, but bowtie2 would punt on aligning 3' ends and misalign reads to some short parasite replicons.
         command = 'bowtie2 --end-to-end --sensitive --maxins=800 --ignore-quals --no-unal --mp 3,1 --rdg 5,1 --rfg 5,1 --dpad 30 -x %s -1 %s -2 %s -S %s --threads %d %s > %s/bowtie2.out 2> %s/bowtie2.err' % (bt2_prefix,i1,i2,sam_file,args.threads,extra_flags,outdir,outdir)
@@ -160,6 +161,8 @@ for primer_name in primer_names:
         extra_flags = ''
         if args.output_raw_counts: extra_flags = ' -orc '
         if args.map_quality != 10:  extra_flags += ' --map-quality %d' % args.map_quality
+        if args.max_edit_distance > 0:  extra_flags += ' --max-edit-distance %f' % args.max_edit_distance
+
         command = 'rf-count --processors %d -f %s -m -cc -rd -ni -ds %d %s -ow -o %s %s > %s/rf-count.out 2> %s/rf-count.err' % (args.threads, seq_file, MIN_READ_LENGTH, extra_flags, outdir, sam_file, outdir,outdir)
         print(command)
         os.system( command )

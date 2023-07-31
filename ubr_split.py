@@ -24,6 +24,7 @@ parser.add_argument('-nlc','--no_length_cutoff',action = 'store_true')
 parser.add_argument('-nm','--no_mixed',action = 'store_true')
 parser.add_argument('-sm','--score_min')
 parser.add_argument('-mq','--map_quality',default=10,type=int,help='minimum Bowtie2 MAPQ to consider read')
+parser.add_argument('-me','--max_edit_distance',default=0.0,type=float,help='max edit distance for RNAFramework (0.15)')
 
 args = parser.parse_args()
 
@@ -140,7 +141,8 @@ for i in range(1,nsplits+1):
     if args.no_length_cutoff:  extra_flags += ' --no_length_cutoff'
     if args.no_mixed:  extra_flags += ' --no_mixed'
     if args.map_quality != 10:  extra_flags += ' --map_quality %d' % args.map_quality
-    if len(args.score_min) > 0:  extra_flags += ' --score_min %s' % args.score_min
+    if args.max_edit_distance > 0:  extra_flags += ' --max_edit_distance %f' % args.max_edit_distance
+    if args.score_min != None:  extra_flags += ' --score_min %s' % args.score_min
 
     fid = open( outdir + '/'+ubr_run_sh_name, 'w' )
     fid.write( 'ubr_run.py -s %s -b %s -1 %s -2 %s%s > ubr_run.out 2> ubr_run.err & \n' % ( os.path.basename(args.sequences_fasta), os.path.basename(args.primer_barcodes_fasta), os.path.basename(f1), os.path.basename(f2),extra_flags) )
