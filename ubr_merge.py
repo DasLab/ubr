@@ -5,6 +5,7 @@ import os
 import glob
 import shutil
 import time
+import pandas as pd
 
 parser = argparse.ArgumentParser(
                     prog = 'ubr_merge.py',
@@ -90,36 +91,24 @@ for filename in merge_files:
         os.makedirs( outdir, exist_ok = True )
 
     counts = []
+    df = None
     for infile in infiles:
-        lines = open(infile).readlines()
-        for (i,line) in enumerate(lines):
-            if len(counts)<=i: counts.append([])
-            for (j,count) in enumerate(line.split()):
-                if len(counts[i])<=j: counts[i].append(0)
-                counts[i][j] += int(count)
-    nseq = len(counts)
+        df_infile = pd.read_table(infile,sep=' ',header=None)
+        if df is None:
+            df = df_infile
+        else:
+            df = df.add(df_infile,fill_value = 0)
+    nseq = len(df)
 
     time_after_infile = time.time()
 
     time_readin += time_after_infile - time_startfile
 
-    # pad all counts lines to same length
-    max_seq_length = max( map( len, counts ) )
-    for i in range(nseq):
-        for j in range(len(counts[i]),max_seq_length):
-            counts[i].append(0)
+    outfile = outdir+filename
+    tot_counts = df.max(axis=1).sum()
+    df.to_csv(outfile,sep=' ',header=None,index=None)
 
-    tot_counts = 0
-    outfile = filename
-    fid = open( outdir+outfile, 'w' )
-    for line in counts:
-        tot_counts += max(line)
-        for (j,count) in enumerate(line):
-            fid.write('%d' % count)
-            if j == len(line)-1: fid.write('\n')
-            else: fid.write(' ')
-    print( 'Compiled %8d total counts for %6d sequences from %6d files into: %s' % (tot_counts,nseq,len(infiles),fid.name) )
-    fid.close()
+    print( 'Compiled %8d total counts for %6d sequences from %6d files into: %s' % (tot_counts,nseq,len(infiles),outfile) )
 
     time_output += (time.time()-time_after_infile)
 
