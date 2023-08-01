@@ -92,23 +92,33 @@ for filename in merge_files:
 
     counts = []
     df = None
-    for infile in infiles:
-        df_infile = pd.read_table(infile,sep=' ',header=None)
-        if df is None:
+    numfiles = 0
+    for (i,infile) in enumerate(infiles):
+        #print('Reading in: ', infile)
+        try:
+            df_infile = pd.read_table(infile,sep=' ',header=None)
+        except pd.errors.EmptyDataError:
+            print('Note: %s was empty. Skipping.' % infile )
+            continue # will skip the rest of the block and move to next file
+        if i==0:
             df = df_infile
         else:
             df = df.add(df_infile,fill_value = 0)
-    nseq = len(df)
+        numfiles += 1
 
     time_after_infile = time.time()
 
     time_readin += time_after_infile - time_startfile
 
-    outfile = outdir+filename
-    tot_counts = df.max(axis=1).sum()
-    df.to_csv(outfile,sep=' ',header=None,index=None)
+    if len(infiles) == 0:
+        print( 'Did not find any files to merge. Did you give the UBR directory?' )
+    else:
+        outfile = outdir+filename
+        df.to_csv(outfile,sep=' ',header=None,index=None)
 
-    print( 'Compiled %8d total counts for %6d sequences from %6d files into: %s' % (tot_counts,nseq,len(infiles),outfile) )
+        nseq = len(df)
+        tot_counts = df.max(axis=1).sum()
+        print( 'Compiled %8d total counts for %6d sequences from %6d of %6d files into: %s' % (tot_counts,nseq,numfiles,len(infiles),outfile) )
 
     time_output += (time.time()-time_after_infile)
 
