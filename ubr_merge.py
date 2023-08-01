@@ -4,6 +4,7 @@ import argparse
 import os
 import glob
 import shutil
+import time
 
 parser = argparse.ArgumentParser(
                     prog = 'ubr_merge.py',
@@ -76,7 +77,12 @@ if args.setup_slurm:
 
 else:
     # Do the merges
+    time_start = time.time()
+    time_readin = 0
+    time_output = 0
     for filename in merge_files:
+        time_startfile = time.time()
+
         infiles = sorted(glob.glob('%s/*/%s' % (args.split_dir,filename) ))
         outdir = ''
         if len(infiles) == 0:
@@ -93,6 +99,10 @@ else:
                     if len(counts[i])<=j: counts[i].append(0)
                     counts[i][j] += int(count)
         nseq = len(counts)
+
+        time_after_infile = time.time()
+
+        time_readin += time_after_infile - time_startfile
 
         # pad all counts lines to same length
         max_seq_length = max( map( len, counts ) )
@@ -111,3 +121,15 @@ else:
                 else: fid.write(' ')
         print( 'Compiled %8d total counts for %6d sequences from %6d files into: %s' % (tot_counts,nseq,len(infiles),fid.name) )
         fid.close()
+
+        time_output += (time.time()-time_after_infile)
+
+    time_end = time.time()
+
+
+    print( '\nTimings:')
+    print( 'Read in data: ' + time.strftime("%H:%M:%S",time.gmtime(time_readin) ) )
+    print( 'Output  data: ' + time.strftime("%H:%M:%S",time.gmtime(time_output) ) )
+
+    print( '\nTotal time: ' + time.strftime("%H:%M:%S",time.gmtime(time_end-time_start) ) )
+
