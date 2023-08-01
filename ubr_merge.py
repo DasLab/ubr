@@ -75,61 +75,59 @@ if args.setup_slurm:
         print( '\nCreated %s slurm files containing %d commands. Run:\n source %s\n\n' % (slurm_file_count,len(merge_files),fid_sbatch_commands.name) )
     exit(0)
 
-else:
-    # Do the merges
-    time_start = time.time()
-    time_readin = 0
-    time_output = 0
-    for filename in merge_files:
-        time_startfile = time.time()
+# Do the merges
+time_start = time.time()
+time_readin = 0
+time_output = 0
+for filename in merge_files:
+    time_startfile = time.time()
 
-        infiles = sorted(glob.glob('%s/*/%s' % (args.split_dir,filename) ))
-        outdir = ''
-        if len(infiles) == 0:
-            infiles = sorted(glob.glob('%s/*/raw_counts/%s' % (args.split_dir,filename) ))
-            outdir = 'raw_counts/'
-            os.makedirs( outdir, exist_ok = True )
+    infiles = sorted(glob.glob('%s/*/%s' % (args.split_dir,filename) ))
+    outdir = ''
+    if len(infiles) == 0:
+        infiles = sorted(glob.glob('%s/*/raw_counts/%s' % (args.split_dir,filename) ))
+        outdir = 'raw_counts/'
+        os.makedirs( outdir, exist_ok = True )
 
-        counts = []
-        for infile in infiles:
-            lines = open(infile).readlines()
-            for (i,line) in enumerate(lines):
-                if len(counts)<=i: counts.append([])
-                for (j,count) in enumerate(line.split()):
-                    if len(counts[i])<=j: counts[i].append(0)
-                    counts[i][j] += int(count)
-        nseq = len(counts)
+    counts = []
+    for infile in infiles:
+        lines = open(infile).readlines()
+        for (i,line) in enumerate(lines):
+            if len(counts)<=i: counts.append([])
+            for (j,count) in enumerate(line.split()):
+                if len(counts[i])<=j: counts[i].append(0)
+                counts[i][j] += int(count)
+    nseq = len(counts)
 
-        time_after_infile = time.time()
+    time_after_infile = time.time()
 
-        time_readin += time_after_infile - time_startfile
+    time_readin += time_after_infile - time_startfile
 
-        # pad all counts lines to same length
-        max_seq_length = max( map( len, counts ) )
-        for i in range(nseq):
-            for j in range(len(counts[i]),max_seq_length):
-                counts[i].append(0)
+    # pad all counts lines to same length
+    max_seq_length = max( map( len, counts ) )
+    for i in range(nseq):
+        for j in range(len(counts[i]),max_seq_length):
+            counts[i].append(0)
 
-        tot_counts = 0
-        outfile = filename
-        fid = open( outdir+outfile, 'w' )
-        for line in counts:
-            tot_counts += max(line)
-            for (j,count) in enumerate(line):
-                fid.write('%d' % count)
-                if j == len(line)-1: fid.write('\n')
-                else: fid.write(' ')
-        print( 'Compiled %8d total counts for %6d sequences from %6d files into: %s' % (tot_counts,nseq,len(infiles),fid.name) )
-        fid.close()
+    tot_counts = 0
+    outfile = filename
+    fid = open( outdir+outfile, 'w' )
+    for line in counts:
+        tot_counts += max(line)
+        for (j,count) in enumerate(line):
+            fid.write('%d' % count)
+            if j == len(line)-1: fid.write('\n')
+            else: fid.write(' ')
+    print( 'Compiled %8d total counts for %6d sequences from %6d files into: %s' % (tot_counts,nseq,len(infiles),fid.name) )
+    fid.close()
 
-        time_output += (time.time()-time_after_infile)
+    time_output += (time.time()-time_after_infile)
 
-    time_end = time.time()
+time_end = time.time()
 
+print( '\nTimings:')
+print( 'Read in data: ' + time.strftime("%H:%M:%S",time.gmtime(time_readin) ) )
+print( 'Output  data: ' + time.strftime("%H:%M:%S",time.gmtime(time_output) ) )
 
-    print( '\nTimings:')
-    print( 'Read in data: ' + time.strftime("%H:%M:%S",time.gmtime(time_readin) ) )
-    print( 'Output  data: ' + time.strftime("%H:%M:%S",time.gmtime(time_output) ) )
-
-    print( '\nTotal time: ' + time.strftime("%H:%M:%S",time.gmtime(time_end-time_start) ) )
+print( '\nTotal time: ' + time.strftime("%H:%M:%S",time.gmtime(time_end-time_start) ) )
 
