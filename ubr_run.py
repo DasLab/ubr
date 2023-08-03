@@ -158,20 +158,28 @@ else:
 
 # rf-count to assign muts/dels/inserts
 print()
-for primer_name in primer_names:
+rf_count_dir = wd + '3_rf_count'
+os.makedirs(rf_count_dir,exist_ok = True)
+rf_count_outfile = rf_count_dir+'/rf-count.out'
+rf_count_errfile = rf_count_dir+'/rf-count.err'
+for (n,primer_name) in enumerate(primer_names):
     bowtie_align_dir = wd + '2_bowtie2/%s/' % (primer_name)
     sam_file = '%s/bowtie2.sam' % bowtie_align_dir
     if not os.path.isfile( sam_file ): continue
 
-    outdir = wd  + '3_rf_count/%s' % (primer_name)
+    outdir = '%s/%s' % (rf_count_dir,primer_name)
     if args.overwrite or not os.path.isfile(outdir+'/bowtie2.rc'):
-        os.makedirs(outdir,exist_ok = True)
+        # need to remove dir and start job; rf-count's overwrite option does crazy things.
+        if os.path.isdir(outdir): shutil.rmtree(outdir)
+        if n == 0:
+            if os.path.isfile(rf_count_outfile): os.remove( rf_count_outfile )
+            if os.path.isfile(rf_count_errfile): os.remove( rf_count_errfile )
         extra_flags = ''
         if not args.no_output_raw_counts: extra_flags = ' -orc '
         if args.map_quality != 10:  extra_flags += ' --map-quality %d' % args.map_quality
         if args.max_edit_distance > 0:  extra_flags += ' --max-edit-distance %f' % args.max_edit_distance
 
-        command = 'rf-count --processors %d -f %s -m -cc -rd -ni -ds %d %s -ow -o %s %s > %s/rf-count.out 2> %s/rf-count.err' % (args.threads, seq_file, MIN_READ_LENGTH, extra_flags, outdir, sam_file, outdir,outdir)
+        command = 'rf-count --processors %d -f %s -m -cc -rd -ni -ds %d %s -o %s %s >> %s 2>> %s' % (args.threads, seq_file, MIN_READ_LENGTH, extra_flags, outdir, sam_file, rf_count_outfile, rf_count_errfile)
         print(command)
         os.system( command )
     else:
