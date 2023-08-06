@@ -1,6 +1,6 @@
-function rdat = output_rdat_from_ubr_analysis( filename, name, good_idx, r_norm, r_norm_err, sequences, structures, BLANK_OUT5, BLANK_OUT3, comments, annotations, extra_data_annotations );
+function rdat = output_rdat_from_ubr_analysis( filename, name, good_idx, r_norm, r_norm_err, sequences, structures, BLANK_OUT5, BLANK_OUT3, comments, annotations, extra_data_annotations, reads );
 %
-% rdat = output_rdat_from_ubr_analysis( filename, name, good_idx, r_norm, r_norm_err, sequences, structures, BLANK_OUT5, BLANK_OUT3, comments, annotations, extra_data_annotations );
+% rdat = output_rdat_from_ubr_analysis( filename, name, good_idx, r_norm, r_norm_err, sequences, structures, BLANK_OUT5, BLANK_OUT3, comments, annotations, extra_data_annotations, reads );
 %
 %  filename   = name of file to output to disk, e.g., 'RHEt1_PK50_Twist.rdat'
 %  name       = will show up in NAME field of RDAT -- short description of
@@ -18,6 +18,7 @@ function rdat = output_rdat_from_ubr_analysis( filename, name, good_idx, r_norm,
 %  extra_data_annotations = {cell of Ndesign cells} extra annotations to put
 %                   in DATA_ANNOTATION. Give [] or {} if no extra
 %                   annotations.
+%  reads = [Ndesigns] integers for number of reads contributing to profile.
 %
 % Adapted from an analogous output wrapper from MAPseeker.
 %
@@ -67,6 +68,8 @@ for j = squeeze(good_idx)'
     data_annotation = {};
     data_annotation  = [data_annotation,  ['sequence:',sequences{j}] ];
     if exist( 'structures','var') & length(structures)>=j; data_annotation  = [data_annotation,  ['structure:',structures{j}] ]; end;
+    if exist( 'reads','var') & length(reads)>=j; data_annotation = [data_annotation, sprintf('reads:%d',reads(j))]; end
+
     data_annotation = [data_annotation, ['signal_to_noise:',SN_classification,':',num2str(SN_ratio(count),'%8.3f') ] ];
     if length(extra_data_annotations) > 0;  data_annotation  = [data_annotation,  extra_data_annotations{j} ]; end;
     data_annotations{count} = data_annotation;
@@ -87,6 +90,5 @@ rdat = output_workspace_to_rdat_file( filename, name, sequence, offset, seqpos, 
 				      reactivity_err, ...
 				      [],[],[], comments );
 
-
-
+fprintf('Outputted %d profiles into %s.\n\n',size(reactivity,2),filename);
 
