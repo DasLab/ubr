@@ -219,22 +219,29 @@ for primer_name in primer_names:
     if os.path.isfile( infile ):
         lines = open( infile ).readlines()
         N = int(len(lines)/5)
+        all_muts = []
+        all_coverage = []
+        tally_coverage = (N <= 50000) # takes long time for long libraries
         for n in range( N ):
-            muts     = ' '.join(lines[5*n+2].strip('\n').split(','))
+            muts     = lines[5*n+2].strip('\n')
+            coverage = lines[5*n+3].strip('\n')
             fid_counts.write( muts+'\n' )
-            coverage = ' '.join(lines[5*n+3].strip('\n').split(','))
-            Npos = len(coverage.split())
             fid_coverage.write( coverage + '\n' )
-            total_coverage += max(map( lambda x:int(x), coverage.split() ))
+            if n == 0: Npos = len(coverage.split(','))
+            if tally_coverage: total_coverage += max(map( lambda x:int(x), coverage.split(',') ))
+    else:
+        print( 'WARNING! Could not find %s' % infile )
     fid_counts.close()
     fid_coverage.close()
-    print( 'Created: %s and %s for %d sequences with total coverage %d' % (outfile_counts,outfile_coverage,N,total_coverage) )
+    total_coverage_string = ''
+    if tally_coverage: total_coverage_string = ' with total coverage %d' % total_coverage
+    print( 'Created: %s and %s for %d sequences%s' % (outfile_counts,outfile_coverage,N,total_coverage_string) )
 
 # Compile information on mutation-type read counts (if available)
 print()
-design_names = []
-for header in headers: design_names.append( header.strip().split()[0])
-assert( len(design_names) == N )
+design_name_idx = {}
+for (idx,header) in enumerate(headers): design_name_idx[ header.strip().split()[0] ] = idx
+assert( len(design_name_idx) == N )
 
 mut_types = ['AC','AG','AT','CA','CG','CT','GA','GC','GT','TA','TC','TG','ins','del']
 outdir = wd+'raw_counts/'
@@ -246,20 +253,22 @@ for primer_name in primer_names:
         N = int(len(lines)/16)
         outfiles_raw_counts = []
         for (k,mut_type) in enumerate(mut_types):
-            raw_count_lines = [' '.join( ['0']*Npos )]*len(design_names)
+            raw_count_lines = [','.join( ['0']*Npos )]*len(design_name_idx)
             for n in range( N ):
                 design_name = lines[16*n].strip('\n')
-                assert( design_name in design_names )
-                idx = design_names.index( design_name )
+                assert( design_name in design_name_idx )
+                idx = design_name_idx[ design_name ]
                 cols = lines[16*n+1+k].strip('\n').split()
                 assert( cols[0] == mut_type)
-                raw_count_lines[idx] = ' '.join(cols[1].split(','))
+                raw_count_lines[idx] = cols[1]
             outfile_raw_counts = outdir + '%s.%s.txt' % (primer_name,mut_type)
             outfiles_raw_counts.append(outfile_raw_counts)
             fid_raw_counts = open(outfile_raw_counts,'w')
             for line in raw_count_lines: fid_raw_counts.write( line+'\n' )
             fid_raw_counts.close()
-        print( 'Created %s for %d sequences (found %d designs)' % (','.join(outfiles_raw_counts),len(design_names),N) )
+        print( 'Created %s for %d sequences (found %d designs)' % (','.join(outfiles_raw_counts),len(design_name_idx),N) )
+    else:
+        print( 'WARNING! Could not find %s' % infile )
 
 time_end=time.time()
 
