@@ -37,7 +37,9 @@ if merge_files == None:
 
     merge_files = unique_files
 
-print( merge_files )
+print('\nWill merge:')
+for merge_file in merge_files:
+    print(merge_file)
 
 if args.setup_slurm:
     if len(merge_files) < args.jobs_per_slurm_node:
@@ -94,9 +96,16 @@ for filename in merge_files:
     df = None
     numfiles = 0
     for (i,infile) in enumerate(infiles):
-        #print('Reading in: ', infile)
+
+        # need to figure out separator
+        sepchar = ','
+        fid = open(infile)
+        if fid.readline().find(sepchar) == -1: sepchar = ' '
+        fid.close()
+
+        # OK read it in!
         try:
-            df_infile = pd.read_table(infile,sep=' ',header=None)
+            df_infile = pd.read_table(infile,sep=sepchar,header=None)
         except pd.errors.EmptyDataError:
             print('Note: %s was empty. Skipping.' % infile )
             continue # will skip the rest of the block and move to next file

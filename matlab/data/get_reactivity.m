@@ -42,7 +42,7 @@ mut_types = {'AC','AG','AT','CA','CG','CT','GA','GC','GT','TA','TC','TG','ins','
 Nmuttypes = length(mut_types);
 if length(size(rc))~=4;
     m = rc;
-    [r,r_err,f,f_err,coverage,signal_to_noise,r_nomod] = get_reactivity_OLD(m,c,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3);
+    [r,r_err,f,f_err,coverage,signal_to_noise,r_nomod] = get_reactivity_OLD(double(m),double(c),shape_nomod_idx,BLANK_OUT5,BLANK_OUT3);
     fprintf(['\n\nWARNING! Get_reactivity requires raw counts (''rc'') as first input:\n[Ndesigns x Nres x Ntags x Nmuttypes] raw counts (Ntags = Number of different',...
         'experimental conditions).\nLast dimension should have size',...
         '14 and correspond to: AC,AG,AT,CA,CG,CT,GA,GC,GT,TA,TC,TG,ins,del.\n\n',...
@@ -52,9 +52,15 @@ else
     assert( size(rc,3) == Nmuttypes );
 end
 
+tic
+fprintf('Compiling reactivity...\n')
 c_reshape = repmat(reshape(c,size(c,1),size(c,2),1,size(c,3)),1,1,Nmuttypes,1);
-f = rc./c_reshape;
-f_err = sqrt(2*rc)./c_reshape; % RNAframework typically spits out 2, not 1, for each paired read!
+frc = single(rc)./single(c_reshape);
+frc_err = sqrt(2*single(rc))./single(c_reshape); % RNAframework typically spits out 2, not 1, for each paired read!
+
+mut_del_idx = [1:12,14];
+f = squeeze(sum(frc(:,:,mut_del_idx,:),3));
+f_err = squeeze(sqrt(sum(frc_err(:,:,mut_del_idx,:).^2,3)));
 
 coverage = squeeze(max(c,[],2));
 
@@ -62,13 +68,13 @@ coverage = squeeze(max(c,[],2));
 for i = 1:length(shape_nomod_idx)
     ci = shape_nomod_idx{i};
     if length(ci)>1
-        rsub(:,:,:,i)     = f(:,:,:,ci(1)) - f(:,:,:,ci(2));
-        rsub_err(:,:,:,i) = sqrt(f_err(:,:,:,ci(1)).^2 + f_err(:,:,:,ci(2)).^2);
-        r_nomod(:,:,:,i)  = f(:,:,:,ci(2));
+        rsub(:,:,:,i)     = frc(:,:,:,ci(1)) - frc(:,:,:,ci(2));
+        rsub_err(:,:,:,i) = sqrt(frc_err(:,:,:,ci(1)).^2 + frc_err(:,:,:,ci(2)).^2);
+        r_nomod(:,:,:,i)  = frc(:,:,:,ci(2));
     else
         assert(length(ci)==1);
-        rsub(:,:,:,i)     = f(:,:,:,ci(1));
-        rsub_err(:,:,:,i) = f_err(:,:,:,ci(1));
+        rsub(:,:,:,i)     = frc(:,:,:,ci(1));
+        rsub_err(:,:,:,i) = frc_err(:,:,:,ci(1));
         r_nomod(:,:,:,i)  = 0*rsub(:,:,:,i);
     end
 end
@@ -78,7 +84,9 @@ rsub_strictmut_err = squeeze(sqrt(sum(rsub_err(:,:,1:12,:).^2,3)));
 rsub_del     = squeeze(rsub(:,:,14,:));
 rsub_del_err = squeeze(rsub_err(:,:,14,:));
 
-r_nomod = squeeze(sum(r_nomod(:,:,[1:12 14],:),3));
+mut_del_idx = [1:12,14];
+r_nomod = squeeze(sum(r_nomod(:,:,mut_del_idx,:),3));
+toc
 
 if ~exist('sequences') | isempty(sequences)
     fprintf(['\n\nWARNING! Get_reactivity requires sequences to spread out deletions at same-nt stretches.\nPlease provide sequences as last input.\nFor now, proceeding without spread out of deletion.\n\n']);
@@ -88,10 +96,13 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% prepare new deletion profiles, 'spread' out at same-nt stretches on mutation spectrum
+tic
+fprintf('Spreading out deletions...\n')
 assert(length(sequences)==size(rsub,1));
 rsub_del_spread = rsub_del*0;
 rsub_del_spread_err = rsub_del_err*0;
 for i = 1:size(rsub_del,1);
+    if mod(i,1000)==0; fprintf('Doing %d out of %d...\n',i,size(rsub_del,1)); end;
     for m = 1:size(rsub_del,3);
         sequence = sequences{i};
         del_profile = squeeze(rsub_del(i,:,m));
@@ -135,6 +146,7 @@ end
 
 [r, r_err, signal_to_noise] = get_r_from_strictmut_del( rsub_strictmut, rsub_del_spread, rsub_strictmut_err, rsub_del_spread_err, BLANK_OUT5, BLANK_OUT3);
 
+toc
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function   [r, r_err, signal_to_noise] = get_r_from_strictmut_del( rsub_strictmut, rsub_del, rsub_strictmut_err, rsub_del_err, BLANK_OUT5, BLANK_OUT3);

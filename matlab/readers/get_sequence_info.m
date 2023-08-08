@@ -34,7 +34,11 @@ for i =1:length(seqs)
     id = str2num(cols{1});
     if ~isempty(id) ids(i) = id; end;
     if length(cols) > 1; titles{i}=strip(strrep(cols{2},'%23','#')); end
-    if length(cols) > 2; authors{i}=strip(cols{3}); end;
+    if length(cols) > 2; authors{i}=strip(strrep(cols{3},'%23','#')); end;
 end
-
+if length(unique(titles))<length(unique(authors)) % swap
+    x = titles;
+    titles = authors;
+    authors = x;
+end
 fprintf( 'Read in %d sequences from %s.\n', length(sequences),fasta_file)
