@@ -160,8 +160,8 @@ else:
 print()
 rf_count_dir = wd + '3_rf_count'
 os.makedirs(rf_count_dir,exist_ok = True)
-rf_count_outfile = rf_count_dir+'/rf-count.out'
-rf_count_errfile = rf_count_dir+'/rf-count.err'
+#rf_count_outfile = rf_count_dir+'/rf-count.out'
+#rf_count_errfile = rf_count_dir+'/rf-count.err'
 for (n,primer_name) in enumerate(primer_names):
     bowtie_align_dir = wd + '2_bowtie2/%s/' % (primer_name)
     sam_file = '%s/bowtie2.sam' % bowtie_align_dir
@@ -171,15 +171,16 @@ for (n,primer_name) in enumerate(primer_names):
     if args.overwrite or not os.path.isfile(outdir+'/bowtie2.rc'):
         # need to remove dir and start job; rf-count's overwrite option does crazy things.
         if os.path.isdir(outdir): shutil.rmtree(outdir)
-        if n == 0:
-            if os.path.isfile(rf_count_outfile): os.remove( rf_count_outfile )
-            if os.path.isfile(rf_count_errfile): os.remove( rf_count_errfile )
+        rf_count_outfile = rf_count_dir+'/rf-count_%s.out' % primer_name
+        rf_count_errfile = rf_count_dir+'/rf-count_%s.err' % primer_name
+        if os.path.isfile(rf_count_outfile): os.remove( rf_count_outfile )
+        if os.path.isfile(rf_count_errfile): os.remove( rf_count_errfile )
         extra_flags = ''
         if not args.no_output_raw_counts: extra_flags = ' -orc '
         if args.map_quality != 10:  extra_flags += ' --map-quality %d' % args.map_quality
         if args.max_edit_distance > 0:  extra_flags += ' --max-edit-distance %f' % args.max_edit_distance
 
-        command = 'rf-count --processors %d -f %s -m -cc -rd -ni -ds %d %s -o %s %s >> %s 2>> %s' % (args.threads, seq_file, MIN_READ_LENGTH, extra_flags, outdir, sam_file, rf_count_outfile, rf_count_errfile)
+        command = 'rf-count --processors %d -wt 1 -fast -f %s -m -cc -rd -ni -ds %d %s -o %s %s >> %s 2>> %s' % (args.threads, seq_file, MIN_READ_LENGTH, extra_flags, outdir, sam_file, rf_count_outfile, rf_count_errfile)
         print(command)
         os.system( command )
     else:
