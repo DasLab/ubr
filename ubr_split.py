@@ -7,7 +7,7 @@ import time
 import glob
 
 parser = argparse.ArgumentParser(
-                    prog = 'ubr_setup.py',
+                    prog = 'ubr_split.py',
                     description = 'Get ready for ubr_run.py.',
                     epilog = 'Split FASTQ files and prepare independent job directories and command-lines.')
 
@@ -54,6 +54,42 @@ assert( os.path.isfile( args.primer_barcodes_fasta ) )
 assert( os.path.isfile( args.read1_fastq ) )
 assert( os.path.isfile( args.read2_fastq ) )
 assert( args.read1_fastq != args.read2_fastq )
+
+# Check FASTA
+def read_fasta( fasta_file ):
+    lines = open( fasta_file ).readlines()
+    sequences = []
+    headers = []
+    header = None
+    sequence = ''
+    for line in lines:
+        if len(line) > 0 and line[0] == '>':
+            if header is not None:
+                headers.append(header)
+                sequences.append(sequence)
+            sequence = ''
+            header = line[1:].strip('\n')
+            continue
+        sequence = sequence + line.strip('\n')
+    if header is not None:
+        headers.append(header)
+        sequences.append(sequence)
+    assert( len(sequences) == len(headers ) )
+    return (sequences,headers)
+(sequences,headers) = read_fasta( args.sequences_fasta )
+print( 'Read in %d sequences from %s.' % (len(sequences),args.sequences_fasta) )
+(primer_barcodes,primer_names) = read_fasta( args.primer_barcodes_fasta )
+print( 'Read in %d primer barcodes from %s.\n' % (len(primer_barcodes),args.primer_barcodes_fasta) )
+
+def check_sequence(sequence):
+    for c in sequence:
+        if c not in 'ACGTU': return False
+    return True
+
+for sequence in sequences:
+    if not check_sequence(sequence): exit('problem with sequence in sequences file: %s' % sequence )
+for sequence in primer_barcodes:
+    if not check_sequence(sequence): exit('problem with sequence in primer barcode file: %s' % sequence )
 
 # Do the split
 split_dir = 'UBR'
