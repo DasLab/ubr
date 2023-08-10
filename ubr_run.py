@@ -5,7 +5,7 @@ import time
 import shutil
 
 parser = argparse.ArgumentParser(
-                    prog = 'ubr_split.py',
+                    prog = 'ubr_run.py',
                     description = 'Gets mutation counts from FASTQs',
                     epilog = 'Runs Ultraplex, Bowtie2, RNA-framework with .csv output.\nRead 1 is assumed to be primer barcode, then reverse complement of RNA sequence.')
 
