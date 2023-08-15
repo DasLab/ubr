@@ -19,6 +19,7 @@ parser.add_argument('-n','--nsplits', default=0, type=int, help='number of separ
 parser.add_argument('-q','--sequences_per_partition', default=0, type=int, help='number of sequences in each partition. overrides -n/--nsplits.' )
 parser.add_argument('-j','--jobs_per_slurm_node', default=24,type=int )
 parser.add_argument('-ow','--overwrite',action = 'store_true')
+parser.add_argument('-mp','--merge_pairs',action = 'store_true',help='Merge paired reads')
 
 parser.add_argument('-nm','--no_mixed',action = 'store_true',help='No mixed reads in Bowtie2')
 parser.add_argument('-sm','--score_min',help='minimum score for Bowtie2')
@@ -185,6 +186,7 @@ for i in range(1,nsplits+1):
     if args.map_quality != 10:  extra_flags += ' --map_quality %d' % args.map_quality
     if args.max_edit_distance > 0:  extra_flags += ' --max_edit_distance %f' % args.max_edit_distance
     if args.score_min != None:  extra_flags += ' --score_min %s' % args.score_min
+    if args.merge_pairs:  extra_flags += ' --merge_pairs'
 
     fid = open( outdir + '/'+ubr_run_sh_name, 'w' )
     fid.write( 'ubr_run.py -s %s -b %s -1 %s -2 %s%s > ubr_run.out 2> ubr_run.err & \n' % ( os.path.basename(args.sequences_fasta), os.path.basename(args.primer_barcodes_fasta), os.path.basename(f1), os.path.basename(f2),extra_flags) )

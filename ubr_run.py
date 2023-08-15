@@ -12,10 +12,11 @@ parser = argparse.ArgumentParser(
 parser.add_argument('-s','--sequences_fasta', required=True)
 parser.add_argument('-b','--primer_barcodes_fasta', required=True)
 parser.add_argument('-1','--read1_fastq', required=True)
-parser.add_argument('-2','--read2_fastq', required=True)
+parser.add_argument('-2','--read2_fastq')
 parser.add_argument('-ow','--overwrite',action = 'store_true')
 parser.add_argument('-O','--outdir',default='')
 parser.add_argument('-t','--threads',default=1, type=int)
+parser.add_argument('-mp','--merge_pairs',action = 'store_true',help='Merge paired reads')
 
 parser.add_argument('-nm','--no_mixed',action = 'store_true',help='No mixed reads in Bowtie2')
 parser.add_argument('-sm','--score_min',help='minimum score for Bowtie2')
@@ -61,12 +62,14 @@ assert( shutil.which( 'bowtie2-build' ) )
 assert( shutil.which( 'bowtie2' ) )
 assert( shutil.which( 'rf-count' ) )
 assert( shutil.which( 'samtools' ) )
+if args.merge_pairs: assert( shutil.which( 'pear' ) )
 
 assert( os.path.isfile( args.sequences_fasta ) )
 assert( os.path.isfile( args.primer_barcodes_fasta ) )
 assert( os.path.isfile( args.read1_fastq ) )
-assert( os.path.isfile( args.read2_fastq ) )
-
+if args.read2_fastq: assert( os.path.isfile( args.read2_fastq ) )
+read1_fastq = args.read1_fastq
+read2_fastq = args.read2_fastq
 
 # Read in FASTA files (sequences, and primer barcodes)
 (sequences,headers) = read_fasta( args.sequences_fasta )
@@ -90,6 +93,22 @@ if len(wd)>0:
     if wd[-1] != '/': wd += '/'
     if not os.path.isdir( wd ): os.makedirs( wd, exist_ok = True )
 
+# Merge with pear
+if args.merge_pairs:
+    out_prefix = args.read1_fastq.replace('.fq','').replace('.fastq','').replace('.gz','') + '_MERGED'
+    merged_fastq = out_prefix+'.assembled.fastq'
+    if os.path.isfile( merged_fastq ):
+        print('Merged file already exists, skipping merge:',merged_fastq)
+    else:
+        command = 'pear -f %s -r %s -o  %s > %s0_merge_pairs.out 2> %s0_merge_pairs.err' % (args.read1_fastq, args.read2_fastq, out_prefix, wd, wd)
+        print(command)
+        os.system( command )
+        assert(os.path.isfile( merged_fastq ) )
+    read1_fastq = merged_fastq
+    read2_fastq = None
+time_merge_pairs = time.time()
+
+
 # Ultraplex -- round 1 to demultiplex with respect to reverse transcription primers (e.g., RTB barcodes).
 primer_barcodes_csv_file = wd + 'primer_barcodes.csv'
 fid = open( primer_barcodes_csv_file, 'w' )
@@ -103,14 +122,22 @@ os.makedirs(outdir,exist_ok = True)
 print()
 any_ultraplex_out_files = False
 for primer_barcode,primer_name in zip(primer_barcodes,primer_names):
-    i1 = wd + '1_ultraplex/ultraplex_demux_5bc_%s_Fwd.fastq.gz'  % primer_barcode
-    i2 = wd + '1_ultraplex/ultraplex_demux_5bc_%s_Rev.fastq.gz'  % primer_barcode
-    if os.path.isfile(i1) and os.path.isfile(i2):
+    if read2_fastq:
+        i1 = wd + '1_ultraplex/ultraplex_demux_5bc_%s_Fwd.fastq.gz'  % primer_barcode
+        i2 = wd + '1_ultraplex/ultraplex_demux_5bc_%s_Rev.fastq.gz'  % primer_barcode
+    else:
+        i1 = wd + '1_ultraplex/ultraplex_demux_5bc_%s.fastq.gz'  % primer_barcode
+        i2 = ''
+
+    if os.path.isfile(i1) or os.path.isfile(i2):
         any_ultraplex_out_files = True
         break
 
 if not any_ultraplex_out_files or args.overwrite:
-    command = 'ultraplex -i %s  -i2 %s -b %s  -d %s  --dont_build_reference --ignore_no_match --threads %d > %s1_ultraplex/1_ultraplex.out 2> %s1_ultraplex/1_ultraplex.err' % (args.read1_fastq, args.read2_fastq,primer_barcodes_csv_file, outdir, args.threads, wd, wd)
+    extra_flags = ''
+    fastq_flags = ' -i %s' % (read1_fastq)
+    if read2_fastq:  fastq_flags += ' -i2 %s' % (read2_fastq)
+    command = 'ultraplex%s%s -b %s  -d %s  --dont_build_reference --ignore_no_match --threads %d > %s1_ultraplex/1_ultraplex.out 2> %s1_ultraplex/1_ultraplex.err' % (fastq_flags, extra_flags, primer_barcodes_csv_file, outdir, args.threads, wd, wd)
     print(command)
     os.system( command )
 else:
@@ -137,10 +164,17 @@ if not os.path.isfile(bt2_file) or args.overwrite:
     os.system( command )
 
 for primer_barcode,primer_name in zip(primer_barcodes,primer_names):
-    i1 = wd + '1_ultraplex/ultraplex_demux_5bc_%s_Fwd.fastq.gz'  % primer_barcode
-    i2 = wd + '1_ultraplex/ultraplex_demux_5bc_%s_Rev.fastq.gz'  % primer_barcode
-    if not os.path.isfile(i1): continue
-    if not os.path.isfile(i2): continue
+    if read2_fastq:
+        i1 = wd + '1_ultraplex/ultraplex_demux_5bc_%s_Fwd.fastq.gz'  % primer_barcode
+        i2 = wd + '1_ultraplex/ultraplex_demux_5bc_%s_Rev.fastq.gz'  % primer_barcode
+        if not os.path.isfile(i1): continue
+        if not os.path.isfile(i2): continue
+        fastq_flags = ' -1 %s -2 %s' % (i1,i2)
+    else:
+        i1 = wd + '1_ultraplex/ultraplex_demux_5bc_%s.fastq.gz'  % primer_barcode
+        if not os.path.isfile(i1): continue
+        fastq_flags = ' -U %s' % i1
+
     outdir = wd + '2_bowtie2/%s' % primer_name
     os.makedirs(outdir,exist_ok = True)
 
@@ -151,7 +185,7 @@ for primer_barcode,primer_name in zip(primer_barcodes,primer_names):
     if args.score_min != None:  extra_flags += ' --score-min %s' % args.score_min
     if not os.path.isfile( sam_file ) or args.overwrite:
         # previously used --local --sensitive-local, but bowtie2 would punt on aligning 3' ends and misalign reads to some short parasite replicons.
-        command = 'bowtie2 --end-to-end --sensitive --maxins=800 --ignore-quals --no-unal --mp 3,1 --rdg 5,1 --rfg 5,1 --dpad 30 -x %s -1 %s -2 %s -S %s --threads %d %s > %s/bowtie2.out 2> %s/bowtie2.err' % (bt2_prefix,i1,i2,sam_file,args.threads,extra_flags,outdir,outdir)
+        command = 'bowtie2 --end-to-end --sensitive --maxins=800 --ignore-quals --no-unal --mp 3,1 --rdg 5,1 --rfg 5,1 --dpad 30 -x %s %s -S %s --threads %d %s > %s/bowtie2.out 2> %s/bowtie2.err' % (bt2_prefix,fastq_flags,sam_file,args.threads,extra_flags,outdir,outdir)
         print(command)
         os.system( command )
     else:
@@ -285,11 +319,12 @@ for primer_name in primer_names:
 time_end=time.time()
 
 print( '\nTimings:')
-print( '1_ultraplex ' + time.strftime("%H:%M:%S",time.gmtime(time_ultraplex1-time_start) ) )
-print( '2_bowtie2   ' + time.strftime("%H:%M:%S",time.gmtime(time_bowtie2-time_ultraplex1) ) )
-print( '3_rf_count  ' + time.strftime("%H:%M:%S",time.gmtime(time_rf_count-time_bowtie2) ) )
-print( '4_rctools   ' + time.strftime("%H:%M:%S",time.gmtime(time_rctools-time_rf_count) ) )
-print( 'Final merge ' + time.strftime("%H:%M:%S",time.gmtime(time_end-time_rctools) ) )
+print( '0_merge_pairs ' + time.strftime("%H:%M:%S",time.gmtime(time_merge_pairs-time_start) ) )
+print( '1_ultraplex   ' + time.strftime("%H:%M:%S",time.gmtime(time_ultraplex1-time_merge_pairs) ) )
+print( '2_bowtie2     ' + time.strftime("%H:%M:%S",time.gmtime(time_bowtie2-time_ultraplex1) ) )
+print( '3_rf_count    ' + time.strftime("%H:%M:%S",time.gmtime(time_rf_count-time_bowtie2) ) )
+print( '4_rctools     ' + time.strftime("%H:%M:%S",time.gmtime(time_rctools-time_rf_count) ) )
+print( 'Final merge   ' + time.strftime("%H:%M:%S",time.gmtime(time_end-time_rctools) ) )
 
 print( '\nTotal time: ' + time.strftime("%H:%M:%S",time.gmtime(time_end-time_start) ) )
 
