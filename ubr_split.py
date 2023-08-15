@@ -11,24 +11,25 @@ parser = argparse.ArgumentParser(
                     description = 'Get ready for ubr_run.py.',
                     epilog = 'Split FASTQ files and prepare independent job directories and command-lines.')
 
-parser.add_argument('-s','--sequences_fasta', required=True)
-parser.add_argument('-b','--primer_barcodes_fasta', required=True)
-parser.add_argument('-1','--read1_fastq', required=True)
-parser.add_argument('-2','--read2_fastq', required=True)
+parser.add_argument('-s','--sequences_fasta', required=True, help='FASTA of RNA sequences')
+parser.add_argument('-b','--primer_barcodes_fasta', required=True, help='FASTA of primer barcodes, first nucleotides of Read 1, prepended to cDNA')
+parser.add_argument('-1','--read1_fastq', required=True, help='FASTQ (can be gzipped) of Illumina run')
+parser.add_argument('-2','--read2_fastq', help='FASTQ (can be gzipped) of Read 2')
 parser.add_argument('-n','--nsplits', default=0, type=int, help='number of separate partitions' )
 parser.add_argument('-q','--sequences_per_partition', default=0, type=int, help='number of sequences in each partition. overrides -n/--nsplits.' )
 parser.add_argument('-j','--jobs_per_slurm_node', default=24,type=int )
-parser.add_argument('-ow','--overwrite',action = 'store_true')
-parser.add_argument('-mp','--merge_pairs',action = 'store_true',help='Merge paired reads')
+parser.add_argument('-ow','--overwrite',action = 'store_true', help='overwrite all previous files')
+parser.add_argument('-mpb','--merge_pairs_bbmerge',action = 'store_true',help='Merge paired reads with bbmerge.sh')
+parser.add_argument('-mpp','--merge_pairs_pear',action = 'store_true',help='Merge paired reads with PEAR')
 
 parser.add_argument('-nm','--no_mixed',action = 'store_true',help='No mixed reads in Bowtie2')
 parser.add_argument('-sm','--score_min',help='minimum score for Bowtie2')
 parser.add_argument('-mq','--map_quality',default=10,type=int,help='minimum Bowtie2 MAPQ to consider read')
 
-parser.add_argument('-lc','--length_cutoff',action = 'store_true',help='Use length cutoff of 0.92 length for RNAframework')
-parser.add_argument('-nlc','--no_length_cutoff',action = 'store_true')
-parser.add_argument('-norc','--no_output_raw_counts',action = 'store_true',help='do not output raw counts from RNAframework')
-parser.add_argument('-orc','--output_raw_counts',action = 'store_true')
+parser.add_argument('-lc','--length_cutoff',action = 'store_true',help='Use length cutoff of 0.92 length for RNAFramework')
+parser.add_argument('-nlc','--no_length_cutoff',action = 'store_true',help=argparse.SUPPRESS)
+parser.add_argument('-norc','--no_output_raw_counts',action = 'store_true',help='do not output raw counts from RNAFramework')
+parser.add_argument('-orc','--output_raw_counts',action = 'store_true',help=argparse.SUPPRESS)
 parser.add_argument('-me','--max_edit_distance',default=0.0,type=float,help='max edit distance for RNAFramework (0.15)')
 
 args = parser.parse_args()
@@ -38,6 +39,9 @@ if ( args.nsplits == 0 and args.sequences_per_partition == 0 ):
     exit()
 if args.no_length_cutoff:  print( '\n--no_length_cutoff is on by default now!\n' )
 if args.output_raw_counts: print( '\n--output_raw_counts is on by default now!\n' )
+if (args.merge_pairs_bbmerge and arge.merge_pairs_pear):
+    print( '\nSpecify either --merge_pairs_bbmerge or --merge_pair_pear, not both')
+    exit()
 
 time_start = time.time()
 
@@ -48,6 +52,8 @@ assert( shutil.which( 'bowtie2-build' ) )
 assert( shutil.which( 'bowtie2' ) )
 assert( shutil.which( 'rf-count' ) )
 assert( shutil.which( 'samtools' ) )
+if args.merge_pairs_bbmerge: assert( shutil.which('bbmerge.sh') )
+if args.merge_pairs_pear: assert( shutil.which('pear') )
 
 # Check for files
 assert( os.path.isfile( args.sequences_fasta ) )
@@ -186,7 +192,8 @@ for i in range(1,nsplits+1):
     if args.map_quality != 10:  extra_flags += ' --map_quality %d' % args.map_quality
     if args.max_edit_distance > 0:  extra_flags += ' --max_edit_distance %f' % args.max_edit_distance
     if args.score_min != None:  extra_flags += ' --score_min %s' % args.score_min
-    if args.merge_pairs:  extra_flags += ' --merge_pairs'
+    if args.merge_pairs_pear:  extra_flags += ' --merge_pairs_pear'
+    if args.merge_pairs_bbmerge:  extra_flags += ' --merge_pairs_bbmerge'
 
     fid = open( outdir + '/'+ubr_run_sh_name, 'w' )
     fid.write( 'ubr_run.py -s %s -b %s -1 %s -2 %s%s > ubr_run.out 2> ubr_run.err & \n' % ( os.path.basename(args.sequences_fasta), os.path.basename(args.primer_barcodes_fasta), os.path.basename(f1), os.path.basename(f2),extra_flags) )

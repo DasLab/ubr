@@ -9,14 +9,15 @@ parser = argparse.ArgumentParser(
                     description = 'Gets mutation counts from FASTQs',
                     epilog = 'Runs Ultraplex, Bowtie2, RNA-framework with .csv output.\nRead 1 is assumed to be primer barcode, then reverse complement of RNA sequence.')
 
-parser.add_argument('-s','--sequences_fasta', required=True)
-parser.add_argument('-b','--primer_barcodes_fasta', required=True)
-parser.add_argument('-1','--read1_fastq', required=True)
-parser.add_argument('-2','--read2_fastq')
-parser.add_argument('-ow','--overwrite',action = 'store_true')
-parser.add_argument('-O','--outdir',default='')
-parser.add_argument('-t','--threads',default=1, type=int)
-parser.add_argument('-mp','--merge_pairs',action = 'store_true',help='Merge paired reads')
+parser.add_argument('-s','--sequences_fasta', required=True, help='FASTA of RNA sequences')
+parser.add_argument('-b','--primer_barcodes_fasta', required=True, help='FASTA of primer barcodes, first nucleotides of Read 1, prepended to cDNA')
+parser.add_argument('-1','--read1_fastq', required=True, help='FASTQ (can be gzipped) of Illumina run')
+parser.add_argument('-2','--read2_fastq', help='FASTQ (can be gzipped) of Read 2')
+parser.add_argument('-ow','--overwrite',action = 'store_true', help='overwrite all previous files')
+parser.add_argument('-O','--outdir',default='',help='output directory for all files')
+parser.add_argument('-t','--threads',default=1, type=int, help='Number of threads for Bowtie2 and RNAFramework')
+parser.add_argument('-mpb','--merge_pairs_bbmerge',action = 'store_true',help='Merge paired reads with bbmerge.sh')
+parser.add_argument('-mpp','--merge_pairs_pear',action = 'store_true',help='Merge paired reads with PEAR')
 
 parser.add_argument('-nm','--no_mixed',action = 'store_true',help='No mixed reads in Bowtie2')
 parser.add_argument('-sm','--score_min',help='minimum score for Bowtie2')
@@ -32,6 +33,9 @@ parser.add_argument('-me','--max_edit_distance',default=0.0,type=float,help='max
 args = parser.parse_args()
 if args.no_length_cutoff: print( '--no_length_cutoff is on by default now! Flag will be deprecated later.' )
 if args.output_raw_counts:  print( '--output_raw_counts is on by default now! Flag Will be deprecated later.' )
+if (args.merge_pairs_bbmerge and args.merge_pairs_pear):
+    print( '\nSpecify either --merge_pairs_bbmerge or --merge_pair_pear, not both')
+    exit()
 
 time_start = time.time()
 
@@ -62,7 +66,8 @@ assert( shutil.which( 'bowtie2-build' ) )
 assert( shutil.which( 'bowtie2' ) )
 assert( shutil.which( 'rf-count' ) )
 assert( shutil.which( 'samtools' ) )
-if args.merge_pairs: assert( shutil.which( 'pear' ) )
+if args.merge_pairs_bbmerge: assert( shutil.which('bbmerge.sh') )
+if args.merge_pairs_pear: assert( shutil.which('pear') )
 
 assert( os.path.isfile( args.sequences_fasta ) )
 assert( os.path.isfile( args.primer_barcodes_fasta ) )
@@ -93,21 +98,25 @@ if len(wd)>0:
     if wd[-1] != '/': wd += '/'
     if not os.path.isdir( wd ): os.makedirs( wd, exist_ok = True )
 
-# Merge with pear
-if args.merge_pairs:
+# Merge
+
+if args.merge_pairs_bbmerge or args.merge_pairs_pear:
     out_prefix = args.read1_fastq.replace('.fq','').replace('.fastq','').replace('.gz','') + '_MERGED'
     merged_fastq = out_prefix+'.assembled.fastq'
     if os.path.isfile( merged_fastq ):
         print('Merged file already exists, skipping merge:',merged_fastq)
     else:
-        command = 'pear -f %s -r %s -o  %s > %s0_merge_pairs.out 2> %s0_merge_pairs.err' % (args.read1_fastq, args.read2_fastq, out_prefix, wd, wd)
+        if args.merge_pairs_bbmerge:
+            command = 'bbmerge.sh in=%s in2=%s out=%s > %s0_merge_pairs.out 2> %s0_merge_pairs.err' % (args.read1_fastq, args.read2_fastq, merged_fastq, wd, wd)
+        else:
+            assert( args.merge_pairs_pear )
+            command = 'pear -f %s -r %s -o  %s > %s0_merge_pairs.out 2> %s0_merge_pairs.err' % (args.read1_fastq, args.read2_fastq, out_prefix, wd, wd)
         print(command)
         os.system( command )
-        assert(os.path.isfile( merged_fastq ) )
+    assert(os.path.isfile( merged_fastq ) )
     read1_fastq = merged_fastq
     read2_fastq = None
 time_merge_pairs = time.time()
-
 
 # Ultraplex -- round 1 to demultiplex with respect to reverse transcription primers (e.g., RTB barcodes).
 primer_barcodes_csv_file = wd + 'primer_barcodes.csv'
