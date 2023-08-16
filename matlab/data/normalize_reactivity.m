@@ -7,7 +7,7 @@ function [r_norm, r_norm_err,r_norm_nomod] = normalize_reactivity(r,r_err,good_i
 %  good_idx = [list of integers] index of designs to use for normalization
 %  BLANK_OUT5 = gray out this number of 5' residues
 %  BLANK_OUT3 = gray out this number of 3' residues 
-%  tags_conditions = tags for each condition in r (leave out to show
+%  tags_conditions = [cell of Nconditions strings] tags for each condition in r (leave out to show
 %                           blanks)
 %  r_nomod = [Optional] [Ndesign x Nres x Nmodconditions] No mod values subtracted out to get r
 %

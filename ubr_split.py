@@ -39,7 +39,7 @@ if ( args.nsplits == 0 and args.sequences_per_partition == 0 ):
     exit()
 if args.no_length_cutoff:  print( '\n--no_length_cutoff is on by default now!\n' )
 if args.output_raw_counts: print( '\n--output_raw_counts is on by default now!\n' )
-if (args.merge_pairs_bbmerge and arge.merge_pairs_pear):
+if (args.merge_pairs_bbmerge and args.merge_pairs_pear):
     print( '\nSpecify either --merge_pairs_bbmerge or --merge_pair_pear, not both')
     exit()
 

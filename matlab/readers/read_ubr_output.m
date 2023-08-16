@@ -18,7 +18,11 @@ function [m,c,rc,tags] = read_ubr_output( filedir, tags, read_raw_counts );
 % (C) R. Das, HHMI/Stanford University 2023.
 if ~exist( 'tags', 'var') tags = []; end;
 if ~exist( 'read_raw_counts','var') read_raw_counts = 0; end;
-
+if ~exist( filedir, 'dir');
+    fprintf('Could not find directory %s\n',filedir);
+    m = []; c = []; rc = [];
+    return;
+end
 if isempty(tags)
     x = dir([filedir,'/*.muts.txt']);
     for i = 1:length(x)

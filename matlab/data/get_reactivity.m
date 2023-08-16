@@ -1,5 +1,5 @@
-function [r,r_err,f,f_err,coverage,signal_to_noise,r_nomod] = get_reactivity(rc,c,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,sequences)
-% [r,r_err,f,f_err,coverage,signal_to_noise,r_nomod] = get_reactivity(rc,c,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,sequences)
+function [r,r_err,f,f_err,coverage,signal_to_noise,r_nomod] = get_reactivity(rc,c,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,sequences,no_GA)
+% [r,r_err,f,f_err,coverage,signal_to_noise,r_nomod] = get_reactivity(rc,c,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,sequences,no_GA)
 %
 % Main data processing routine for UBR. Includes step where deletions,
 % which are assumed to be collected as counts placed at 3' end of same-nt
@@ -23,6 +23,8 @@ function [r,r_err,f,f_err,coverage,signal_to_noise,r_nomod] = get_reactivity(rc,
 %  sequences = (cell of Ndesigns strings) RNA sequences. If not provided or
 %                if empty, will not spread out deletions at homopolymer
 %                stretches.
+%  no_GA = [Optional] Don't count G to A mutations (default: 0, i.e. count GA)
+%                
 %
 % Outputs
 %  r     = [Ndesign x Nres x Nmodconditions] Reactivity matrix, as fraction at each position that leads to mutation, background subtracted.
@@ -38,6 +40,7 @@ function [r,r_err,f,f_err,coverage,signal_to_noise,r_nomod] = get_reactivity(rc,
 %
 % (C) Rhiju Das, Stanford University & HHMI, 2023.
 %
+if ~exist('no_GA','var') no_GA = 0; end;
 mut_types = {'AC','AG','AT','CA','CG','CT','GA','GC','GT','TA','TC','TG','ins','del'};
 Nmuttypes = length(mut_types);
 if length(size(rc))~=4;
@@ -59,6 +62,12 @@ frc = single(rc)./single(c_reshape);
 frc_err = sqrt(2*single(rc))./single(c_reshape); % RNAframework typically spits out 2, not 1, for each paired read!
 
 mut_del_idx = [1:12,14];
+strictmut_idx = [1:12];
+del_idx = [14];
+if no_GA 
+    mut_del_idx = [1:6,8:12,14];
+    strictmut_idx = [1:6,8:12];
+end
 f = squeeze(sum(frc(:,:,mut_del_idx,:),3));
 f_err = squeeze(sqrt(sum(frc_err(:,:,mut_del_idx,:).^2,3)));
 
@@ -78,13 +87,12 @@ for i = 1:length(shape_nomod_idx)
         r_nomod(:,:,:,i)  = 0*rsub(:,:,:,i);
     end
 end
-rsub_strictmut     = squeeze(sum(rsub(:,:,1:12,:),3));
-rsub_strictmut_err = squeeze(sqrt(sum(rsub_err(:,:,1:12,:).^2,3)));
+rsub_strictmut     = squeeze(sum(rsub(:,:,strictmut_idx,:),3));
+rsub_strictmut_err = squeeze(sqrt(sum(rsub_err(:,:,strictmut_idx,:).^2,3)));
 
-rsub_del     = squeeze(rsub(:,:,14,:));
-rsub_del_err = squeeze(rsub_err(:,:,14,:));
+rsub_del     = squeeze(rsub(:,:,del_idx,:));
+rsub_del_err = squeeze(rsub_err(:,:,del_idx,:));
 
-mut_del_idx = [1:12,14];
 r_nomod = squeeze(sum(r_nomod(:,:,mut_del_idx,:),3));
 toc
 
