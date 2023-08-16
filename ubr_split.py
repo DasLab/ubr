@@ -52,7 +52,9 @@ assert( shutil.which( 'bowtie2-build' ) )
 assert( shutil.which( 'bowtie2' ) )
 assert( shutil.which( 'rf-count' ) )
 assert( shutil.which( 'samtools' ) )
-if args.merge_pairs_bbmerge: assert( shutil.which('bbmerge.sh') )
+if args.merge_pairs_bbmerge:
+    assert( shutil.which('bbmerge.sh') )
+    assert( shutil.which('java') )
 if args.merge_pairs_pear: assert( shutil.which('pear') )
 
 # Check for files
