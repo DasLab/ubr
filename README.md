@@ -12,11 +12,14 @@ Note: structure modeling & scoring scripts have mostly moved to https://github.c
 
 ## Requirements
 
-You need Python3, and the following packages:
+You need *Python3*, and the following packages:
 
-- Ultraplex, available via `pip3 install ultraplex`.
-
-*TODO: fill out rest*
+- `ultraplex`, available via `pip3 install ultraplex`.
+- `bowtie2`, available via [conda](https://anaconda.org/bioconda/bowtie2) or [direct download](https://sourceforge.net/projects/bowtie-bio/files/bowtie2/2.5.1/) 
+- `RNAFramework`, available from GitHub, with install directions [here](https://rnaframework-docs.readthedocs.io/en/latest/#installation).
+- `bbmerge.sh`, available in [bbmap](https://sourceforge.net/projects/bbmap/) -- requires `java`.
+- `seqkit`, available via [conda](https://anaconda.org/bioconda/seqkit) or [direct download](https://bioinf.shenwei.me/seqkit/download/)
+- `samtools`, available for [download or github](http://www.htslib.org/)
 
 ## Example
 
