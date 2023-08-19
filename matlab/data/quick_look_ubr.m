@@ -63,6 +63,7 @@ function d = quick_look_ubr(filedir,sequence_file,shape_nomod_idx,structure_csv_
 %   .authors = (cell of Ndesigns strings)  Eterna authors (column 3 in header)
 %   .headers = (cell of Ndesigns strings)  Full headers
 %   .id_strings = (cell of Ndesigns strings) ids as strings
+%   .shape_nomod_idx = {cell of Nconditions pairs of indices} Input shape_nomod_idx
 %   .tags = {cell of Ntags strings} could have been inferred from files in directory
 %   .coverage = [Ndesigns x Ntags] Total reads for each design under each
 %               experimental condition
@@ -73,6 +74,9 @@ function d = quick_look_ubr(filedir,sequence_file,shape_nomod_idx,structure_csv_
 %   .structure_map = [Ndesigns x Nres] matrix of 0,1 for paired/unpaired
 %                       across structures. Empty if 
 %                     no structure_csv_file was specified.
+%   .filedir       = (string) Input filedir
+%   .sequence_file = (string) Input sequence_file
+%   .structure_csv_file = (string) Input structure_csv_file ('' if not specified)
 %
 %  If "output_all" specified in options, d will also contain these potentially big
 %        arrays:
@@ -133,11 +137,15 @@ d.titles = titles;
 d.authors = authors;
 d.headers = headers;
 d.id_strings = id_strings;
+d.shape_nomod_idx = shape_nomod_idx;
 d.tags = tags;
 d.coverage = coverage;
 d.total_coverage = total_coverage;
 d.structures = structures;
 d.structure_map = structure_map;
+d.filedir = filedir;
+d.sequence_file = sequence_file;
+d.structure_csv_file = structure_csv_file;
 if ~isempty(strcmp(options,'output_all'));
     d.m = m;
     d.c = c;
@@ -168,15 +176,18 @@ end
 
 %% Make plot of signal-to-noise vs. coverage
 set(figure(2),'color','white','position',[450   991   355   322],'name','S/N vs. reads'); clf
+clf
 for k = 1:size(reads,2)
     semilogx(reads(:,k),signal_to_noise(:,k),'.'); hold on
     xlabel('Reads (signal+background channels)')
     ylabel('Signal/noise');
 end
+hold off
 legend(conditions{k},'Interpreter','none');
 
 %% Histogram of signal to noise
 set(figure(3),'color','white','position',[694   960   400   344],'name','Mean S/N')
+clf
 for i = 1:size(r,3)
     subplot(size(r,3),1,i);
     s2n = signal_to_noise(:,i); s2n( find(isnan(s2n)) ) = 0.0;
@@ -188,6 +199,7 @@ end
 
 %% Make heat map, up to 500 with high signal to noise 
 set(figure(4),'color','white','name','first designs with good S/N (up to 500)')
+clf
 good_idx = find( signal_to_noise(:,end)>=1.0 & reads(:,end) > 100);
 Nplot = min(length(good_idx),500);
 good_idx = good_idx(1:Nplot);
@@ -197,6 +209,7 @@ make_library_heat_map( r_norm, good_idx, structure_map, headers, BLANK_OUT5, BLA
 good_idx = find( signal_to_noise(:,end)>=1.0 & reads(:,end) > 100);
 if length(good_idx)>10000
     set(figure(5),'color','white','name','first designs with good S/N (up to 10000)')
+    clf
     Nplot = min(length(good_idx),10000);
     good_idx = good_idx(1:Nplot);
     make_library_heat_map( r_norm, good_idx, structure_map, headers, BLANK_OUT5, BLANK_OUT3, conditions);
@@ -204,6 +217,7 @@ end
 
 %% Take a close look at one of the constructs with high apparent signal to noise
 set(figure(6),'color','white','position',[599   477   560   420],'name','Top S/N design')
+clf
 [~,idx] = max(sum(signal_to_noise,2));
 for i = 1:length(shape_nomod_idx)
     subplot(length(shape_nomod_idx),1,i);
@@ -215,7 +229,6 @@ end
 h=title(headers(idx));
 set(h,'interpreter','none')
 toc
-
 
 %% Look through each of the conditions - mutational profiles (mean over designs)
 run_mut_type_analysis( m,c,rc,tags,tags,BLANK_OUT5, BLANK_OUT3);
