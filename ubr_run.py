@@ -16,26 +16,26 @@ parser.add_argument('-2','--read2_fastq', help='FASTQ (can be gzipped) of Read 2
 parser.add_argument('-ow','--overwrite',action = 'store_true', help='overwrite all previous files')
 parser.add_argument('-O','--outdir',default='',help='output directory for all files')
 parser.add_argument('-t','--threads',default=1, type=int, help='Number of threads for Bowtie2 and RNAFramework')
-parser.add_argument('-mpb','--merge_pairs_bbmerge',action = 'store_true',help='Merge paired reads with bbmerge.sh')
-parser.add_argument('-mpp','--merge_pairs_pear',action = 'store_true',help='Merge paired reads with PEAR')
+parser.add_argument('-nmp','--no_merge_pairs',action = 'store_true',help='do not merge paired end reads before Bowtie2' )
 
-parser.add_argument('-nm','--no_mixed',action = 'store_true',help='No mixed reads in Bowtie2')
-parser.add_argument('-sm','--score_min',help='minimum score for Bowtie2')
-parser.add_argument('-mq','--map_quality',default=10,type=int,help='minimum Bowtie2 MAPQ to consider read')
 
-parser.add_argument('-lc','--length_cutoff',action = 'store_true',help='Use length cutoff of 0.92 length for RNAframework')
+# Deprecated
+parser.add_argument('-nm','--no_mixed',action = 'store_true',help=argparse.SUPPRESS )# 'No mixed reads in Bowtie2')
+parser.add_argument('-sm','--score_min',help=argparse.SUPPRESS )#'minimum score for Bowtie2')
+parser.add_argument('-mq','--map_quality',default=10,type=int,help=argparse.SUPPRESS )#help='minimum Bowtie2 MAPQ to consider read')
+parser.add_argument('-lc','--length_cutoff',action = 'store_true',help=argparse.SUPPRESS )#help='Use length cutoff of 0.92 length for RNAFramework')
+parser.add_argument('-norc','--no_output_raw_counts',action = 'store_true',help=argparse.SUPPRESS )#help='do not output raw counts from RNAFramework')
+parser.add_argument('-me','--max_edit_distance',default=0.0,type=float,help=argparse.SUPPRESS )#help='max edit distance for RNAFramework (0.15)')
+parser.add_argument('-mpb','--merge_pairs_bbmerge',action = 'store_true',help=argparse.SUPPRESS)
+parser.add_argument('-mpp','--merge_pairs_pear',action = 'store_true',help=argparse.SUPPRESS)
 parser.add_argument('-nlc','--no_length_cutoff',action = 'store_true',help=argparse.SUPPRESS)
-parser.add_argument('-norc','--no_output_raw_counts',action = 'store_true',help='do not output raw counts from RNAframework')
 parser.add_argument('-orc','--output_raw_counts',action = 'store_true',help=argparse.SUPPRESS)
-parser.add_argument('-me','--max_edit_distance',default=0.0,type=float,help='max edit distance for RNAFramework (0.15)')
-
 
 args = parser.parse_args()
 if args.no_length_cutoff: print( '--no_length_cutoff is on by default now! Flag will be deprecated later.' )
 if args.output_raw_counts:  print( '--output_raw_counts is on by default now! Flag Will be deprecated later.' )
-if (args.merge_pairs_bbmerge and args.merge_pairs_pear):
-    print( '\nSpecify either --merge_pairs_bbmerge or --merge_pair_pear, not both')
-    exit()
+if args.merge_pairs_bbmerge: print( '\n--merge_pairs_bbmerge is on by default now!\n' )
+assert( not( args.no_merge_pairs and args.merge_pairs_pear ) )
 
 time_start = time.time()
 
@@ -66,9 +66,8 @@ assert( shutil.which( 'bowtie2-build' ) )
 assert( shutil.which( 'bowtie2' ) )
 assert( shutil.which( 'rf-count' ) )
 assert( shutil.which( 'samtools' ) )
-if args.merge_pairs_bbmerge:
-    assert( shutil.which('bbmerge.sh') )
-    assert( shutil.which('java') )
+assert( shutil.which( 'bbmerge.sh' ) )
+assert( shutil.which( 'java' ) )
 if args.merge_pairs_pear: assert( shutil.which('pear') )
 
 assert( os.path.isfile( args.sequences_fasta ) )
@@ -101,18 +100,17 @@ if len(wd)>0:
     if not os.path.isdir( wd ): os.makedirs( wd, exist_ok = True )
 
 # Merge
-
-if args.merge_pairs_bbmerge or args.merge_pairs_pear:
+merge_pairs = not args.no_merge_pairs
+if merge_pairs:
     out_prefix = args.read1_fastq.replace('.fq','').replace('.fastq','').replace('.gz','') + '_MERGED'
     merged_fastq = out_prefix+'.assembled.fastq'
     if os.path.isfile( merged_fastq ):
         print('Merged file already exists, skipping merge:',merged_fastq)
     else:
-        if args.merge_pairs_bbmerge:
-            command = 'bbmerge.sh in=%s in2=%s out=%s > %s0_merge_pairs.out 2> %s0_merge_pairs.err' % (args.read1_fastq, args.read2_fastq, merged_fastq, wd, wd)
-        else:
-            assert( args.merge_pairs_pear )
+        if args.merge_pairs_pear:
             command = 'pear -f %s -r %s -o  %s > %s0_merge_pairs.out 2> %s0_merge_pairs.err' % (args.read1_fastq, args.read2_fastq, out_prefix, wd, wd)
+        else: # Default is to use bbmerge.sh
+            command = 'bbmerge.sh in=%s in2=%s out=%s > %s0_merge_pairs.out 2> %s0_merge_pairs.err' % (args.read1_fastq, args.read2_fastq, merged_fastq, wd, wd)
         print(command)
         os.system( command )
     assert(os.path.isfile( merged_fastq ) )

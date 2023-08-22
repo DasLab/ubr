@@ -59,7 +59,7 @@ tic
 fprintf('Compiling reactivity...\n')
 c_reshape = repmat(reshape(c,size(c,1),size(c,2),1,size(c,3)),1,1,Nmuttypes,1);
 frc = single(rc)./single(c_reshape);
-frc_err = sqrt(2*single(rc))./single(c_reshape); % RNAframework typically spits out 2, not 1, for each paired read!
+frc_err = sqrt(single(rc))./single(c_reshape); 
 
 mut_del_idx = [1:12,14];
 strictmut_idx = [1:12];
