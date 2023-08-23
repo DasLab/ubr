@@ -103,12 +103,12 @@ if len(wd)>0:
 merge_pairs = not args.no_merge_pairs
 if merge_pairs:
     out_prefix = args.read1_fastq.replace('.fq','').replace('.fastq','').replace('.gz','') + '_MERGED'
-    merged_fastq = out_prefix+'.assembled.fastq'
+    merged_fastq = out_prefix+'.assembled.fastq.gz'
     if os.path.isfile( merged_fastq ):
         print('Merged file already exists, skipping merge:',merged_fastq)
     else:
         if args.merge_pairs_pear:
-            command = 'pear -f %s -r %s -o  %s > %s0_merge_pairs.out 2> %s0_merge_pairs.err' % (args.read1_fastq, args.read2_fastq, out_prefix, wd, wd)
+            command = 'pear -f %s -r %s -o  %s > %s0_merge_pairs.out 2> %s0_merge_pairs.err && gzip %s' % (args.read1_fastq, args.read2_fastq, out_prefix, wd, wd, merged_fastq.replace('.gz',''))
         else: # Default is to use bbmerge.sh
             command = 'bbmerge.sh in=%s in2=%s out=%s > %s0_merge_pairs.out 2> %s0_merge_pairs.err' % (args.read1_fastq, args.read2_fastq, merged_fastq, wd, wd)
         print(command)
