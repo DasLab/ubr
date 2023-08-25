@@ -39,6 +39,8 @@ function d = quick_look_ubr(filedir,sequence_file,shape_nomod_idx,structure_csv_
 %                   deletions are ambigous and here, by default, are spread across the
 %                   stretch according to the mutation signal. Supply
 %                   'no_spread_deletions' to suppress this procedure.
+%                 'no_raw_counts': do not read in raw_counts or use to
+%                    spread deletions
 %                 'no_figures': Don't make figures.
 %                 'no_print': Don't export figures, which can take
 %                       a long time
@@ -95,15 +97,24 @@ if ~exist( 'BLANK_OUT3','var') BLANK_OUT3 = []; end;
 if ~exist( 'structure_csv_file','var') structure_csv_file = ''; end;
 if ~exist( 'options', 'var') options = {}; end;
 d = struct();
+assert(exist(filedir,'dir'));
+assert(exist(sequence_file,'file'));
+if ~isempty(structure_csv_file) assert(exist(structure_csv_file,'file')); end;
+
 
 %% Data readin
 tic
 fprintf('Reading and processing data...\n')
-[m,c,rc,tags] = read_ubr_output( filedir,[],1 );
+
+use_raw_counts = ~any(strcmp(options,'no_raw_counts'));
+[m,c,rc,tags] = read_ubr_output( filedir,[],use_raw_counts);
 [ids,titles,authors,headers,sequences,id_strings] = get_sequence_info( sequence_file );
 [ structures, structure_map ] = read_structure_csv_file( structure_csv_file, sequences );
 [BLANK_OUT5, BLANK_OUT3] = figure_out_BLANK_OUT( BLANK_OUT5, BLANK_OUT3, sequences );
-if any(strcmp(options,'no_spread_deletions'))
+
+spread_deletions = ~any(strcmp(options,'no_spread_deletions'));
+if ~use_raw_counts; rc = m; end;
+if spread_deletions 
     % default is to spread deletions.
     [r,r_err,f,f_err,coverage,signal_to_noise] = get_reactivity(rc,c,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,sequences);
 else
@@ -228,10 +239,12 @@ for i = 1:length(shape_nomod_idx)
 end
 h=title(headers(idx));
 set(h,'interpreter','none')
-toc
 
 %% Look through each of the conditions - mutational profiles (mean over designs)
-run_mut_type_analysis( m,c,rc,tags,tags,BLANK_OUT5, BLANK_OUT3);
+if use_raw_counts
+    run_mut_type_analysis( m,c,rc,tags,tags,BLANK_OUT5, BLANK_OUT3);
+end
+toc
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [BLANK_OUT5, BLANK_OUT3] = figure_out_BLANK_OUT( BLANK_OUT5, BLANK_OUT3, sequences );
