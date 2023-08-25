@@ -3,6 +3,7 @@ import argparse
 import os
 import time
 import shutil
+import gzip
 
 parser = argparse.ArgumentParser(
                     prog = 'ubr_run.py',
@@ -237,6 +238,14 @@ for (n,primer_name) in enumerate(primer_names):
         command = 'rf-count --processors %d -wt 1 -fast -f %s -m -cc -rd -ni -ds %d %s -o %s %s >> %s 2>> %s' % (args.threads, seq_file, MIN_READ_LENGTH, extra_flags, outdir, sam_file, rf_count_outfile, rf_count_errfile)
         print(command)
         os.system( command )
+
+        if not args.no_output_raw_counts:
+            raw_counts_file = rf_count_dir+'/%s/raw_counts/bowtie2.txt' % primer_name
+            assert( os.path.isfile(raw_counts_file) )
+            command = 'gzip %s' % raw_counts_file
+            print(command)
+            os.system( command )
+
     else:
         print( 'Skipping rf-count into: %s' % outdir )
 
@@ -249,12 +258,13 @@ for primer_name in primer_names:
 
     outdir = wd + '4_rctools/%s' % (primer_name)
     rf_count_file = outdir + '/rf_count.csv'
-    if args.overwrite or not os.path.isfile(rf_count_file):
+    rf_count_file_gz = rf_count_file + '.gz'
+    if args.overwrite or not os.path.isfile(rf_count_file_gz):
         os.makedirs(outdir,exist_ok = True)
-        command = 'rf-rctools view %s > %s' % (rc_file, rf_count_file)
+        command = 'rf-rctools view %s > %s && gzip %s' % (rc_file, rf_count_file, rf_count_file)
         print(command)
         os.system( command )
-        assert( len(open(rf_count_file).readlines()) == 5 * len(sequences) )
+        assert( len(gzip.open(rf_count_file_gz).readlines()) == 5 * len(sequences) )
     else:
         print( 'Skipping rf-rctools into: %s' % outdir )
 time_rctools = time.time()
@@ -263,16 +273,16 @@ time_rctools = time.time()
 print()
 Npos = 0
 for primer_name in primer_names:
-    outfile_counts = wd + '%s.muts.txt' % primer_name
-    outfile_coverage = wd + '%s.coverage.txt' % primer_name
-    fid_counts = open(outfile_counts,'w')
-    fid_coverage = open(outfile_coverage,'w')
+    outfile_counts = wd + '%s.muts.txt.gz' % primer_name
+    outfile_coverage = wd + '%s.coverage.txt.gz' % primer_name
+    fid_counts = gzip.open(outfile_counts,'wt')
+    fid_coverage = gzip.open(outfile_coverage,'wt')
 
     N = 0
-    infile = wd + '4_rctools/%s/rf_count.csv' % (primer_name)
+    infile = wd + '4_rctools/%s/rf_count.csv.gz' % (primer_name)
     total_coverage = 0
     if os.path.isfile( infile ):
-        lines = open( infile ).readlines()
+        lines = gzip.open( infile, 'rt' ).readlines()
         N = int(len(lines)/5)
         all_muts = []
         all_coverage = []
@@ -302,9 +312,9 @@ mut_types = ['AC','AG','AT','CA','CG','CT','GA','GC','GT','TA','TC','TG','ins','
 outdir = wd+'raw_counts/'
 os.makedirs(outdir,exist_ok = True)
 for primer_name in primer_names:
-    infile = wd + '3_rf_count/%s/raw_counts/bowtie2.txt' % (primer_name)
+    infile = wd + '3_rf_count/%s/raw_counts/bowtie2.txt.gz' % (primer_name)
     if os.path.isfile( infile ):
-        lines = open( infile ).readlines()
+        lines = gzip.open(infile,'rt').readlines()
         N = int(len(lines)/16)
         outfiles_raw_counts = []
         for (k,mut_type) in enumerate(mut_types):
@@ -316,9 +326,9 @@ for primer_name in primer_names:
                 cols = lines[16*n+1+k].strip('\n').split()
                 assert( cols[0] == mut_type)
                 raw_count_lines[idx] = cols[1]
-            outfile_raw_counts = outdir + '%s.%s.txt' % (primer_name,mut_type)
+            outfile_raw_counts = outdir + '%s.%s.txt.gz' % (primer_name,mut_type)
             outfiles_raw_counts.append(outfile_raw_counts)
-            fid_raw_counts = open(outfile_raw_counts,'w')
+            fid_raw_counts = gzip.open(outfile_raw_counts,'wt')
             for line in raw_count_lines: fid_raw_counts.write( line+'\n' )
             fid_raw_counts.close()
         print( 'Created %s for %d sequences (found %d designs)' % (','.join(outfiles_raw_counts),len(design_name_idx),N) )

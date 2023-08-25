@@ -5,6 +5,7 @@ import os
 import glob
 import shutil
 import time
+import gzip
 import pandas as pd
 
 parser = argparse.ArgumentParser(
@@ -25,6 +26,7 @@ if merge_files == None:
     for tag in ['coverage','muts']:
         # Find all the relevant files
         globfiles = sorted(glob.glob('%s/*/*.%s.txt' % (args.split_dir,tag)  ))
+        globfiles += sorted(glob.glob('%s/*/*.%s.txt.gz' % (args.split_dir,tag)  ))
         # Get unique names
         unique_files = unique_files + sorted(list(set(map( os.path.basename, globfiles ))))
 
@@ -32,6 +34,7 @@ if merge_files == None:
     for tag in mut_types:
         # Find all the relevant files
         globfiles = sorted(glob.glob('%s/*/raw_counts/*.%s.txt' % (args.split_dir,tag)  ))
+        globfiles += sorted(glob.glob('%s/*/raw_counts/*.%s.txt.gz' % (args.split_dir,tag)  ))
         # Get unique names
         unique_files = unique_files + sorted(list(set(map( os.path.basename, globfiles ))))
 
@@ -99,7 +102,10 @@ for filename in merge_files:
 
         # need to figure out separator
         sepchar = ','
-        fid = open(infile)
+        if infile.find('.gz')>-1:
+            fid = gzip.open(infile,'rt')
+        else:
+            fid = open(infile)
         if fid.readline().find(sepchar) == -1: sepchar = ' '
         fid.close()
 
@@ -123,7 +129,7 @@ for filename in merge_files:
         print( 'Did not find any files to merge. Did you give the UBR directory?' )
     else:
         outfile = outdir+filename
-        df.to_csv(outfile,sep=' ',header=None,index=None)
+        df.to_csv(outfile,sep=',',header=None,index=None)
 
         nseq = len(df)
         tot_counts = df.max(axis=1).sum()
