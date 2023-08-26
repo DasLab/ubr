@@ -110,8 +110,10 @@ if merge_pairs:
     else:
         if args.merge_pairs_pear:
             command = 'pear -f %s -r %s -o  %s > %s0_merge_pairs.out 2> %s0_merge_pairs.err && gzip %s' % (args.read1_fastq, args.read2_fastq, out_prefix, wd, wd, merged_fastq.replace('.gz',''))
-        else: # Default is to use bbmerge.sh
-            command = 'bbmerge.sh in=%s in2=%s out=%s > %s0_merge_pairs.out 2> %s0_merge_pairs.err' % (args.read1_fastq, args.read2_fastq, merged_fastq, wd, wd)
+        else:
+            # Default is to use bbmerge.sh
+            # turn off pigz/unpigz which does not accelerate things but spins up extra threads.
+            command = 'bbmerge.sh in=%s in2=%s out=%s pigz=f unpigz=f > %s0_merge_pairs.out 2> %s0_merge_pairs.err' % (args.read1_fastq, args.read2_fastq, merged_fastq, wd, wd)
         print(command)
         os.system( command )
     assert(os.path.isfile( merged_fastq ) )
