@@ -31,12 +31,13 @@ for i =1:length(seqs)
     sequences{i} = seqs(i).Sequence;
     cols = strsplit(seqs(i).Header,'\t');
     id_strings{i} = cols{1};
-    ids(i) = NaN;
-    id = str2num(cols{1});
-    if ~isempty(id) ids(i) = id; end;
+%     ids(i) = NaN;
+%     id = str2num(cols{1});
+%     if ~isempty(id) ids(i) = id; end;
     if length(cols) > 1; titles{i}=strip(strrep(cols{2},'%23','#')); end
     if length(cols) > 2; authors{i}=strip(strrep(cols{3},'%23','#')); end;
 end
+ids = str2double(id_strings);
 if length(unique(titles))<length(unique(authors)) % swap
     x = titles;
     titles = authors;
