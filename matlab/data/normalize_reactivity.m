@@ -1,4 +1,4 @@
-function [r_norm, r_norm_err,r_norm_nomod] = normalize_reactivity(r,r_err,good_idx,BLANK_OUT5, BLANK_OUT3, tags_conditions, r_nomod );
+function [r_norm, r_norm_err,r_norm_nomod,norm_val] = normalize_reactivity(r,r_err,good_idx,BLANK_OUT5, BLANK_OUT3, tags_conditions, r_nomod );
 % [r_norm, r_norm_err] = normalize_reactivity(r,r_err,good_idx,BLANK_OUT5, BLANK_OUT3, tags_conditions);
 %
 % Inputs
@@ -17,12 +17,17 @@ function [r_norm, r_norm_err,r_norm_nomod] = normalize_reactivity(r,r_err,good_i
 %  r_norm_nomod = [Ndesign x Nres] Nomod value matrix, normalized, can be
 %                      used for systematic error estimate. 
 %                       (Zeros if r_nomod not provided)
+%  norm_val = values (in units of fraction modified) used for normalization
 %                      
 %
 % (C) R. Das, HHMI/Stanford University 2023.
 
 N = size(r,2);
 which_pos = [(BLANK_OUT5+1):(N-BLANK_OUT3)];
+r_norm = [];
+r_norm_err = [];
+r_norm_nomod = [];
+norm_val = [];
 if ~exist( 'tags_conditions','var'); tags_conditions = repmat({''},1,size(r,3)); end;
 for i = 1:size(r,3)
     vals = r(good_idx,which_pos,i);
@@ -34,4 +39,5 @@ for i = 1:size(r,3)
     r_norm_err(:,:,i) = r_err(:,:,i)/val_norm;
     r_norm_nomod(:,:,i) = 0*r_norm(:,:,i);
     if exist('r_nomod','var') r_norm_nomod(:,:,i) = r_nomod(:,:,i)/val_norm; end;
+    norm_val(i) = val_norm;
 end;

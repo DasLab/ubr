@@ -19,6 +19,7 @@ function [ids,titles,authors,headers,sequences,id_strings] = get_sequence_info( 
 %
 % (C) R. Das, HHMI/Stanford University 2023.
 
+fprintf( 'Reading sequence FASTA file...: %s.\n', fasta_file)
 seqs = fastaread(fasta_file);
 
 ids = [];

@@ -11,16 +11,14 @@ function d = quick_look_ubr(filedir,sequence_file,shape_nomod_idx,structure_csv_
 %       RTB002.muts.txt, RTB002.coverage.txt, etc.)
 %  sequence_file = FASTA file describing all sequences in library. Ideally with tab
 %       delimited headers containing id, title, author.
-%  shape_nomod_idx = cell of Nconditions pairs of indices into experimental conditions
-%            in order [shape_i,nomod_i]. Example: {[3,1],[4,2]}.
+%  shape_nomod_idx = cell of Nconditions pairs of tags or indices into experimental conditions
+%            in order [shape_i,nomod_i]. 
+%                Example (tags): {'RTB028_Agilent_15k_DMS','RTB029_Agilent_15k_MaraNomod'},{'RTB030_Agilent_15k_2A3','RTB031_Agilent_15k_SSIINomod'}
+%                Example (indices): {[1,2],[3,4]}.
 %            These numbers refer to the order in which the tags for the
-%            files appear in filedir, e.g., if filedir has
-%            'RTB002.muts.txt','RTB004.muts.txt','RTB006.muts.txt','RTB008.muts.txt'
-%            {[3,1],[4,2]} means to take RTB006 and subtract background from RTB002 for the
-%            first condition and take RTB008 and subrtact background RTB004
-%            as the second condition. Despite the name 'shape_nomod_idx',
-%            the experimental condition can be DMS or other mutational
-%            profiling approach besides SHAPE reactions.
+%            files appear in filedir. Within each pair of tags/indices, put
+%            the modification condition first (e.g., SHAPE or DMS), and the
+%            no modification condition second.
 %
 % Optional inputs
 %  structure_csv_file = structure_csv_file = CSV file holding columns for 
@@ -101,6 +99,11 @@ assert(exist(filedir,'dir'));
 assert(exist(sequence_file,'file'));
 if ~isempty(structure_csv_file) assert(exist(structure_csv_file,'file')); end;
 
+%% Get logging setup
+logfile = 'quick_look_ubr.log';
+if exist(logfile,'file'); delete(logfile); end;
+fprintf('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\nPutting output to %s\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n',logfile);
+diary(logfile); diary on;
 
 %% Data readin
 tic
@@ -108,6 +111,11 @@ fprintf('Reading and processing data...\n')
 
 use_raw_counts = ~any(strcmp(options,'no_raw_counts'));
 [m,c,rc,tags] = read_ubr_output( filedir,[],use_raw_counts);
+if isempty(m); finish_quick_look(); return; end;
+
+shape_nomod_idx = update_shape_nomod_idx( shape_nomod_idx, tags);
+if isempty(shape_nomod_idx); finish_quick_look(); return; end;
+
 [ids,titles,authors,headers,sequences,id_strings] = get_sequence_info( sequence_file );
 [ structures, structure_map ] = read_structure_csv_file( structure_csv_file, sequences );
 [BLANK_OUT5, BLANK_OUT3] = figure_out_BLANK_OUT( BLANK_OUT5, BLANK_OUT3, sequences );
@@ -124,10 +132,10 @@ end
 for i = 1:length(shape_nomod_idx); conditions{i} = tags{ shape_nomod_idx{i}(1)}; end
 
 total_coverage = sum(coverage,2);
-good_idx = figure_out_idx_for_normalization( total_coverage );
+norm_idx = figure_out_idx_for_normalization( total_coverage );
 r_norm = []; r_norm_err = [];
-if length(good_idx)>0; 
-    [r_norm, r_norm_err] = normalize_reactivity(r,r_err,good_idx,BLANK_OUT5, BLANK_OUT3, conditions );
+if length(norm_idx)>0; 
+    [r_norm, r_norm_err,~,norm_val] = normalize_reactivity(r,r_err,norm_idx,BLANK_OUT5, BLANK_OUT3, conditions );
 end
 
 for i = 1:length(shape_nomod_idx)
@@ -152,6 +160,8 @@ d.shape_nomod_idx = shape_nomod_idx;
 d.tags = tags;
 d.coverage = coverage;
 d.total_coverage = total_coverage;
+d.norm_idx = norm_idx;
+d.norm_val = norm_val;
 d.structures = structures;
 d.structure_map = structure_map;
 d.filedir = filedir;
@@ -168,11 +178,10 @@ if ~isempty(strcmp(options,'output_all'));
 end
 
 %% Make some heatmaps
-if any(strcmp(options,'no_figures')); return; end;
-no_print = ~any(strcmp(options,'no_print'));
+if any(strcmp(options,'no_figures')); finish_quick_look(); return; end;
 
 tic
-fprintf('\n\nCreating figures...\n')
+fprintf('\nCreating figures (provide no_figures in options to skip)...\n')
 set(figure(1),'color','white','Position',[100   785   554   526],'name','fraction reacted, first 500 designs')
 Ntags = size(m,3);
 Nplot = min(size(f,1),500);
@@ -218,7 +227,7 @@ make_library_heat_map( r_norm, good_idx, structure_map, headers, BLANK_OUT5, BLA
 
 %% Make heat map, up to 10000 with high signal to noise
 good_idx = find( signal_to_noise(:,end)>=1.0 & reads(:,end) > 100);
-if length(good_idx)>10000
+if length(good_idx)>500
     set(figure(5),'color','white','name','first designs with good S/N (up to 10000)')
     clf
     Nplot = min(length(good_idx),10000);
@@ -245,6 +254,15 @@ if use_raw_counts
     run_mut_type_analysis( m,c,rc,tags,tags,BLANK_OUT5, BLANK_OUT3);
 end
 toc
+
+% Print out .png's.
+no_print = any(strcmp(options,'no_print'));
+if no_print; finish_quick_look(); return; end;
+fprintf('\nPrinting figures (provide no_print in options to skip)...\n')
+tic
+print_quick_look_figures();
+toc
+finish_quick_look()
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [BLANK_OUT5, BLANK_OUT3] = figure_out_BLANK_OUT( BLANK_OUT5, BLANK_OUT3, sequences );
@@ -284,6 +302,42 @@ if length(good_idx) < 10
 end
 fprintf( 'For normalization, using %d sequences that pass a total coverage cutoff of %d \n',length(good_idx),COVERAGE_CUTOFF)
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function shape_nomod_idx = update_shape_nomod_idx( shape_nomod_idx, tags);
+if length(shape_nomod_idx)==0; return; end;
+if iscell( shape_nomod_idx{1} );
+    for i = 1:length(shape_nomod_idx);
+        if length( shape_nomod_idx{i}) ~= 2; shape_nomod_idx = []; return; end;
+        if ~ischar( shape_nomod_idx{i}{1}); shape_nomod_idx = []; return; end;
+        [shape_nomod_idx_new1,ok] = get_idx(shape_nomod_idx{i}{1},tags);
+        if ~ok; shape_nomod_idx = []; return; end;
+        [shape_nomod_idx_new2,ok] = get_idx(shape_nomod_idx{i}{2},tags);        
+        if ~ok; shape_nomod_idx = []; return; end;
+        shape_nomod_idx_new{i} = [shape_nomod_idx_new1,shape_nomod_idx_new2];
+    end
+    shape_nomod_idx = shape_nomod_idx_new;
+end
+for i = 1:length(shape_nomod_idx);
+    fprintf('Condition %d will be %s minus %s.\n', i, tags{shape_nomod_idx{i}(1)}, tags{shape_nomod_idx{i}(2)});
+end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [idx,ok] = get_idx(tag,tags);
+idx = find(strcmp(tags,tag));
+ok = 1;
+if length(idx) ~= 1;
+    idx = 0;
+    ok = 0;
+    fprintf('Could not find shape_nomod_idx tag %s in tags read from disk!\n',tag);
+    for i = 1:length(tags)
+        fprintf('  %s\n',tags{i});
+    end
+    return;
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function finish_quick_look();
+diary off
+fprintf('%s\n',datetime);
 
 

@@ -61,6 +61,9 @@ for i = 1:Nconditions
     annotations_out = [annotations,condition_annotations{i}];
     comments_out = [comments,condition_comments{i}];
 
+    if isfield(d,'norm_val') & length(d.norm_val)>=i; annotations_out = [annotations_out,{sprintf('processing:normalization:value:%.4f',d.norm_val(i))}]; end;
+    annotations_out = [annotations_out,{sprintf('processing:UBR-v%s',get_ubr_version())}];
+
     extra_data_annotations = get_extra_data_annotations_for_eterna( d.ids, d.titles, d.authors, [], d.headers);
 
     bad_idx = setdiff([1:Ndesigns],good_idx);

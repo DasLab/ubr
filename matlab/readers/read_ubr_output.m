@@ -16,29 +16,27 @@ function [m,c,rc,tags] = read_ubr_output( filedir, tags, read_raw_counts );
 %  tags = tags, could have been inferred from files in directory
 %
 % (C) R. Das, HHMI/Stanford University 2023.
-if ~exist( 'tags', 'var') tags = []; end;
-if ~exist( 'read_raw_counts','var') read_raw_counts = 0; end;
-if ~exist( filedir, 'dir');
-    fprintf('Could not find directory %s\n',filedir);
-    m = []; c = []; rc = [];
-    return;
-end
-if isempty(tags)
-    x = dir([filedir,'/*.muts.txt']);
-    for i = 1:length(x)
-        tags{i} = strrep(x(i).name,'.muts.txt','');
-    end
-end
-
 m = uint32.empty();
 c = uint32.empty();
 rc = uint32.empty();
 
+if ~exist( 'tags', 'var') tags = []; end;
+if ~exist( 'read_raw_counts','var') read_raw_counts = 0; end;
+if ~exist( filedir, 'dir');
+    fprintf('Could not find directory %s\n',filedir);
+    return;
+end
+if isempty(tags)
+    x = dir([filedir,'/*.muts.txt*']);
+    for i = 1:length(x); tags{i} = strrep(strrep(x(i).name,'.muts.txt',''),'.gz',''); end
+    tags = unique(tags,'stable');
+end
+
 for i = 1:length(tags)
     tag = tags{i};
     fprintf('Reading from ... %s%s\n',filedir,tag)
-    m(:,:,i) = load( [filedir,tag,'.muts.txt']);
-    c(:,:,i) = load( [filedir,tag,'.coverage.txt']);
+    m(:,:,i) = load_file( [filedir,tag,'.muts.txt']);
+    c(:,:,i) = load_file( [filedir,tag,'.coverage.txt']);
 end
 
 if read_raw_counts
@@ -49,7 +47,19 @@ if read_raw_counts
         fprintf('Reading raw counts from ... %s%s\n',filedir,tag)
         for k = 1:length(mut_types)
             mut_type = mut_types{k};
-            rc(:,:,k,i) = load( [filedir,'raw_counts/',tag,'.',mut_type,'.txt']);
+            rc(:,:,k,i) = load_file( [filedir,'raw_counts/',tag,'.',mut_type,'.txt']);
         end
     end
 end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function m = load_file( filename );
+if ~exist(filename,'file')
+    gzip_file = [filename,'.gz'];
+    assert(exist(gzip_file,'file'));
+    fprintf( 'Unzipping %s... \n',gzip_file);
+    gunzip( gzip_file );
+end
+m = load( filename );
+
+
