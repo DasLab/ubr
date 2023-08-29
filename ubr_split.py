@@ -64,6 +64,7 @@ assert( os.path.isfile( args.read2_fastq ) )
 assert( args.read1_fastq != args.read2_fastq )
 
 # Check FASTA
+# TODO: use biopython or at least shared util.py
 def read_fasta( fasta_file ):
     lines = open( fasta_file ).readlines()
     sequences = []

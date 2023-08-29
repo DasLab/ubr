@@ -130,13 +130,33 @@ if len(sublibrary_idx.keys()) == 1 and 'unassigned' in sublibrary_idx:
     print( '\nDid not find any sublibrary: tags in %s. No subdividing to do! Exiting...\n')
     exit()
 
+sublibrary_dir = 'SUBLIBRARIES'
 # prepare sublibrary directories
 for sublibrary in sublibrary_idx.keys():
     print( 'Sublibrary: %30s with %6d sequences' % (sublibrary,len(sublibrary_idx[sublibrary])) )
-    dirname = 'sublibraries/%s/' % sublibrary
+    dirname = '%s/%s/' % (sublibrary_dir,sublibrary)
 time_sequence_readin = time.time()
 
-# Do the subdivides
+# Do the subdivides of sequence files
+def write_fasta( fasta_file, sequences, headers, idx ):
+    fid = open(fasta_file,'w')
+    for i in idx:
+        sequence = sequences[i]
+        header = headers[i]
+        fid.write('>%s\n%s\n' % (header,sequence) )
+    fid.close()
+    print('Outputted %d sequences to %s' % (len(idx),fasta_file))
+
+print('\nChecking sequence files...')
+for sublibrary in sublibrary_idx:
+    dirname = '%s/%s' % (sublibrary_dir,sublibrary)
+    os.makedirs( dirname, exist_ok = True )
+    #outfile = dirname + '/' + os.path.basename(args.sequences_fasta).replace('.fa', '_%s.fa' % sublibrary)
+    outfile = '%s/%s.fa' % (dirname,sublibrary)
+    if os.path.isfile(outfile): continue
+    write_fasta( outfile, sequences, headers, sublibrary_idx[sublibrary] )
+
+# Do the subdivides of data files
 time_readin = 0
 time_output = 0
 for filename in subdivide_files:
@@ -155,7 +175,7 @@ for filename in subdivide_files:
     # Check if we need to make any files:
     need_to_make_outfile = 0
     for sublibrary in sublibrary_idx:  # list(sublibrary_idx.keys())[:1]:
-        dirname = 'sublibraries/%s/%s' % (sublibrary,outdir)
+        dirname = '%s/%s/%s' % (sublibrary_dir,sublibrary,outdir)
         if not os.path.isdir(dirname): os.makedirs( dirname )
         outfile= '%s%s' % (dirname,filename)
         if os.path.isfile(outfile): continue
@@ -180,7 +200,7 @@ for filename in subdivide_files:
     time_readin += time_after_infile - time_startfile
 
     for sublibrary in sublibrary_idx:  # list(sublibrary_idx.keys())[:1]:
-        dirname = 'sublibraries/%s/%s' % (sublibrary,outdir)
+        dirname = '%s/%s/%s' % (sublibrary_dir,sublibrary,outdir)
         os.makedirs( dirname, exist_ok = True )
         outfile= '%s%s' % (dirname,filename)
         if os.path.isfile(outfile): continue
