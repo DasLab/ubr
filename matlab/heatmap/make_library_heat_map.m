@@ -22,7 +22,7 @@ N = size(r_norm,2);
 Nplots = Nconditions;
 if ~isempty(structure_map) Nplots = Nconditions+1; end;
 
-set(gcf,'Position',[100 100 max(50+Nconditions*150,800) 700]); clf;
+set(gcf,'Position',[100 100 max(50+Nconditions*150,800) 200+0.6*N]); clf;
 set(gcf,'color','white')
 
 plot_width = 0.65/Nplots;
@@ -44,7 +44,8 @@ for i = 1:Nconditions
     xlim([BLANK_OUT5 N-BLANK_OUT3])
     title( 'SHAPE data')
     if exist( 'tags_conditions', 'var');
-        h = title( strsplit(tags_conditions{i},'_'),'interp','none' );
+        %h = title( strsplit(tags_conditions{i},'_'),'interp','none' );
+        h = title( tags_conditions{i},'interp','none' );
     end;
     xlabel('Position');
     box off
