@@ -76,6 +76,7 @@ if ~exist( 'BLANK_OUT5','var') BLANK_OUT5 = []; end;
 if ~exist( 'BLANK_OUT3','var') BLANK_OUT3 = []; end;
 if ~exist( 'structure_csv_file','var') structure_csv_file = ''; end;
 if ~exist( 'options', 'var') options = {}; end;
+if ~exist( 'chunk_size','var'); chunk_size = 10000; end;
 
 d_chunks = struct();
 assert(exist(filedir,'dir'));
