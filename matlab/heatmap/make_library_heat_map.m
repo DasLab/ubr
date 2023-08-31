@@ -19,10 +19,11 @@ function make_library_heat_map( r_norm, good_idx, structure_map, headers, BLANK_
 
 Nconditions = size(r_norm,3);
 N = size(r_norm,2);
+Nseq = length(good_idx);
 Nplots = Nconditions;
 if ~isempty(structure_map) Nplots = Nconditions+1; end;
 
-set(gcf,'Position',[100 100 max(50+Nconditions*150,800) 200+0.6*N]); clf;
+set(gcf,'Position',[100 100 max(50+Nconditions*150,800) 200+0.6*Nseq]); clf;
 set(gcf,'color','white')
 
 plot_width = 0.65/Nplots;
