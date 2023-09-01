@@ -183,8 +183,8 @@ if any(strcmp(options,'no_figures')); finish_quick_look(); return; end;
 
 tic
 fprintf('\nCreating figures (provide no_figures in options to skip)...\n')
-set(figure(1),'color','white','Position',[100   785   554   526],'name','fraction reacted, first 500 designs')
 Ntags = size(m,3);
+set(figure(1),'color','white','Position',[100   100  max(50+Ntags*100,800)   526],'name','fraction reacted, first 500 designs')
 Nplot = min(size(f,1),500);
 for i = 1:Ntags
     subplot(1,Ntags,i)
