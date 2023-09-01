@@ -123,18 +123,13 @@ for (i,header) in enumerate(headers):
         sublibrary_idx[sublibrary] = []
     sublibrary_idx[sublibrary].append(i)
 
-for sublibrary in sublibrary_idx:
-    print( 'Sublibrary: %30s with %6d sequences' % (sublibrary,len(sublibrary_idx[sublibrary])) )
-
 if len(sublibrary_idx.keys()) == 1 and 'unassigned' in sublibrary_idx:
     print( '\nDid not find any sublibrary: tags in %s. No subdividing to do! Exiting...\n')
     exit()
 
-sublibrary_dir = 'SUBLIBRARIES'
-# prepare sublibrary directories
 for sublibrary in sublibrary_idx.keys():
     print( 'Sublibrary: %30s with %6d sequences' % (sublibrary,len(sublibrary_idx[sublibrary])) )
-    dirname = '%s/%s/' % (sublibrary_dir,sublibrary)
+
 time_sequence_readin = time.time()
 
 # Do the subdivides of sequence files
@@ -147,6 +142,7 @@ def write_fasta( fasta_file, sequences, headers, idx ):
     fid.close()
     print('Outputted %d sequences to %s' % (len(idx),fasta_file))
 
+sublibrary_dir = 'SUBLIBRARIES'
 print('\nChecking sequence files...')
 for sublibrary in sublibrary_idx:
     dirname = '%s/%s' % (sublibrary_dir,sublibrary)
