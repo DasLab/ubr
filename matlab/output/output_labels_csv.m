@@ -1,7 +1,7 @@
 function output_labels_csv(datafile,good_idx,r_norm,ids,sequences,BLANK_OUT5,BLANK_OUT3,experiment_type,dataset_name, r_norm_err, reads, SN_filter);
 % output_labels_csv(datafile,good_idx,r_norm,ids,sequences,BLANK_OUT5,BLANK_OUT3,experiment_type,dataset_name [,r_norm_err, reads, SN_filters]);
 %
-% Create .csv file of UBR for simple i/o to machine learning efforst.
+% Create .csv file of UBR for simple i/o to machine learning efforts.
 %
 % Inputs
 %  datafile = name of data file
@@ -39,47 +39,31 @@ end
 [filepath,filename] = fileparts(datafile);
 if ~exist(filepath,'dir'); mkdir(filepath); end;
 
-fid = fopen(datafile,'w');
-fprintf(fid,'%s,sequence',id_label);
+t = table();
 
-if exist( 'experiment_type','var'); fprintf(fid,',experiment_type'); end
-if exist( 'dataset_name','var'); fprintf(fid,',dataset_name'); end
-
-if exist( 'reads','var') & length(reads)>0; fprintf(fid,',reads'); end
-if exist( 'SN_filter','var') & length(SN_filter)>0; fprintf(fid,',SN_filter'); end
-
+t.(id_label) = ids(good_idx)';
+t.sequence = sequences(good_idx)';
+if exist( 'experiment_type','var'); t.experiment_type = repmat(experiment_type,length(good_idx),1); end
+if exist( 'dataset_name','var'); t.dataset_name = repmat(dataset_name,length(good_idx),1); end
+if exist( 'reads','var') & length(reads)>0; t.reads = reads(good_idx);  end
+if exist( 'SN_filter','var') & length(SN_filter)>0; t.SN_filter = SN_filter(good_idx);  end
 
 Nres = length(sequences{1});
+r_norm = single(r_norm);
+r_norm(:,1:BLANK_OUT5) = NaN;
+r_norm(:,(Nres-BLANK_OUT3+1):Nres) = NaN;
 for k = 1:Nres;
-    fprintf(fid,',reactivity_%04d',k);
+    label = sprintf('reactivity_%04d',k);
+    t.(label) = strtrim(cellstr(num2str(r_norm(good_idx,k),'%.3f')));
 end
 if exist('r_norm_err') & ~isempty(r_norm_err)
+    r_norm_err = single(r_norm_err);
+    r_norm_err(:,1:BLANK_OUT5) = NaN;
+    r_norm_err(:,(Nres-BLANK_OUT3+1):Nres) = NaN;
     for k = 1:Nres;
-        fprintf(fid,',reactivity_error_%04d',k);
+        label = sprintf('reactivity_error_%04d',k);
+        t.(label) = strtrim(cellstr(num2str(r_norm_err(good_idx,k),'%.3f')));
     end
 end
-fprintf(fid,'\n');
-
-
-for i = good_idx'
-    fprintf(fid,'%s,%s', ids{i},sequences{i});
-    if exist( 'experiment_type','var'); fprintf(fid,',%s',experiment_type); end
-    if exist( 'dataset_name','var'); fprintf(fid,',%s',dataset_name); end
-    if exist( 'reads','var') & length(reads)>0; fprintf(fid,',%d',reads(i)); end
-    if exist( 'SN_filter','var') & length(SN_filter)>0; fprintf(fid,',%d',SN_filter(i)); end
-    for k = 1:Nres;
-        val = r_norm(i,k);
-        if (k <= BLANK_OUT5 | k > (Nres - BLANK_OUT3 ) ) val = NaN; end;
-        fprintf(fid,',%.3f',val);
-    end
-    if exist('r_norm_err') & ~isempty(r_norm_err)
-        for k = 1:Nres;
-            val = r_norm_err(i,k);
-            if (k <= BLANK_OUT5 | k > (Nres - BLANK_OUT3 ) ) val = NaN; end;
-            fprintf(fid,',%.3f',val);
-        end
-    end
-    fprintf(fid,'\n');
-end
-fclose(fid);
+writetable(t,datafile);
 fprintf('Outputted heading and %d rows to %s\n',length(good_idx),datafile);
