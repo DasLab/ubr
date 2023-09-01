@@ -54,12 +54,17 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function m = load_file( filename );
+gzip_file = [filename,'.gz'];
 if ~exist(filename,'file')
-    gzip_file = [filename,'.gz'];
     assert(exist(gzip_file,'file'));
-    fprintf( 'Unzipping %s... \n',gzip_file);
+    %fprintf( 'Unzipping %s... \n',gzip_file);
     gunzip( gzip_file );
 end
-m = load( filename );
 
+t = readtable(filename);
+m = table2array(t,'unt32');
+
+if exist(gzip_file,'file')
+    delete(filename); % to save space.
+end
 
