@@ -54,6 +54,7 @@ end
 if ~exist('output_bad_profiles','var'); output_bad_profiles = 1; end;
 if ~isfield(d,'ids'); d.ids = []; d.titles = []; d.authors = []; end;
 
+if ~exist('RDAT','dir'); mkdir('RDAT'); end;
 for i = 1:Nconditions
     good_idx = find( d.signal_to_noise(:,i) >= signal_to_noise_cutoff & d.reads(:,i) >= reads_cutoff);
     fprintf( 'Number of output designs passing cutoff: %3.1f %% (%d out of %d)\n',100*length(intersect(output_idx,good_idx))/length(output_idx),length(intersect(output_idx,good_idx)),length(output_idx));
@@ -72,7 +73,7 @@ for i = 1:Nconditions
     save_idx = [1:Ndesigns]';
     if ~output_bad_profiles; save_idx = good_idx; end
 
-    filename = sprintf('%s_%s.rdat',out_prefix,d.conditions{i});
+    filename = sprintf('RDAT/%s_%s.rdat',out_prefix,d.conditions{i});
 
     num_chunks = floor((length(output_idx)-1)/chunk_size)+1;
     for q = 1:num_chunks        
