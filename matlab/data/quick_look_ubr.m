@@ -96,11 +96,12 @@ if ~exist( 'structure_csv_file','var') structure_csv_file = ''; end;
 if ~exist( 'options', 'var') options = {}; end;
 d = struct();
 assert(exist(filedir,'dir'));
+if ~exist(sequence_file,'file'); sequence_file = [filedir,'/',sequence_file]; end
 assert(exist(sequence_file,'file'));
 if ~isempty(structure_csv_file) assert(exist(structure_csv_file,'file')); end;
 
 %% Get logging setup
-logfile = 'quick_look_ubr.log';
+logfile = sprintf('%s/quick_look_ubr.log',filedir);
 if exist(logfile,'file'); delete(logfile); end;
 fprintf('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\nPutting output to %s\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n',logfile);
 diary(logfile); diary on;
@@ -182,8 +183,8 @@ if any(strcmp(options,'no_figures')); finish_quick_look(); return; end;
 
 tic
 fprintf('\nCreating figures (provide no_figures in options to skip)...\n')
-set(figure(1),'color','white','Position',[100   785   554   526],'name','fraction reacted, first 500 designs')
 Ntags = size(m,3);
+set(figure(1),'color','white','Position',[100   100  max(50+Ntags*100,800)   526],'name','fraction reacted, first 500 designs')
 Nplot = min(size(f,1),500);
 for i = 1:Ntags
     subplot(1,Ntags,i)
@@ -203,7 +204,7 @@ for k = 1:size(reads,2)
     ylabel('Signal/noise');
 end
 hold off
-legend(conditions{k},'Interpreter','none');
+legend(conditions,'Interpreter','none');
 
 %% Histogram of signal to noise
 set(figure(3),'color','white','position',[694   960   400   344],'name','Mean S/N')
@@ -260,7 +261,7 @@ no_print = any(strcmp(options,'no_print'));
 if no_print; finish_quick_look(); return; end;
 fprintf('\nPrinting figures (provide no_print in options to skip)...\n')
 tic
-print_quick_look_figures();
+print_quick_look_figures( filedir );
 toc
 finish_quick_look()
 

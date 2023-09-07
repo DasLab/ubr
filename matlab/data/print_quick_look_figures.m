@@ -1,8 +1,16 @@
-function print_quick_look_figures()
+function print_quick_look_figures( filedir )
+% print_quick_look_figures()
+% print_quick_look_figures( filedir )
+%
 % Go through figures prepared by quick_look_ubr() and print .png's.
+% 
+% Inputs [Optional]
+%  filedir = directory into which to place the Figures/ subdirectory
+%              (default is current directory)
 %
 % (C) R. Das, HHMI/Stanford University 2023.
-figdir = 'Figures';
+if ~exist( 'filedir','var'); filedir = './'; end;
+figdir = sprintf('%s/Figures',filedir);
 if ~exist(figdir,'dir'); mkdir(figdir); end;
 for i = 1:8
     figure(i);

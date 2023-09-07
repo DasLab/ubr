@@ -29,7 +29,7 @@ function [r,r_err,f,f_err,coverage,signal_to_noise,r_nomod] = get_reactivity_OLD
 if ~exist('nomod_error_scalefactor','var') nomod_error_scalefactor = 0; end;
 
 f = m./c;
-f_err = sqrt(2*m)./c; % RNAframework typically spits out 2, not 1, for each paired read!
+f_err = sqrt(m+1)./c; % matches MAPseeker, pseudocount of 1
 
 if length(shape_nomod_idx)==0; 
     shape_nomod_idx = {};

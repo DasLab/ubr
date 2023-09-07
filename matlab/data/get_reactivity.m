@@ -6,6 +6,9 @@ function [r,r_err,f,f_err,coverage,signal_to_noise,r_nomod] = get_reactivity(rc,
 % stretches, are spread out through same-nt stretch based on counts in 'strict' 
 % mutations (i.e. positions that are mutations but not indels).
 %
+% Note that errors are now defined so that the minimum corresponds to a
+%  single count in each channel, analogous to MAPseeker.
+%
 % Inputs
 %  rc = [Ndesigns x Nres x Ntags x Nmuttypes] raw counts (Ntags = Number of different
 %                  experimental conditions). Last dimension should have size
@@ -60,6 +63,7 @@ fprintf('Compiling reactivity...\n')
 c_reshape = repmat(reshape(c,size(c,1),size(c,2),1,size(c,3)),1,1,Nmuttypes,1);
 frc = single(rc)./single(c_reshape);
 frc_err = sqrt(single(rc))./single(c_reshape); 
+f_pseudocount_err = 1./single(c); % pseudocount -- will be a floor on the error.
 
 mut_del_idx = [1:12,14];
 strictmut_idx = [1:12];
@@ -80,11 +84,13 @@ for i = 1:length(shape_nomod_idx)
         rsub(:,:,:,i)     = frc(:,:,:,ci(1)) - frc(:,:,:,ci(2));
         rsub_err(:,:,:,i) = sqrt(frc_err(:,:,:,ci(1)).^2 + frc_err(:,:,:,ci(2)).^2);
         r_nomod(:,:,:,i)  = frc(:,:,:,ci(2));
+        rsub_pseudocount_err(:,:,i) = sqrt(f_pseudocount_err(:,:,ci(1)).^2 + f_pseudocount_err(:,:,ci(2)).^2);
     else
         assert(length(ci)==1);
         rsub(:,:,:,i)     = frc(:,:,:,ci(1));
         rsub_err(:,:,:,i) = frc_err(:,:,:,ci(1));
         r_nomod(:,:,:,i)  = 0*rsub(:,:,:,i);
+        rsub_pseudocount_err(:,:,i) = f_pseudocount_err(:,:,ci(1));
     end
 end
 rsub_strictmut     = squeeze(sum(rsub(:,:,strictmut_idx,:),3));
@@ -98,7 +104,7 @@ toc
 
 if ~exist('sequences') | isempty(sequences)
     fprintf(['\n\nWARNING! Get_reactivity requires sequences to spread out deletions at same-nt stretches.\nPlease provide sequences as last input.\nFor now, proceeding without spread out of deletion.\n\n']);
-    [r, r_err, signal_to_noise] = get_r_from_strictmut_del( rsub_strictmut, rsub_del, rsub_strictmut_err, rsub_del_err, BLANK_OUT5, BLANK_OUT3);
+    [r, r_err, signal_to_noise] = get_r_from_strictmut_del( rsub_strictmut, rsub_del, rsub_strictmut_err, rsub_del_err, BLANK_OUT5, BLANK_OUT3, rsub_pseudocount_err);
     return;
 end
 
@@ -146,21 +152,21 @@ for i = 1:size(rsub_del,1);
             end
         end
         % Important: counts should be conserved:
-        if all(~isnan(del_profile)) assert( abs(sum(del_profile2)-sum(del_profile )) < 1e-3 ); end;
+        if all(~isnan(del_profile)); assert( abs(sum(del_profile2)-sum(del_profile )) < 1e-3 ); end;
         rsub_del_spread(i,:,m) = del_profile2;
         rsub_del_spread_err(i,:,m) = del_profile2_err;
     end
 end
 
-[r, r_err, signal_to_noise] = get_r_from_strictmut_del( rsub_strictmut, rsub_del_spread, rsub_strictmut_err, rsub_del_spread_err, BLANK_OUT5, BLANK_OUT3);
+[r, r_err, signal_to_noise] = get_r_from_strictmut_del( rsub_strictmut, rsub_del_spread, rsub_strictmut_err, rsub_del_spread_err, BLANK_OUT5, BLANK_OUT3, rsub_pseudocount_err);
 
 toc
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function   [r, r_err, signal_to_noise] = get_r_from_strictmut_del( rsub_strictmut, rsub_del, rsub_strictmut_err, rsub_del_err, BLANK_OUT5, BLANK_OUT3);
+function   [r, r_err, signal_to_noise] = get_r_from_strictmut_del( rsub_strictmut, rsub_del, rsub_strictmut_err, rsub_del_err, BLANK_OUT5, BLANK_OUT3, rsub_pseudocount_err);
 
 r     = rsub_strictmut + rsub_del;
-r_err = sqrt(rsub_strictmut_err.^2 + rsub_del_err.^2);
+r_err = sqrt(rsub_strictmut_err.^2 + rsub_del_err.^2 + rsub_pseudocount_err.^2);
 signal_to_noise = get_signal_to_noise(r,r_err,BLANK_OUT5,BLANK_OUT3);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

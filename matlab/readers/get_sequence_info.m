@@ -1,5 +1,5 @@
 function [ids,titles,authors,headers,sequences,id_strings] = get_sequence_info( fasta_file );
-% [ids,titles,authors,headers,sequencesid_strings] = get_sequence_info( fasta_file );
+% [ids,titles,authors,headers,sequences,id_strings] = get_sequence_info( fasta_file );
 % Read in sequences and Eterna information
 %
 % Inputs
@@ -28,7 +28,7 @@ titles = repmat({''},1,length(seqs));
 authors = repmat({''},1,length(seqs));
 for i =1:length(seqs)
     headers{i} = strrep(seqs(i).Header,'%23','#');
-    sequences{i} = seqs(i).Sequence;
+    sequences{i} = strrep(seqs(i).Sequence,'T','U');
     cols = strsplit(seqs(i).Header,'\t');
     id_strings{i} = cols{1};
 %     ids(i) = NaN;

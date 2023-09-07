@@ -15,19 +15,18 @@ function run_mut_type_analysis( m,c,rc,tags,labels,BLANK_OUT5, BLANK_OUT3)
 %
 if isempty(labels); tags = ''; end;
 
-set(figure(8),'color','white','pos',[ 517   182   806   685],'name','Mutation type analysis, position-wise')
+set(figure(8),'color','white','pos',[ 517   182   806 485+100*length(tags)],'name','Mutation type analysis, position-wise')
 clf
 mut_types = {'AC','AG','AT','CA','CG','CT','GA','GC','GT','TA','TC','TG','ins','del'};
 mut_rate_matrix = [];
 for i = 1:length(tags)
-    if length(tags)<= 10; subplot( length(tags),1,i); end;
+    subplot( length(tags),1,i); 
     mut_count_matrix = squeeze(sum(rc(:,:,:,i)));
     coverage_matrix = repmat(squeeze(sum(c(:,:,i),1)),length(mut_types),1)';
     mut_rate_matrix(:,:,i) = mut_count_matrix./coverage_matrix;
     imagesc(mut_rate_matrix(:,:,i)',[0 0.01])
     set(gca,'ytick',[1:length(mut_types)],'YTickLabels',mut_types,'tickdir','out')
     title( labels{i},'interp','none');
-    if length(tags)> 10; pause; end;
     colorbar();
 end
 xlabel( 'Position')

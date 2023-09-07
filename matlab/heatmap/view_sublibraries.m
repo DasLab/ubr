@@ -25,7 +25,7 @@ for n = 1:length(view_tags)
     make_library_heat_map( d.r_norm, idx, d.structure_map, d.headers, d.BLANK_OUT5, d.BLANK_OUT3, d.conditions);
     a = get(gcf,'Children');
     for i = 1:length(a)
-        a(i).Title.String = [{tag};a(i).Title.String];
+        a(i).Title.String = [{view_tag};a(i).Title.String];
     end
     if ~print_stuff;  
         pause;

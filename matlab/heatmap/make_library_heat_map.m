@@ -17,12 +17,14 @@ function make_library_heat_map( r_norm, good_idx, structure_map, headers, BLANK_
 %
 % (C) R. Das, HHMI/Stanford, 2023
 
+if isempty(good_idx) good_idx = [1:size(r_norm,1)]; end;
 Nconditions = size(r_norm,3);
 N = size(r_norm,2);
+Nseq = length(good_idx);
 Nplots = Nconditions;
 if ~isempty(structure_map) Nplots = Nconditions+1; end;
 
-set(gcf,'Position',[100 100 max(50+Nconditions*150,800) 700]); clf;
+set(gcf,'Position',[100 100 max(50+Nconditions*150,800) 200+0.6*Nseq]); clf;
 set(gcf,'color','white')
 
 plot_width = 0.65/Nplots;
@@ -36,7 +38,10 @@ for i = 1:Nconditions
     set(gca, 'TickLabelInterpreter','none','fontweight','bold','ticklength',[0.01,0.25],'tickdir','out' );
     if i == 1
         for n = 1:length(good_idx); header = headers{good_idx(n)}; labels{n} = header(1:min(50,length(header)));end;
-        set(gca,'ytick',[1:length(good_idx)],'yticklabel', labels);
+        stride = 1; 
+        if length(good_idx)>100; stride = floor(length(good_idx)/100); end;
+        which_idx =[1:stride:length(good_idx)];
+        set(gca,'ytick',which_idx,'yticklabel', labels(which_idx));
     else
         set(gca,'ytick',[]);
     end
@@ -44,7 +49,11 @@ for i = 1:Nconditions
     xlim([BLANK_OUT5 N-BLANK_OUT3])
     title( 'SHAPE data')
     if exist( 'tags_conditions', 'var');
-        h = title( strsplit(tags_conditions{i},'_'),'interp','none' );
+        if Nconditions>4
+            h = title( strsplit(tags_conditions{i},'_'),'interp','none' );
+        else
+            h = title( tags_conditions{i},'interp','none' );
+        end
     end;
     xlabel('Position');
     box off
