@@ -204,7 +204,7 @@ for k = 1:size(reads,2)
     ylabel('Signal/noise');
 end
 hold off
-legend(conditions{k},'Interpreter','none');
+legend(conditions,'Interpreter','none');
 
 %% Histogram of signal to noise
 set(figure(3),'color','white','position',[694   960   400   344],'name','Mean S/N')
