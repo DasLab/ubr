@@ -202,7 +202,7 @@ for filename in subdivide_files:
     for sublibrary in sublibrary_idx:  # list(sublibrary_idx.keys())[:1]:
         dirname = '%s/%s/%s' % (sublibrary_dir,sublibrary,outdir)
         os.makedirs( dirname, exist_ok = True )
-        outfile= '%s%s' % (dirname,filename)
+        outfile= '%s%s.gz' % (dirname,filename)
         if os.path.isfile(outfile): continue
         print( 'Creating... %s' % outfile )
         df_sub = df[df.index.isin( sublibrary_idx[sublibrary] )]
