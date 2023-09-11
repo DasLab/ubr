@@ -1,0 +1,45 @@
+Reading and processing data...
+Reading from ... ./RTB008_Twist_PK50_1M7
+Reading from ... ./RTB010_CustomArray_PK50_1M7
+Reading from ... ./RTB012_Twist_PK50_nomod
+Reading from ... ./RTB014_CustomArray_PK50_nomod
+Reading raw counts from ... ./RTB008_Twist_PK50_1M7
+Reading raw counts from ... ./RTB010_CustomArray_PK50_1M7
+Reading raw counts from ... ./RTB012_Twist_PK50_nomod
+Reading raw counts from ... ./RTB014_CustomArray_PK50_nomod
+Condition 1 will be RTB008_Twist_PK50_1M7 minus RTB012_Twist_PK50_nomod.
+Condition 2 will be RTB010_CustomArray_PK50_1M7 minus RTB014_CustomArray_PK50_nomod.
+Reading sequence FASTA file...: pseudoknot50_puzzle_11318423.tsv.RNA_sequences.fa.
+Read in 2729 sequences from pseudoknot50_puzzle_11318423.tsv.RNA_sequences.fa.
+Setting BLANK_OUT5 to be 26 nucleotides; if this does not look right, re-run with explicit specification of BLANK_OUT5
+Setting BLANK_OUT3 to be 20 nucleotides; if this does not look right, re-run with explicit specification of BLANK_OUT3
+Compiling reactivity...
+Elapsed time is 0.341477 seconds.
+Spreading out deletions...
+Doing 1000 out of 2729...
+Doing 2000 out of 2729...
+Elapsed time is 1.567799 seconds.
+For normalization, using 305 sequences that pass a total coverage cutoff of 100 
+Normalizing reactivity profiles for 1 RTB008_Twist_PK50_1M7 with value 0.029412.
+Normalizing reactivity profiles for 2 RTB010_CustomArray_PK50_1M7 with value 0.037037.
+
+Creating figures (provide no_figures in options to skip)...
+Mean signal-to-noise (RTB008_Twist_PK50_1M7) 0.048598
+Mean signal-to-noise (RTB010_CustomArray_PK50_1M7) 0.047828
+
+
+strictmuts: 0.00638 ins: 0.00176 del: 0.00346 strictmuts+dels: 0.00984 rf-count: 0.00928  RTB008_Twist_PK50_1M7 
+strictmuts: 0.00729 ins: 0.00253 del: 0.00563 strictmuts+dels: 0.01292 rf-count: 0.01237  RTB010_CustomArray_PK50_1M7 
+strictmuts: 0.00306 ins: 0.00132 del: 0.00040 strictmuts+dels: 0.00346 rf-count: 0.00341  RTB012_Twist_PK50_nomod 
+strictmuts: 0.00400 ins: 0.00227 del: 0.00259 strictmuts+dels: 0.00659 rf-count: 0.00660  RTB014_CustomArray_PK50_nomod 
+Elapsed time is 4.315473 seconds.
+
+Printing figures (provide no_print in options to skip)...
+Creating: .//Figures/Figure1_fraction_reacted_first_500_designs.png
+Creating: .//Figures/Figure2_S_N_vs._reads.png
+Creating: .//Figures/Figure3_Mean_S_N.png
+Creating: .//Figures/Figure4_first_designs_with_good_S_N_up_to_500.png
+Creating: .//Figures/Figure6_Top_S_N_design.png
+Creating: .//Figures/Figure7_Mutation_type_analysis_table_summary.png
+Creating: .//Figures/Figure8_Mutation_type_analysis_position-wise.png
+Elapsed time is 10.094783 seconds.

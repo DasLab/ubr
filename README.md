@@ -323,7 +323,7 @@ sbatch run_ubr_split.sh
 
 That can take a while. For this example, it actually doesn't take long to run the split (only 5 minutes), so you can also just directly run the command with `sh run_ubr_split.sh`. However, for big jobs (e.g., NovaSeq), the split can take 24 hrs. It's best to not hog a login node to do the split, or to risk a timeout, so in those cases, use `sbatch` to queue up the job.
 
-The splits are 1M reads per job and in this case lead to 18 partitions, since the starting Miseq run has XXX reads.
+The splits are 1M reads per job and in this case leads to 18 partitions, since the starting Miseq run has 17,312,190 reads.
 
 After the `ubr_split.py` completes (look for `DONE` to show up in the out file!), you can run the jobs on slurm with:
 
@@ -342,6 +342,20 @@ ubr_merge.py UBR -s
 This will trigger the definition of a bunch of parallel jobs which will collate each of the `*.txt.gz` counts files in separate threads. Example output below:
 
 ```
+['UBR/*/']
+
+Will merge:
+RTB008_Twist_PK50_1M7.coverage.txt.gz
+RTB010_CustomArray_PK50_1M7.coverage.txt.gz
+...
+RTB008_Twist_PK50_1M7.del.txt.gz
+RTB010_CustomArray_PK50_1M7.del.txt.gz
+RTB012_Twist_PK50_nomod.del.txt.gz
+RTB014_CustomArray_PK50_nomod.del.txt.gz
+
+Created 4 slurm files containing 64 commands. Run:
+ source sbatch_merge_commands.sh
+
 ```
 
 Go ahead and queue up the `ubr_merge.py` jobs with `sbatch ubr_merge_commands.sh`.
@@ -354,6 +368,163 @@ Example output (*not* including the UBR subdirectories) is in `example/EXAMPLE_O
 
 
 ### Step 2. Process counts to get & visualize reactivities (MATLAB)
+
+The last step of the pipeline is to infer reactivity profiles, normalize the reactivities, and output final data files.  The final data files here are text file in the `RDAT` format which holds data and errors in `REACTIVITY` and `REACTIVITY_ERROR` lines as well as metadata related to sequence names, modifiers, etc. in headers. This is the data format used in the [RNA mapping database](https://rmdb.stanford.edu) and can be processed using either MATLAB or Python scripts with the [RDATkit](https://github.com/ribokit/RDATKit) package.
+
+These steps could be carried out in, e.g., `RNAframework` or other code bases, but as part of UBR development, some of the steps have been revisited. One key innovation (to be described, manuscript in prep.) is to better handle deletion signals in SHAPE data sets. These signals are normally ambiguous in homonucleotide stretches -- we don't know which nucleotide was modified when there's a deletion in the stretch -- but we can take advantage of the distribution of non-deletion mutations to figure out how to distribute these deletions.
+
+All of the data sets are currently captured in a MATLAB script called `quick_look_ubr`. 
+
+The appropriate commands, which can be found in `example/ubr_test/extract_profiles.m` or similar are:
+
+```
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Read in data
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+filedir = './';
+shape_nomod_idx = { ...
+    {'RTB008_Twist_PK50_1M7','RTB012_Twist_PK50_nomod'},...
+    {'RTB010_CustomArray_PK50_1M7','RTB014_CustomArray_PK50_nomod'},...
+    };
+sequence_file = 'pseudoknot50_puzzle_11318423.tsv.RNA_sequences.fa';
+structure_csv_file = '';
+d = quick_look_ubr(filedir,sequence_file,shape_nomod_idx,structure_csv_file);
+save workspace_PK50_example.mat;
+```
+
+To run these:
+ * Open MATLAB
+ * Make sure to add the `matlab/` directory from this repository to your path with `Set Path...` in the menubar.
+ * Make sure in matlab to navigate to `example/ubr_test`.
+
+A number of output figures are created. For this library, the 400k test files included with the repository have too few statistics to get good 1M7 SHAPE profiles across the library. However, this library does have a single sequence (called `11336830 BindThe5primeEnd-NotAPseudoknot`) that was separately synthesized as an IDT ultramer and doped in at high concentration (roughly 10% of the molecules in the library are this sequence). 
+
+The output should look like:
+
+```
+Reading and processing data...
+Reading from ... ./RTB008_Twist_PK50_1M7
+Reading from ... ./RTB010_CustomArray_PK50_1M7
+Reading from ... ./RTB012_Twist_PK50_nomod
+Reading from ... ./RTB014_CustomArray_PK50_nomod
+Reading raw counts from ... ./RTB008_Twist_PK50_1M7
+Reading raw counts from ... ./RTB010_CustomArray_PK50_1M7
+Reading raw counts from ... ./RTB012_Twist_PK50_nomod
+Reading raw counts from ... ./RTB014_CustomArray_PK50_nomod
+Condition 1 will be RTB008_Twist_PK50_1M7 minus RTB012_Twist_PK50_nomod.
+Condition 2 will be RTB010_CustomArray_PK50_1M7 minus RTB014_CustomArray_PK50_nomod.
+Reading sequence FASTA file...: pseudoknot50_puzzle_11318423.tsv.RNA_sequences.fa.
+Read in 2729 sequences from pseudoknot50_puzzle_11318423.tsv.RNA_sequences.fa.
+Setting BLANK_OUT5 to be 26 nucleotides; if this does not look right, re-run with explicit specification of BLANK_OUT5
+Setting BLANK_OUT3 to be 20 nucleotides; if this does not look right, re-run with explicit specification of BLANK_OUT3
+Compiling reactivity...
+Elapsed time is 0.341477 seconds.
+Spreading out deletions...
+Doing 1000 out of 2729...
+Doing 2000 out of 2729...
+Elapsed time is 1.567799 seconds.
+For normalization, using 305 sequences that pass a total coverage cutoff of 100 
+Normalizing reactivity profiles for 1 RTB008_Twist_PK50_1M7 with value 0.029412.
+Normalizing reactivity profiles for 2 RTB010_CustomArray_PK50_1M7 with value 0.037037.
+
+Creating figures (provide no_figures in options to skip)...
+Mean signal-to-noise (RTB008_Twist_PK50_1M7) 0.048598
+Mean signal-to-noise (RTB010_CustomArray_PK50_1M7) 0.047828
+
+
+strictmuts: 0.00638 ins: 0.00176 del: 0.00346 strictmuts+dels: 0.00984 rf-count: 0.00928  RTB008_Twist_PK50_1M7 
+strictmuts: 0.00729 ins: 0.00253 del: 0.00563 strictmuts+dels: 0.01292 rf-count: 0.01237  RTB010_CustomArray_PK50_1M7 
+strictmuts: 0.00306 ins: 0.00132 del: 0.00040 strictmuts+dels: 0.00346 rf-count: 0.00341  RTB012_Twist_PK50_nomod 
+strictmuts: 0.00400 ins: 0.00227 del: 0.00259 strictmuts+dels: 0.00659 rf-count: 0.00660  RTB014_CustomArray_PK50_nomod 
+Elapsed time is 4.315473 seconds.
+
+Printing figures (provide no_print in options to skip)...
+Creating: .//Figures/Figure1_fraction_reacted_first_500_designs.png
+Creating: .//Figures/Figure2_S_N_vs._reads.png
+Creating: .//Figures/Figure3_Mean_S_N.png
+Creating: .//Figures/Figure4_first_designs_with_good_S_N_up_to_500.png
+Creating: .//Figures/Figure6_Top_S_N_design.png
+Creating: .//Figures/Figure7_Mutation_type_analysis_table_summary.png
+Creating: .//Figures/Figure8_Mutation_type_analysis_position-wise.png
+Elapsed time is 10.094783 seconds.
+```
+
+Note that this is also saved to a file called `quick_look_ubr.log`. 
+
+Here are some of the output figures from quick_look from this test run, which appear in the test run both on the screen as well as exported to a `Figures/` subfolder as `PNG` images.
+
+A heat map of higher signal-to-noise RNA's puts out just this single doped in RNA:
+
+![](example/EXAMPLE_OUTPUT/ubr_test/Figures/Figure4_first_designs_with_good_S_N_up_to_500.png)
+
+And here are 1D mutational profiles for each channel (1M7 vs. nomod) for this highest signal-to-noise sequence (note: these profiles do not reflect the synthesis errors of the Twist and CustomArray syntheses, since this particular RNA was synthesized separately by IDT and doped in):
+
+![](example/EXAMPLE_OUTPUT/ubr_test/Figures/Figure6_Top_S_N_design.png)
+
+When run on the output of a cluster run, we get more interesting figures. The raw data files (Figure 1) show counts for many sequences (just the first 500 are shown here):
+
+A correlation of coverage to signal-to-noise (Figure 2) shows the expected positive relationships. The doped in sequence is an outlier on this plot.
+
+The signal-to-noise distribution is centered around 1.0. Getting higher signal-to-noise requires higher modification rates (which can be achieved with, e.g., 2A3 as a SHAPE modifier) and/or more sequencing reads (e.g., on a NovaSeq vs. a MiSeq):
+
+The heat map (Figure 4) of 'good' sequences (signal_to_noise > 1.0 and reads > 100) is filled out:
+
+
+For larger libraries, a heatmap of up to 10k high signal-to-noise reads would be output as Figure 5, but we don't have that.
+
+The last two figures (Figure 6 and 7) output information on mutation profiles:
+
+These heat maps show a number of things:
+ - the mutation and deletion rates are higher in 1M7 samples than no mod.
+ - The CustomArray samples have high deletion rates compared to Twist -- especially clear in the no mod data.
+ - The mutation/indel rates are low in the flanking regions -- that is because constant primers are used for PCR amplification and therefore overwrite any mutations in those regions.
+ - The primary kind of signal associated with this SHAPE protocol (1M7 modification, followed by reverse transcription with SuperScript II with buffer supplemented with Mn(2+)) is deletions, roughly balanced with all mutations. (Note that insertions are ignored in the data processing due to their low frequency over background).
+ 
+
+The last code-block in `extract_profiles.m` outputs RDAT's. For this code block, you'll need to download [RDATkit](https://github.com/ribokit/RDATKit) and add it's `matlab/` path to the MATLAB path.
+
+```
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Output RDAT block
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+out_prefix = 'OpenKnotPilot_PK50_RH_Et1_MiSeq';
+name = 'OpenKnotPilot_PK50';
+comments = {...
+    'from data: Miseq_2023-03-25_RH_Et1_PK50_PK90',...
+    'Mutational profiling',...
+    };
+condition_comments{1} = {'Library ordered from Twist, error-prone PCR'};
+condition_comments{2} = {'Library ordered from CustomArray'};
+
+annotations = {'chemical:MgCl2:10mM','temperature:24C','chemical:bicine:150mM(pH8.5)','modifier:1M7','processing:RNAFramework-v2.8.4','processing:spread_deletions','processing:backgroundSubtraction','reverse_transcriptase:SSII_Mn','experimentType:StandardState'};
+condition_annotations = {};
+%condition_annotations{1} = {'modifier:DMS','reverse_transcriptase:Marathon'};
+%condition_annotations{2} = {'modifier:2A3','reverse_transcriptase:SSII_Mn'};
+
+output_rdats_from_ubr_analysis( d, out_prefix, name, [], comments, annotations, condition_comments, condition_annotations );
+save workspace_PK50_example.mat;
+
+```
+
+In above, `out_prefix` is used for filenames, `name` is used to set the `NAME` field in the output `RDAT` file, comments go into `COMMENTS`, annotations go in `ANNOTATIONS` and `condition_comments` and `condition_annotations` are specific to each of the two modification experiments performed. (In this analysis, there are not `condition_annotations` tags that are specific to each condition, but other experiments use different reverse transcriptases or modifiers, and examples are shown in the commented out lines.)
+
+Running this code produces the following for the test directories:
+
+```
+Number of output designs passing cutoff: 0.0 % (1 out of 2729)
+About to create file: RDAT/OpenKnotPilot_PK50_RH_Et1_MiSeq_RTB008_Twist_PK50_1M7.rdat
+Outputted 2729 profiles into RDAT/OpenKnotPilot_PK50_RH_Et1_MiSeq_RTB008_Twist_PK50_1M7.rdat.
+
+Number of output designs passing cutoff: 0.0 % (1 out of 2729)
+About to create file: RDAT/OpenKnotPilot_PK50_RH_Et1_MiSeq_RTB010_CustomArray_PK50_1M7.rdat
+Outputted 2729 profiles into RDAT/OpenKnotPilot_PK50_RH_Et1_MiSeq_RTB010_CustomArray_PK50_1M7.rdat.
+```
+
+The files  are in the `RDAT/` subdirectory
+
+
+
 
 
 
