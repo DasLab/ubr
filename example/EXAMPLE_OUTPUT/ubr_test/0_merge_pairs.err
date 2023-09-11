@@ -1,0 +1,25 @@
+/Users/rhiju/src/bbmap//calcmem.sh: line 75: [: -v: unary operator expected
+java -ea -Xmx1000m -Xms1000m -Djava.library.path=/Users/rhiju/src/bbmap/jni/ -cp /Users/rhiju/src/bbmap/current/ jgi.BBMerge in=../data/Sample1_S1_L001_R1_001_400k.fastq.gz in2=../data/Sample1_S1_L001_R2_001_400k.fastq.gz out=../data/Sample1_S1_L001_R1_001_400k_MERGED.assembled.fastq.gz pigz=f unpigz=f
+Executing jgi.BBMerge [in=../data/Sample1_S1_L001_R1_001_400k.fastq.gz, in2=../data/Sample1_S1_L001_R2_001_400k.fastq.gz, out=../data/Sample1_S1_L001_R1_001_400k_MERGED.assembled.fastq.gz, pigz=f, unpigz=f]
+Version 39.01
+
+Writing mergable reads merged.
+Started output threads.
+Total time: 2.774 seconds.
+
+Pairs:               	400000
+Joined:              	321045   	80.261%
+Ambiguous:           	74628   	18.657%
+No Solution:         	4327       	1.082%
+Too Short:           	0       	0.000%
+
+Avg Insert:          	144.9
+Standard Deviation:  	24.6
+Mode:                	127
+
+Insert range:        	35 - 291
+90th percentile:     	167
+75th percentile:     	167
+50th percentile:     	128
+25th percentile:     	127
+10th percentile:     	126

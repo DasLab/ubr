@@ -1,0 +1,1 @@
+ubr_run.py -s pseudoknot50_puzzle_11318423.tsv.RNA_sequences.fa -b RTBbarcodes_PK50_RNA.fasta -1 Sample1_S1_L001_R1_001_400k.part_002.fastq.gz -2 Sample1_S1_L001_R2_001_400k.part_002.fastq.gz > ubr_run.out 2> ubr_run.err & 

@@ -1,0 +1,25 @@
+
+[+] Making output directory...
+[+] Guessing file types:
+
+  [4m[1mSample[0m     [4m[1mType[0m    [4m[1m5'-end trimming[0m
+
+  bowtie2    SAM     Ignored
+
+[+] Getting transcripts from reference, and building count table base structure...
+[+] Inspecting SAM/BAM file headers...
+[+] Sorting SAM/BAM files...
+
+  [-] Sorting sample "bowtie2" (PID: 86193)
+
+[+] Calculating per-base mutation counts and coverage. This may take a while...
+
+  [-] Processing sample "bowtie2" (PID: 86195)
+
+[+] Statistics:
+
+  [*] Sample "bowtie2": 1874 transcripts covered [A: 33.38; C: 18.17; G: 29.88; T: 18.57] - 5689/11191 (50.84%) mutated alignments
+
+[+] Cleaning up temporary files...
+[+] All done.
+

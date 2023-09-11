@@ -1,0 +1,45 @@
+Read in 2729 sequences from UBR/001/pseudoknot50_puzzle_11318423.tsv.RNA_sequences.fa.
+Read in 4 primer barcodes from UBR/001/RTBbarcodes_PK50_RNA.fasta.
+bbmerge.sh in=UBR/001/Sample1_S1_L001_R1_001_400k.part_001.fastq.gz in2=UBR/001/Sample1_S1_L001_R2_001_400k.part_001.fastq.gz out=UBR/001/Sample1_S1_L001_R1_001_400k.part_001_MERGED.assembled.fastq.gz pigz=f unpigz=f > UBR/001/0_merge_pairs.out 2> UBR/001/0_merge_pairs.err
+
+ultraplex -i UBR/001/Sample1_S1_L001_R1_001_400k.part_001_MERGED.assembled.fastq.gz -b UBR/001/primer_barcodes.csv  -d UBR/001/1_ultraplex/  --dont_build_reference --ignore_no_match --threads 1 > UBR/001/1_ultraplex/1_ultraplex.out 2> UBR/001/1_ultraplex/1_ultraplex.err
+
+bowtie2-build UBR/001/seq.fasta UBR/001/2_bowtie2/bowtie-build/seq --threads 1 > UBR/001/2_bowtie2/bowtie-build/bt2.out 2> UBR/001/2_bowtie2/bowtie-build/bt2.err
+bowtie2 --end-to-end --sensitive --maxins=800 --ignore-quals --no-unal --mp 3,1 --rdg 5,1 --rfg 5,1 --dpad 30 -x UBR/001/2_bowtie2/bowtie-build/seq  -U UBR/001/1_ultraplex/ultraplex_demux_5bc_GGTATATGTACA.fastq.gz -S UBR/001/2_bowtie2/RTB008_Twist_PK50_1M7/bowtie2.sam --threads 1  > UBR/001/2_bowtie2/RTB008_Twist_PK50_1M7/bowtie2.out 2> UBR/001/2_bowtie2/RTB008_Twist_PK50_1M7/bowtie2.err
+bowtie2 --end-to-end --sensitive --maxins=800 --ignore-quals --no-unal --mp 3,1 --rdg 5,1 --rfg 5,1 --dpad 30 -x UBR/001/2_bowtie2/bowtie-build/seq  -U UBR/001/1_ultraplex/ultraplex_demux_5bc_ATGCATGCACAG.fastq.gz -S UBR/001/2_bowtie2/RTB010_CustomArray_PK50_1M7/bowtie2.sam --threads 1  > UBR/001/2_bowtie2/RTB010_CustomArray_PK50_1M7/bowtie2.out 2> UBR/001/2_bowtie2/RTB010_CustomArray_PK50_1M7/bowtie2.err
+bowtie2 --end-to-end --sensitive --maxins=800 --ignore-quals --no-unal --mp 3,1 --rdg 5,1 --rfg 5,1 --dpad 30 -x UBR/001/2_bowtie2/bowtie-build/seq  -U UBR/001/1_ultraplex/ultraplex_demux_5bc_GCAAATGTGCTA.fastq.gz -S UBR/001/2_bowtie2/RTB012_Twist_PK50_nomod/bowtie2.sam --threads 1  > UBR/001/2_bowtie2/RTB012_Twist_PK50_nomod/bowtie2.out 2> UBR/001/2_bowtie2/RTB012_Twist_PK50_nomod/bowtie2.err
+bowtie2 --end-to-end --sensitive --maxins=800 --ignore-quals --no-unal --mp 3,1 --rdg 5,1 --rfg 5,1 --dpad 30 -x UBR/001/2_bowtie2/bowtie-build/seq  -U UBR/001/1_ultraplex/ultraplex_demux_5bc_CTTTCCCACACT.fastq.gz -S UBR/001/2_bowtie2/RTB014_CustomArray_PK50_nomod/bowtie2.sam --threads 1  > UBR/001/2_bowtie2/RTB014_CustomArray_PK50_nomod/bowtie2.out 2> UBR/001/2_bowtie2/RTB014_CustomArray_PK50_nomod/bowtie2.err
+
+rf-count --processors 1 -wt 1 -fast -f UBR/001/seq.fasta -m -cc -rd -ni -ds 1  -orc  -o UBR/001/3_rf_count/RTB008_Twist_PK50_1M7 UBR/001/2_bowtie2/RTB008_Twist_PK50_1M7//bowtie2.sam >> UBR/001/3_rf_count/rf-count_RTB008_Twist_PK50_1M7.out 2>> UBR/001/3_rf_count/rf-count_RTB008_Twist_PK50_1M7.err
+gzip UBR/001/3_rf_count/RTB008_Twist_PK50_1M7/raw_counts/bowtie2.txt
+rf-count --processors 1 -wt 1 -fast -f UBR/001/seq.fasta -m -cc -rd -ni -ds 1  -orc  -o UBR/001/3_rf_count/RTB010_CustomArray_PK50_1M7 UBR/001/2_bowtie2/RTB010_CustomArray_PK50_1M7//bowtie2.sam >> UBR/001/3_rf_count/rf-count_RTB010_CustomArray_PK50_1M7.out 2>> UBR/001/3_rf_count/rf-count_RTB010_CustomArray_PK50_1M7.err
+gzip UBR/001/3_rf_count/RTB010_CustomArray_PK50_1M7/raw_counts/bowtie2.txt
+rf-count --processors 1 -wt 1 -fast -f UBR/001/seq.fasta -m -cc -rd -ni -ds 1  -orc  -o UBR/001/3_rf_count/RTB012_Twist_PK50_nomod UBR/001/2_bowtie2/RTB012_Twist_PK50_nomod//bowtie2.sam >> UBR/001/3_rf_count/rf-count_RTB012_Twist_PK50_nomod.out 2>> UBR/001/3_rf_count/rf-count_RTB012_Twist_PK50_nomod.err
+gzip UBR/001/3_rf_count/RTB012_Twist_PK50_nomod/raw_counts/bowtie2.txt
+rf-count --processors 1 -wt 1 -fast -f UBR/001/seq.fasta -m -cc -rd -ni -ds 1  -orc  -o UBR/001/3_rf_count/RTB014_CustomArray_PK50_nomod UBR/001/2_bowtie2/RTB014_CustomArray_PK50_nomod//bowtie2.sam >> UBR/001/3_rf_count/rf-count_RTB014_CustomArray_PK50_nomod.out 2>> UBR/001/3_rf_count/rf-count_RTB014_CustomArray_PK50_nomod.err
+gzip UBR/001/3_rf_count/RTB014_CustomArray_PK50_nomod/raw_counts/bowtie2.txt
+
+rf-rctools view UBR/001/3_rf_count/RTB008_Twist_PK50_1M7/bowtie2.rc > UBR/001/4_rctools/RTB008_Twist_PK50_1M7/rf_count.csv && gzip UBR/001/4_rctools/RTB008_Twist_PK50_1M7/rf_count.csv
+rf-rctools view UBR/001/3_rf_count/RTB010_CustomArray_PK50_1M7/bowtie2.rc > UBR/001/4_rctools/RTB010_CustomArray_PK50_1M7/rf_count.csv && gzip UBR/001/4_rctools/RTB010_CustomArray_PK50_1M7/rf_count.csv
+rf-rctools view UBR/001/3_rf_count/RTB012_Twist_PK50_nomod/bowtie2.rc > UBR/001/4_rctools/RTB012_Twist_PK50_nomod/rf_count.csv && gzip UBR/001/4_rctools/RTB012_Twist_PK50_nomod/rf_count.csv
+rf-rctools view UBR/001/3_rf_count/RTB014_CustomArray_PK50_nomod/bowtie2.rc > UBR/001/4_rctools/RTB014_CustomArray_PK50_nomod/rf_count.csv && gzip UBR/001/4_rctools/RTB014_CustomArray_PK50_nomod/rf_count.csv
+
+Created: UBR/001/RTB008_Twist_PK50_1M7.muts.txt.gz and UBR/001/RTB008_Twist_PK50_1M7.coverage.txt.gz for 2729 sequences with total coverage 10889
+Created: UBR/001/RTB010_CustomArray_PK50_1M7.muts.txt.gz and UBR/001/RTB010_CustomArray_PK50_1M7.coverage.txt.gz for 2729 sequences with total coverage 9831
+Created: UBR/001/RTB012_Twist_PK50_nomod.muts.txt.gz and UBR/001/RTB012_Twist_PK50_nomod.coverage.txt.gz for 2729 sequences with total coverage 8634
+Created: UBR/001/RTB014_CustomArray_PK50_nomod.muts.txt.gz and UBR/001/RTB014_CustomArray_PK50_nomod.coverage.txt.gz for 2729 sequences with total coverage 8138
+
+Created UBR/001/raw_counts/RTB008_Twist_PK50_1M7.AC.txt.gz,UBR/001/raw_counts/RTB008_Twist_PK50_1M7.AG.txt.gz,UBR/001/raw_counts/RTB008_Twist_PK50_1M7.AT.txt.gz,UBR/001/raw_counts/RTB008_Twist_PK50_1M7.CA.txt.gz,UBR/001/raw_counts/RTB008_Twist_PK50_1M7.CG.txt.gz,UBR/001/raw_counts/RTB008_Twist_PK50_1M7.CT.txt.gz,UBR/001/raw_counts/RTB008_Twist_PK50_1M7.GA.txt.gz,UBR/001/raw_counts/RTB008_Twist_PK50_1M7.GC.txt.gz,UBR/001/raw_counts/RTB008_Twist_PK50_1M7.GT.txt.gz,UBR/001/raw_counts/RTB008_Twist_PK50_1M7.TA.txt.gz,UBR/001/raw_counts/RTB008_Twist_PK50_1M7.TC.txt.gz,UBR/001/raw_counts/RTB008_Twist_PK50_1M7.TG.txt.gz,UBR/001/raw_counts/RTB008_Twist_PK50_1M7.ins.txt.gz,UBR/001/raw_counts/RTB008_Twist_PK50_1M7.del.txt.gz for 2729 sequences (found 1849 designs)
+Created UBR/001/raw_counts/RTB010_CustomArray_PK50_1M7.AC.txt.gz,UBR/001/raw_counts/RTB010_CustomArray_PK50_1M7.AG.txt.gz,UBR/001/raw_counts/RTB010_CustomArray_PK50_1M7.AT.txt.gz,UBR/001/raw_counts/RTB010_CustomArray_PK50_1M7.CA.txt.gz,UBR/001/raw_counts/RTB010_CustomArray_PK50_1M7.CG.txt.gz,UBR/001/raw_counts/RTB010_CustomArray_PK50_1M7.CT.txt.gz,UBR/001/raw_counts/RTB010_CustomArray_PK50_1M7.GA.txt.gz,UBR/001/raw_counts/RTB010_CustomArray_PK50_1M7.GC.txt.gz,UBR/001/raw_counts/RTB010_CustomArray_PK50_1M7.GT.txt.gz,UBR/001/raw_counts/RTB010_CustomArray_PK50_1M7.TA.txt.gz,UBR/001/raw_counts/RTB010_CustomArray_PK50_1M7.TC.txt.gz,UBR/001/raw_counts/RTB010_CustomArray_PK50_1M7.TG.txt.gz,UBR/001/raw_counts/RTB010_CustomArray_PK50_1M7.ins.txt.gz,UBR/001/raw_counts/RTB010_CustomArray_PK50_1M7.del.txt.gz for 2729 sequences (found 2210 designs)
+Created UBR/001/raw_counts/RTB012_Twist_PK50_nomod.AC.txt.gz,UBR/001/raw_counts/RTB012_Twist_PK50_nomod.AG.txt.gz,UBR/001/raw_counts/RTB012_Twist_PK50_nomod.AT.txt.gz,UBR/001/raw_counts/RTB012_Twist_PK50_nomod.CA.txt.gz,UBR/001/raw_counts/RTB012_Twist_PK50_nomod.CG.txt.gz,UBR/001/raw_counts/RTB012_Twist_PK50_nomod.CT.txt.gz,UBR/001/raw_counts/RTB012_Twist_PK50_nomod.GA.txt.gz,UBR/001/raw_counts/RTB012_Twist_PK50_nomod.GC.txt.gz,UBR/001/raw_counts/RTB012_Twist_PK50_nomod.GT.txt.gz,UBR/001/raw_counts/RTB012_Twist_PK50_nomod.TA.txt.gz,UBR/001/raw_counts/RTB012_Twist_PK50_nomod.TC.txt.gz,UBR/001/raw_counts/RTB012_Twist_PK50_nomod.TG.txt.gz,UBR/001/raw_counts/RTB012_Twist_PK50_nomod.ins.txt.gz,UBR/001/raw_counts/RTB012_Twist_PK50_nomod.del.txt.gz for 2729 sequences (found 1723 designs)
+Created UBR/001/raw_counts/RTB014_CustomArray_PK50_nomod.AC.txt.gz,UBR/001/raw_counts/RTB014_CustomArray_PK50_nomod.AG.txt.gz,UBR/001/raw_counts/RTB014_CustomArray_PK50_nomod.AT.txt.gz,UBR/001/raw_counts/RTB014_CustomArray_PK50_nomod.CA.txt.gz,UBR/001/raw_counts/RTB014_CustomArray_PK50_nomod.CG.txt.gz,UBR/001/raw_counts/RTB014_CustomArray_PK50_nomod.CT.txt.gz,UBR/001/raw_counts/RTB014_CustomArray_PK50_nomod.GA.txt.gz,UBR/001/raw_counts/RTB014_CustomArray_PK50_nomod.GC.txt.gz,UBR/001/raw_counts/RTB014_CustomArray_PK50_nomod.GT.txt.gz,UBR/001/raw_counts/RTB014_CustomArray_PK50_nomod.TA.txt.gz,UBR/001/raw_counts/RTB014_CustomArray_PK50_nomod.TC.txt.gz,UBR/001/raw_counts/RTB014_CustomArray_PK50_nomod.TG.txt.gz,UBR/001/raw_counts/RTB014_CustomArray_PK50_nomod.ins.txt.gz,UBR/001/raw_counts/RTB014_CustomArray_PK50_nomod.del.txt.gz for 2729 sequences (found 2098 designs)
+
+Timings:
+0_merge_pairs 00:00:03
+1_ultraplex   00:00:02
+2_bowtie2     00:00:28
+3_rf_count    00:00:15
+4_rctools     00:00:02
+Final merge   00:00:01
+
+Total time: 00:00:53

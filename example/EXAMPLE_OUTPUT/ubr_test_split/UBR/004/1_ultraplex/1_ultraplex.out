@@ -1,0 +1,12 @@
+
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@   @@@@   .@@   @@@@@@@          @@         @@@@@@    (@@@@@        @@@    @@@@@@@         @@    @@@    @
+@@@@   @@@@    @@   ,@@@@@@@@@    @@@@@    @@@   @@@@   (   @@@@   @@@   @@    @@@@@@@   @@@@@@@@@@   #   @@@@
+@@@   &@@@    @@    @@@@@@@@@%   @@@@@         @@@@(   @    @@@         @@    @@@@@@@         @@@@@     @@@@@@
+@@    @@@    @@    @@@@@@@@@@   @@@@@    @@    @@@          @@   .@@@@@@@*   @@@@@@@    @@@@@@@@.   @    @@@@@
+@@@       @@@@.        @@@@@   @@@@@&   @@@.   &   &@@@@    @    @@@@@@@@         @          @    @@@@    @@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+Namespace(inputfastq='UBR/004/Sample1_S1_L001_R1_001_400k.part_004_MERGED.assembled.fastq.gz', barcodes='UBR/004/primer_barcodes.csv', directory='UBR/004/1_ultraplex/', fiveprimemismatches=1, threeprimemismatches=0, phredquality=30, threads=1, adapter='AGATCGGAAGAGCGGTTCAG', outputprefix='demux', sbatchcompression=False, ultra=False, ignore_space_warning=False, final_min_length=20, phredquality_5_prime=0, input_2='', adapter2='AGATCGGAAGAGCGTCGTG', min_trim=3, ignore_no_match=True, dont_build_reference=True, keep_barcode=False)
+Demultiplexing...
+Demultiplexing complete! 80639 reads processed in 1.0 seconds

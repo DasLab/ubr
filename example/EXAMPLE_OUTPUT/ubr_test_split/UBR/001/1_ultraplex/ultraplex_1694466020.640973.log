@@ -1,0 +1,6 @@
+2023-09-11 14:00:20,642 INFO     Namespace(inputfastq='UBR/001/Sample1_S1_L001_R1_001_400k.part_001_MERGED.assembled.fastq.gz', barcodes='UBR/001/primer_barcodes.csv', directory='UBR/001/1_ultraplex/', fiveprimemismatches=1, threeprimemismatches=0, phredquality=30, threads=1, adapter='AGATCGGAAGAGCGGTTCAG', outputprefix='demux', sbatchcompression=False, ultra=False, ignore_space_warning=False, final_min_length=20, phredquality_5_prime=0, input_2='', adapter2='AGATCGGAAGAGCGTCGTG', min_trim=3, ignore_no_match=True, dont_build_reference=True, keep_barcode=False)
+2023-09-11 14:00:22,799 INFO     Demultiplexing complete! 78961 reads processed in 2.0 seconds
+2023-09-11 14:00:22,799 INFO     602 (0.762%) reads quality trimmed
+2023-09-11 14:00:22,799 INFO     551 (0.698%) reads adaptor trimmed
+2023-09-11 14:00:22,799 INFO     0 (0%) reads with correct 5' bc but 3' bc not found
+2023-09-11 14:00:22,799 INFO     39485 (50.0%) reads correctly assigned to sample files
