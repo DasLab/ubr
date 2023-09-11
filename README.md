@@ -521,7 +521,23 @@ About to create file: RDAT/OpenKnotPilot_PK50_RH_Et1_MiSeq_RTB010_CustomArray_PK
 Outputted 2729 profiles into RDAT/OpenKnotPilot_PK50_RH_Et1_MiSeq_RTB010_CustomArray_PK50_1M7.rdat.
 ```
 
-The files  are in the `RDAT/` subdirectory
+The files  are in the `RDAT/` subdirectory. Note that data for all 2729 sequences is output to the RDAT files, but sequences that don't pass the signal_to_noise>1 and reads>100 cutoff are marked with the `DATA_ANNOTATION` of `warning:badQuality`.
+
+The above output is for the 400k test example; for the full MiSeq run, a higher percentage of sequences pass the signal-to-noise cutoff:
+
+```
+Number of output designs passing cutoff: 38.8 % (1060 out of 2729)
+About to create file: RDAT/OpenKnotPilot_PK50_RH_Et1_MiSeq_RTB008_Twist_PK50_1M7.rdat
+Outputted 2729 profiles into RDAT/OpenKnotPilot_PK50_RH_Et1_MiSeq_RTB008_Twist_PK50_1M7.rdat.
+
+Number of output designs passing cutoff: 32.6 % (889 out of 2729)
+About to create file: RDAT/OpenKnotPilot_PK50_RH_Et1_MiSeq_RTB010_CustomArray_PK50_1M7.rdat
+Outputted 2729 profiles into RDAT/OpenKnotPilot_PK50_RH_Et1_MiSeq_RTB010_CustomArray_PK50_1M7.rdat.
+```
+
+Note that example figures and RDAT's for the test and cluster runs are present in the `example/EXAMPLE_OUTPUT` directories.
+
+
 
 
 

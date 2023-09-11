@@ -1,0 +1,4 @@
+sbatch slurm_files/run_ubr_merge_001.sh
+sbatch slurm_files/run_ubr_merge_002.sh
+sbatch slurm_files/run_ubr_merge_003.sh
+sbatch slurm_files/run_ubr_merge_004.sh

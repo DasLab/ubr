@@ -1,0 +1,177 @@
+['UBR/001//', 'UBR/002//', 'UBR/003//', 'UBR/004//', 'UBR/005//', 'UBR/006//', 'UBR/007//', 'UBR/008//', 'UBR/009//', 'UBR/010//', 'UBR/011//', 'UBR/012//', 'UBR/013//', 'UBR/014//', 'UBR/015//', 'UBR/016//', 'UBR/017//', 'UBR/018//']
+
+Will merge:
+RTB010_CustomArray_PK50_1M7.coverage.txt.gz
+Compiled  1670159 total counts for   2729 sequences from     18 of     18 files into: RTB010_CustomArray_PK50_1M7.coverage.txt.gz
+
+Timings:
+Read in data: 00:00:00
+Output  data: 00:00:00
+
+Total time: 00:00:00
+['UBR/001//', 'UBR/002//', 'UBR/003//', 'UBR/004//', 'UBR/005//', 'UBR/006//', 'UBR/007//', 'UBR/008//', 'UBR/009//', 'UBR/010//', 'UBR/011//', 'UBR/012//', 'UBR/013//', 'UBR/014//', 'UBR/015//', 'UBR/016//', 'UBR/017//', 'UBR/018//']
+
+Will merge:
+RTB008_Twist_PK50_1M7.muts.txt.gz
+Compiled   105334 total counts for   2729 sequences from     18 of     18 files into: RTB008_Twist_PK50_1M7.muts.txt.gz
+
+Timings:
+Read in data: 00:00:00
+Output  data: 00:00:00
+
+Total time: 00:00:00
+['UBR/001//', 'UBR/002//', 'UBR/003//', 'UBR/004//', 'UBR/005//', 'UBR/006//', 'UBR/007//', 'UBR/008//', 'UBR/009//', 'UBR/010//', 'UBR/011//', 'UBR/012//', 'UBR/013//', 'UBR/014//', 'UBR/015//', 'UBR/016//', 'UBR/017//', 'UBR/018//']
+
+Will merge:
+RTB012_Twist_PK50_nomod.coverage.txt.gz
+Compiled  1465684 total counts for   2729 sequences from     18 of     18 files into: RTB012_Twist_PK50_nomod.coverage.txt.gz
+
+Timings:
+Read in data: 00:00:00
+Output  data: 00:00:00
+
+Total time: 00:00:00
+['UBR/001//', 'UBR/002//', 'UBR/003//', 'UBR/004//', 'UBR/005//', 'UBR/006//', 'UBR/007//', 'UBR/008//', 'UBR/009//', 'UBR/010//', 'UBR/011//', 'UBR/012//', 'UBR/013//', 'UBR/014//', 'UBR/015//', 'UBR/016//', 'UBR/017//', 'UBR/018//']
+
+Will merge:
+RTB008_Twist_PK50_1M7.AC.txt.gz
+Compiled     9333 total counts for   2729 sequences from     18 of     18 files into: raw_counts/RTB008_Twist_PK50_1M7.AC.txt.gz
+
+Timings:
+Read in data: 00:00:00
+Output  data: 00:00:00
+
+Total time: 00:00:00
+['UBR/001//', 'UBR/002//', 'UBR/003//', 'UBR/004//', 'UBR/005//', 'UBR/006//', 'UBR/007//', 'UBR/008//', 'UBR/009//', 'UBR/010//', 'UBR/011//', 'UBR/012//', 'UBR/013//', 'UBR/014//', 'UBR/015//', 'UBR/016//', 'UBR/017//', 'UBR/018//']
+
+Will merge:
+RTB014_CustomArray_PK50_nomod.coverage.txt.gz
+Compiled  1376626 total counts for   2729 sequences from     18 of     18 files into: RTB014_CustomArray_PK50_nomod.coverage.txt.gz
+
+Timings:
+Read in data: 00:00:00
+Output  data: 00:00:00
+
+Total time: 00:00:00
+['UBR/001//', 'UBR/002//', 'UBR/003//', 'UBR/004//', 'UBR/005//', 'UBR/006//', 'UBR/007//', 'UBR/008//', 'UBR/009//', 'UBR/010//', 'UBR/011//', 'UBR/012//', 'UBR/013//', 'UBR/014//', 'UBR/015//', 'UBR/016//', 'UBR/017//', 'UBR/018//']
+
+Will merge:
+RTB012_Twist_PK50_nomod.AG.txt.gz
+Compiled    12886 total counts for   2729 sequences from     18 of     18 files into: raw_counts/RTB012_Twist_PK50_nomod.AG.txt.gz
+
+Timings:
+Read in data: 00:00:00
+Output  data: 00:00:00
+
+Total time: 00:00:00
+['UBR/001//', 'UBR/002//', 'UBR/003//', 'UBR/004//', 'UBR/005//', 'UBR/006//', 'UBR/007//', 'UBR/008//', 'UBR/009//', 'UBR/010//', 'UBR/011//', 'UBR/012//', 'UBR/013//', 'UBR/014//', 'UBR/015//', 'UBR/016//', 'UBR/017//', 'UBR/018//']
+
+Will merge:
+RTB014_CustomArray_PK50_nomod.AC.txt.gz
+Compiled     5286 total counts for   2729 sequences from     18 of     18 files into: raw_counts/RTB014_CustomArray_PK50_nomod.AC.txt.gz
+
+Timings:
+Read in data: 00:00:00
+Output  data: 00:00:00
+
+Total time: 00:00:00
+['UBR/001//', 'UBR/002//', 'UBR/003//', 'UBR/004//', 'UBR/005//', 'UBR/006//', 'UBR/007//', 'UBR/008//', 'UBR/009//', 'UBR/010//', 'UBR/011//', 'UBR/012//', 'UBR/013//', 'UBR/014//', 'UBR/015//', 'UBR/016//', 'UBR/017//', 'UBR/018//']
+
+Will merge:
+RTB008_Twist_PK50_1M7.coverage.txt.gz
+Compiled  1867471 total counts for   2729 sequences from     18 of     18 files into: RTB008_Twist_PK50_1M7.coverage.txt.gz
+
+Timings:
+Read in data: 00:00:00
+Output  data: 00:00:00
+
+Total time: 00:00:00
+['UBR/001//', 'UBR/002//', 'UBR/003//', 'UBR/004//', 'UBR/005//', 'UBR/006//', 'UBR/007//', 'UBR/008//', 'UBR/009//', 'UBR/010//', 'UBR/011//', 'UBR/012//', 'UBR/013//', 'UBR/014//', 'UBR/015//', 'UBR/016//', 'UBR/017//', 'UBR/018//']
+
+Will merge:
+RTB010_CustomArray_PK50_1M7.AC.txt.gz
+Compiled     8780 total counts for   2729 sequences from     18 of     18 files into: raw_counts/RTB010_CustomArray_PK50_1M7.AC.txt.gz
+
+Timings:
+Read in data: 00:00:00
+Output  data: 00:00:00
+
+Total time: 00:00:00
+['UBR/001//', 'UBR/002//', 'UBR/003//', 'UBR/004//', 'UBR/005//', 'UBR/006//', 'UBR/007//', 'UBR/008//', 'UBR/009//', 'UBR/010//', 'UBR/011//', 'UBR/012//', 'UBR/013//', 'UBR/014//', 'UBR/015//', 'UBR/016//', 'UBR/017//', 'UBR/018//']
+
+Will merge:
+RTB014_CustomArray_PK50_nomod.AG.txt.gz
+Compiled     7815 total counts for   2729 sequences from     18 of     18 files into: raw_counts/RTB014_CustomArray_PK50_nomod.AG.txt.gz
+
+Timings:
+Read in data: 00:00:00
+Output  data: 00:00:00
+
+Total time: 00:00:00
+['UBR/001//', 'UBR/002//', 'UBR/003//', 'UBR/004//', 'UBR/005//', 'UBR/006//', 'UBR/007//', 'UBR/008//', 'UBR/009//', 'UBR/010//', 'UBR/011//', 'UBR/012//', 'UBR/013//', 'UBR/014//', 'UBR/015//', 'UBR/016//', 'UBR/017//', 'UBR/018//']
+
+Will merge:
+RTB008_Twist_PK50_1M7.AG.txt.gz
+Compiled    27667 total counts for   2729 sequences from     18 of     18 files into: raw_counts/RTB008_Twist_PK50_1M7.AG.txt.gz
+
+Timings:
+Read in data: 00:00:00
+Output  data: 00:00:00
+
+Total time: 00:00:00
+['UBR/001//', 'UBR/002//', 'UBR/003//', 'UBR/004//', 'UBR/005//', 'UBR/006//', 'UBR/007//', 'UBR/008//', 'UBR/009//', 'UBR/010//', 'UBR/011//', 'UBR/012//', 'UBR/013//', 'UBR/014//', 'UBR/015//', 'UBR/016//', 'UBR/017//', 'UBR/018//']
+
+Will merge:
+RTB010_CustomArray_PK50_1M7.AG.txt.gz
+Compiled    22853 total counts for   2729 sequences from     18 of     18 files into: raw_counts/RTB010_CustomArray_PK50_1M7.AG.txt.gz
+
+Timings:
+Read in data: 00:00:00
+Output  data: 00:00:00
+
+Total time: 00:00:00
+['UBR/001//', 'UBR/002//', 'UBR/003//', 'UBR/004//', 'UBR/005//', 'UBR/006//', 'UBR/007//', 'UBR/008//', 'UBR/009//', 'UBR/010//', 'UBR/011//', 'UBR/012//', 'UBR/013//', 'UBR/014//', 'UBR/015//', 'UBR/016//', 'UBR/017//', 'UBR/018//']
+
+Will merge:
+RTB012_Twist_PK50_nomod.muts.txt.gz
+Compiled    54421 total counts for   2729 sequences from     18 of     18 files into: RTB012_Twist_PK50_nomod.muts.txt.gz
+
+Timings:
+Read in data: 00:00:00
+Output  data: 00:00:00
+
+Total time: 00:00:00
+['UBR/001//', 'UBR/002//', 'UBR/003//', 'UBR/004//', 'UBR/005//', 'UBR/006//', 'UBR/007//', 'UBR/008//', 'UBR/009//', 'UBR/010//', 'UBR/011//', 'UBR/012//', 'UBR/013//', 'UBR/014//', 'UBR/015//', 'UBR/016//', 'UBR/017//', 'UBR/018//']
+
+Will merge:
+RTB010_CustomArray_PK50_1M7.muts.txt.gz
+Compiled   104273 total counts for   2729 sequences from     18 of     18 files into: RTB010_CustomArray_PK50_1M7.muts.txt.gz
+
+Timings:
+Read in data: 00:00:00
+Output  data: 00:00:00
+
+Total time: 00:00:00
+['UBR/001//', 'UBR/002//', 'UBR/003//', 'UBR/004//', 'UBR/005//', 'UBR/006//', 'UBR/007//', 'UBR/008//', 'UBR/009//', 'UBR/010//', 'UBR/011//', 'UBR/012//', 'UBR/013//', 'UBR/014//', 'UBR/015//', 'UBR/016//', 'UBR/017//', 'UBR/018//']
+
+Will merge:
+RTB014_CustomArray_PK50_nomod.muts.txt.gz
+Compiled    60287 total counts for   2729 sequences from     18 of     18 files into: RTB014_CustomArray_PK50_nomod.muts.txt.gz
+
+Timings:
+Read in data: 00:00:00
+Output  data: 00:00:00
+
+Total time: 00:00:01
+['UBR/001//', 'UBR/002//', 'UBR/003//', 'UBR/004//', 'UBR/005//', 'UBR/006//', 'UBR/007//', 'UBR/008//', 'UBR/009//', 'UBR/010//', 'UBR/011//', 'UBR/012//', 'UBR/013//', 'UBR/014//', 'UBR/015//', 'UBR/016//', 'UBR/017//', 'UBR/018//']
+
+Will merge:
+RTB012_Twist_PK50_nomod.AC.txt.gz
+Compiled     5874 total counts for   2729 sequences from     18 of     18 files into: raw_counts/RTB012_Twist_PK50_nomod.AC.txt.gz
+
+Timings:
+Read in data: 00:00:00
+Output  data: 00:00:00
+
+Total time: 00:00:00
+DONE

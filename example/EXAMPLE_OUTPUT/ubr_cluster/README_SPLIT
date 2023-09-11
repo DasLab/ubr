@@ -1,0 +1,4 @@
+FASTQ_DIR=/scratch/groups/rhiju/rhiju/BaseSpace/GenerateFastQ_SampleSheet-384884703/FASTQ_Generation_2023-03-25_20_33_20Z-661872215/Sample1_L001-ds.384a02d7d6f448bbbb5605d71357947c
+
+ubr_split.py -q 1000000 -s pseudoknot50_puzzle_11318423.tsv.RNA_sequences.fa  -b RTBbarcodes_PK50_RNA.fasta -1 $FASTQ_DIR/Sample1_S1_L001_R1_001.fastq.gz -2 $FASTQ_DIR/Sample1_S1_L001_R2_001.fastq.gz
+
