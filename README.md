@@ -22,9 +22,42 @@ You need *Python3*, and the following packages:
 - `samtools`, available for [download or github](http://www.htslib.org/)
 - `MATLAB`, for final data processing and visualizing output. (Ideally these last scripts should be ported to Python/matplotlib to increase accessibility.)
 
+## Library expectations
+
+The UBR data scripts assume the Illumina sequence inserts have the following form:
+
+```
+...GGGAACGACTCGAGTAGAGTCGAAAACATTCCCAAATTCCACCTTGGTGATGGCACCCGGAGAGGAGCCATCACCACACAAATTTCGATTTGTGAAAAGAAACAACAACAACAACTGTACATATACC
+...<----- const 26 nts -----><-------- RNA of interest -----------------------><---barcode hp--->A<------------------><expbarcode>
+```
+
+Notes:
+
+ * Above is in the sense direction of the RNA, and for historical reasons the Illumina Read 2 sequence is 5' of the sequence, and Illumina Read 1 is 3' of the sequence.
+ * That means that Read 1 in the sequence is the *reverse complement* of the above.
+ * The expbarcode is how experimental conditions (SHAPE, no modification, etc.) are barcoded. This is also historical, as early protocols from our lab were run on MiSeq kits that did not have i5/i7 based multiplexing.  This 12-nt barcode is not in the RNA, but added on with the cDNA primer during reverse transcription.
+ * The sequences have a UUCG-tetraloop barcode hairpin at the 3' end. This unique identifier allows sequences to be identified in protocols like inline-seq that read out fragments of the RNA after degradation. In principle, these barcodes are not needed for mutational profiling.
+
+## How UBR works
+
+There are two major steps, each with several sub-steps. The overall workflow is as follows:
+
+ * [Step 1. Process Illumina FASTQ data to get counts (command-line)](#step-1)
+	 0. Merge Read 1 and Read 2 files.
+	 1. Demultiplex based on the 12-nt expbarcode sequences in primer (Ultraplex)
+	 2. Align reads to sequence library (Bowtie2) 
+	 3. Assign mutation/deletion/insertion counts (RNAFramework)
+
+ * [Step 2. Process counts to get & visualize reactivities (MATLAB)](#step-2)
+	 1. Final reactivity processing, visualization (`quick_look_ubr` in matlab/)
+	 2. RDAT output (output scripts in matlab/)
+
+Each of these steps are illustrated with working examples below.
+
 ## Example
 
-### Step 1. Process Illumina FASTQ data to get counts (command-line)
+### Step 1
+**Process Illumina FASTQ data to get counts (command-line)**
 
 The goal of this first of the two steps is to go from raw Illumina reads in FASTQ files to 'counts' files that count up each mutation. 
 
@@ -68,7 +101,7 @@ Sample1_S1_L001_R1_001_400k.fastq.gz
 Sample1_S1_L001_R2_001_400k.fastq.gz
 ```
 
-the full sequencing and example input/output are available at the Google Drive link described below.
+the full sequencing and example input/output are available at the [Google Drive link](https://drive.google.com/drive/folders/1U0ZFlZQ-NXnDy18TsvSxZo8pwM-lzV1N?usp=drive_link) described below.
 
 There are three ways to run the first step of `UBR`, as (A) single processor run (good for testing), (B) multiple processor run (good for MiSeq-scale data), and (C) cluster run (with SLURM, necessary for large runs, e.g., NovaSeq).
 
@@ -290,7 +323,7 @@ Example output is available in the directory `example/EXAMPLE_OUTPUT/ubr_test_sp
 
 For NovaSeq runs (1B-8B reads), you'll likely need to do a cluster run. 
 
-The data for a full example directory, even for a Miseq, is too big to store in a GitHub repo, but the example data are available in this [Google Drive folder](). 
+The data for a full example directory, even for a Miseq, is too big to store in a GitHub repo, but the example data are available in this [Google Drive folder](https://drive.google.com/drive/folders/1U0ZFlZQ-NXnDy18TsvSxZo8pwM-lzV1N?usp=drive_link). 
 
 Download those data, and put the files in the `example/data_full/` directory.
 
@@ -367,7 +400,8 @@ The core data that need to be saved -- ideally transferred from the cluster to a
 Example output (*not* including the UBR subdirectories) is in `example/EXAMPLE_OUTPUT/ubr_full/`. Full example output is available at the [Google Drive link]().
 
 
-### Step 2. Process counts to get & visualize reactivities (MATLAB)
+### Step 2
+**Process counts to get & visualize reactivities (MATLAB)**
 
 The last step of the pipeline is to infer reactivity profiles, normalize the reactivities, and output final data files.  The final data files here are text file in the `RDAT` format which holds data and errors in `REACTIVITY` and `REACTIVITY_ERROR` lines as well as metadata related to sequence names, modifiers, etc. in headers. This is the data format used in the [RNA mapping database](https://rmdb.stanford.edu) and can be processed using either MATLAB or Python scripts with the [RDATkit](https://github.com/ribokit/RDATKit) package.
 
@@ -463,18 +497,39 @@ And here are 1D mutational profiles for each channel (1M7 vs. nomod) for this hi
 
 When run on the output of a cluster run, we get more interesting figures. The raw data files (Figure 1) show counts for many sequences (just the first 500 are shown here):
 
+![](.//example/EXAMPLE_OUTPUT/ubr_cluster/Figures/Figure1_fraction_reacted_first_500_designs.png
+)
+
 A correlation of coverage to signal-to-noise (Figure 2) shows the expected positive relationships. The doped in sequence is an outlier on this plot.
+
+![](.//example/EXAMPLE_OUTPUT/ubr_cluster/Figures/Figure2_S_N_vs._reads.png
+)
 
 The signal-to-noise distribution is centered around 1.0. Getting higher signal-to-noise requires higher modification rates (which can be achieved with, e.g., 2A3 as a SHAPE modifier) and/or more sequencing reads (e.g., on a NovaSeq vs. a MiSeq):
 
-The heat map (Figure 4) of 'good' sequences (signal_to_noise > 1.0 and reads > 100) is filled out:
+![](.//example/EXAMPLE_OUTPUT/ubr_cluster/Figures/Figure3_Mean_S_N.png
+)
+
+The heat map (Figure 4) of 'good' sequences (signal_to_noise > 1.0 and reads > 100) is filled out. This figure has a max of 500 sequences:
+
+![](.//example/EXAMPLE_OUTPUT/ubr_cluster/Figures/Figure4_first_designs_with_good_S_N_up_to_500.png)
 
 
-For larger libraries, a heatmap of up to 10k high signal-to-noise reads would be output as Figure 5, but we don't have that.
+For larger libraries, a heatmap of up to 10k high signal-to-noise reads are output as Figure 5 -- here we have such a heatmap:
 
-The last two figures (Figure 6 and 7) output information on mutation profiles:
+![](.//example/EXAMPLE_OUTPUT/ubr_cluster/Figures/Figure5_first_designs_with_good_S_N_up_to_10000.png)
+
+Figure 6 is the same as in the test directory, for the doped-in construct with high statistics:
+
+![](.//example/EXAMPLE_OUTPUT/ubr_cluster/Figures/Figure6_Top_S_N_design.png)
+
+The last two figures (Figure 7 and 8) output information on mutation profiles:
+
+![](.//example/EXAMPLE_OUTPUT/ubr_cluster/Figures/Figure7_Mutation_type_analysis_table_summary.png)
+![](.//example/EXAMPLE_OUTPUT/ubr_cluster/Figures/Figure8_Mutation_type_analysis_position-wise.png)
 
 These heat maps show a number of things:
+
  - the mutation and deletion rates are higher in 1M7 samples than no mod.
  - The CustomArray samples have high deletion rates compared to Twist -- especially clear in the no mod data.
  - The mutation/indel rates are low in the flanking regions -- that is because constant primers are used for PCR amplification and therefore overwrite any mutations in those regions.
