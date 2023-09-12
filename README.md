@@ -28,7 +28,7 @@ The UBR data scripts assume the Illumina sequence inserts have the following for
 
 ```
 ...GGGAACGACTCGAGTAGAGTCGAAAACATTCCCAAATTCCACCTTGGTGATGGCACCCGGAGAGGAGCCATCACCACACAAATTTCGATTTGTGAAAAGAAACAACAACAACAACTGTACATATACC
-...<----- const 26 nts -----><-------- RNA of interest -----------------------><---barcode hp--->A<------------------><expbarcode>
+...<----- const 26 nts -----><-------- RNA of interest -----------------------><---barcode hp--->A<------Tail 2------><expbarcode>
 ```
 
 Notes:
