@@ -104,7 +104,7 @@ toc
 
 if ~exist('sequences') | isempty(sequences)
     fprintf(['\n\nWARNING! Get_reactivity requires sequences to spread out deletions at same-nt stretches.\nPlease provide sequences as last input.\nFor now, proceeding without spread out of deletion.\n\n']);
-    [r, r_err, signal_to_noise] = get_r_from_strictmut_del( rsub_strictmut, rsub_del, rsub_strictmut_err, rsub_del_err, BLANK_OUT5, BLANK_OUT3, rsub_pseudocount_err);
+    [r, r_err, signal_to_noise] = get_r_from_strictmut_del( rsub_strictmut, rsub_del, rsub_strictmut_err, rsub_del_err, BLANK_OUT5, BLANK_OUT3, rsub_pseudocount_err, sequences);
     return;
 end
 
@@ -158,23 +158,23 @@ for i = 1:size(rsub_del,1);
     end
 end
 
-[r, r_err, signal_to_noise] = get_r_from_strictmut_del( rsub_strictmut, rsub_del_spread, rsub_strictmut_err, rsub_del_spread_err, BLANK_OUT5, BLANK_OUT3, rsub_pseudocount_err);
+[r, r_err, signal_to_noise] = get_r_from_strictmut_del( rsub_strictmut, rsub_del_spread, rsub_strictmut_err, rsub_del_spread_err, BLANK_OUT5, BLANK_OUT3, rsub_pseudocount_err, sequences);
 
 toc
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function   [r, r_err, signal_to_noise] = get_r_from_strictmut_del( rsub_strictmut, rsub_del, rsub_strictmut_err, rsub_del_err, BLANK_OUT5, BLANK_OUT3, rsub_pseudocount_err);
+function   [r, r_err, signal_to_noise] = get_r_from_strictmut_del( rsub_strictmut, rsub_del, rsub_strictmut_err, rsub_del_err, BLANK_OUT5, BLANK_OUT3, rsub_pseudocount_err, sequences);
 
 r     = rsub_strictmut + rsub_del;
 r_err = sqrt(rsub_strictmut_err.^2 + rsub_del_err.^2 + rsub_pseudocount_err.^2);
-signal_to_noise = get_signal_to_noise(r,r_err,BLANK_OUT5,BLANK_OUT3);
+signal_to_noise = get_signal_to_noise(r,r_err,BLANK_OUT5,BLANK_OUT3, sequences);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function  signal_to_noise = get_signal_to_noise(r,r_err,BLANK_OUT5,BLANK_OUT3);
-N = size(r,2);
-good_seqpos = [(BLANK_OUT5+1):(N-BLANK_OUT3)];
+function  signal_to_noise = get_signal_to_noise(r,r_err,BLANK_OUT5,BLANK_OUT3, sequences);
 for i = 1:size(r,3)
     for m = 1:size(r,1)
+        N = length(sequences{m});
+        good_seqpos = [(BLANK_OUT5+1):(N-BLANK_OUT3)];
         signal_to_noise(m,i) = ubr_estimate_signal_to_noise_ratio(r(m,good_seqpos,i)',r_err(m,good_seqpos,i)');
     end
 end

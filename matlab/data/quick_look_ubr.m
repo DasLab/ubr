@@ -136,7 +136,7 @@ total_coverage = sum(coverage,2);
 norm_idx = figure_out_idx_for_normalization( total_coverage );
 r_norm = []; r_norm_err = [];
 if length(norm_idx)>0; 
-    [r_norm, r_norm_err,~,norm_val] = normalize_reactivity(r,r_err,norm_idx,BLANK_OUT5, BLANK_OUT3, conditions );
+    [r_norm, r_norm_err,~,norm_val] = normalize_reactivity(r,r_err,norm_idx,BLANK_OUT5, BLANK_OUT3, conditions, [], sequences );
 end
 
 for i = 1:length(shape_nomod_idx)

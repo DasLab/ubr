@@ -212,6 +212,7 @@ if args.length_cutoff:
     print( '\nrf-count will throw out reads with length smaller than 92%% of minimal sequence length: %d' % MIN_READ_LENGTH )
 else:
     MIN_READ_LENGTH = 1
+max_seq_length = max( map( lambda x:len(x), sequences ) )
 
 # rf-count to assign muts/dels/inserts
 print()
@@ -292,9 +293,9 @@ for primer_name in primer_names:
         for n in range( N ):
             muts     = lines[5*n+2].strip('\n')
             coverage = lines[5*n+3].strip('\n')
-            fid_counts.write( muts+'\n' )
-            fid_coverage.write( coverage + '\n' )
-            if n == 0: Npos = len(coverage.split(','))
+            pad_string = ',0'*(max_seq_length-len(sequences[n]))
+            fid_counts.write( muts + pad_string +'\n' )
+            fid_coverage.write( coverage + pad_string + '\n' )
             if tally_coverage: total_coverage += max(map( lambda x:int(x), coverage.split(',') ))
     else:
         print( 'WARNING! Could not find %s' % infile )
@@ -320,14 +321,16 @@ for primer_name in primer_names:
         N = int(len(lines)/16)
         outfiles_raw_counts = []
         for (k,mut_type) in enumerate(mut_types):
-            raw_count_lines = [','.join( ['0']*Npos )]*len(design_name_idx)
+            raw_count_lines = [','.join( ['0']*max_seq_length )]*len(design_name_idx)
             for n in range( N ):
                 design_name = lines[16*n].strip('\n')
                 assert( design_name in design_name_idx )
                 idx = design_name_idx[ design_name ]
                 cols = lines[16*n+1+k].strip('\n').split()
                 assert( cols[0] == mut_type)
-                raw_count_lines[idx] = cols[1]
+                pad_string = ',0'*(max_seq_length-len(cols[1].split(',')))
+                raw_count_lines[idx] = cols[1] + pad_string
+
             outfile_raw_counts = outdir + '%s.%s.txt.gz' % (primer_name,mut_type)
             outfiles_raw_counts.append(outfile_raw_counts)
             fid_raw_counts = gzip.open(outfile_raw_counts,'wt')

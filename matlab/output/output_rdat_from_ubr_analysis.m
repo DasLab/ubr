@@ -38,12 +38,13 @@ end
 reactivity     = [];
 reactivity_err = [];
 data_annotations = {};
+rdat = [];
 
 Ndesigns = size( r_norm, 1 );
 if length( sequences ) ~= Ndesigns;   fprintf( 'Number of sequences does not match Ndesigns in r_norm\n' ); return; end
 
 Nres = size(r_norm,2);
-if length( sequences{1} ) ~= Nres;   fprintf( 'Sequence length does not match Nres in r_norm\n' ); return; end
+%if length( sequences{1} ) ~= Nres;   fprintf( 'Sequence length does not match Nres in r_norm\n' ); return; end
 
 if isempty(good_idx); good_idx = [1 : size( r_norm, 1)]'; end;
 
