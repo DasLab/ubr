@@ -22,8 +22,8 @@ mut_types = {'AC','AG','AT','CA','CG','CT','GA','GC','GT','TA','TC','TG','ins','
 mut_rate_matrix = [];
 for i = 1:length(tags)
     subplot( length(tags),1,i); 
-    mut_count_matrix = squeeze(sum(rc(:,:,:,i)));
-    coverage_matrix = repmat(squeeze(sum(c(:,:,i),1)),length(mut_types),1)';
+    mut_count_matrix = reshape(sum(rc(:,:,:,i)),size(rc,2),size(rc,3));
+    coverage_matrix = repmat(reshape(sum(c(:,:,i),1),size(c,2),1),1,length(mut_types));
     mut_rate_matrix(:,:,i) = mut_count_matrix./coverage_matrix;
     imagesc(mut_rate_matrix(:,:,i)',[0 0.01])
     set(gca,'ytick',[1:length(mut_types)],'YTickLabels',mut_types,'tickdir','out')
@@ -38,7 +38,7 @@ set(gcf,'color','white','pos',[1000  1109 613 228],'name','Mutation type analysi
 clf
 
 mutpos = [1+BLANK_OUT5:(size(m,2)-BLANK_OUT3)];
-mean_mut_rate_by_type = squeeze(mean(mut_rate_matrix(mutpos,:,:),1));
+mean_mut_rate_by_type = reshape(mean(mut_rate_matrix(mutpos,:,:),1),size(mut_rate_matrix,2),size(mut_rate_matrix,3));
 imagesc( mean_mut_rate_by_type',[0 0.005]);
 set(gca,'xtick',[1:length(mut_types)],'xticklabel',mut_types,'ytick',[1:length(labels)],'YTickLabel',labels,'tickdir','out',...
     'TickLabelInterpreter','none');
@@ -52,7 +52,7 @@ inserts = mean_mut_rate_by_type(13,:);
 dels = mean_mut_rate_by_type(14,:);
 strictmuts_dels = sum(mean_mut_rate_by_type([1:12,14],:),1);
 
-rfcount_mut_rate_profiles = squeeze(sum(m,1)./sum(c,1));
+rfcount_mut_rate_profiles = reshape(sum(m,1)./sum(c,1),size(m,2),size(m,3),size(m,4));
 rfcount_mut_rate = mean(rfcount_mut_rate_profiles(mutpos,:),1);
 
 fprintf('\n\n')
