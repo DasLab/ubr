@@ -15,7 +15,8 @@ function run_mut_type_analysis( m,c,rc,tags,labels,BLANK_OUT5, BLANK_OUT3)
 %
 if isempty(labels); tags = ''; end;
 
-set(figure(8),'color','white','pos',[ 517   182   806 485+100*length(tags)],'name','Mutation type analysis, position-wise')
+toggle_to_figure(8);
+set(gcf,'color','white','pos',[ 517   182   806 485+100*length(tags)],'name','Mutation type analysis, position-wise')
 clf
 mut_types = {'AC','AG','AT','CA','CG','CT','GA','GC','GT','TA','TC','TG','ins','del'};
 mut_rate_matrix = [];
@@ -32,10 +33,11 @@ end
 xlabel( 'Position')
 
 %% Mutation rates (by MutType)
-set(figure(7),'color','white','pos',[1000  1109 613 228],'name','Mutation type analysis, table summary');
+toggle_to_figure(7);
+set(gcf,'color','white','pos',[1000  1109 613 228],'name','Mutation type analysis, table summary');
 clf
 
-mutpos = [BLANK_OUT5:(size(m,2)-BLANK_OUT3)];
+mutpos = [1+BLANK_OUT5:(size(m,2)-BLANK_OUT3)];
 mean_mut_rate_by_type = squeeze(mean(mut_rate_matrix(mutpos,:,:),1));
 imagesc( mean_mut_rate_by_type',[0 0.005]);
 set(gca,'xtick',[1:length(mut_types)],'xticklabel',mut_types,'ytick',[1:length(labels)],'YTickLabel',labels,'tickdir','out',...

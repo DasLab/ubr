@@ -90,9 +90,11 @@ function d = quick_look_ubr(filedir,sequence_file,shape_nomod_idx,structure_csv_
 %   .f_err = [Ndesigns x Nres x Ntags] Error ofraction at each position that leads to mutation.
 %
 % (C) R. Das, HHMI/Stanford University 2023.
+if length(filedir)==0; filedir= './'; end;
 if ~exist( 'BLANK_OUT5','var') BLANK_OUT5 = []; end;
 if ~exist( 'BLANK_OUT3','var') BLANK_OUT3 = []; end;
 if ~exist( 'structure_csv_file','var') structure_csv_file = ''; end;
+if ~exist( 'shape_nomod_idx','var') shape_nomod_idx = []; end;
 if ~exist( 'options', 'var') options = {}; end;
 d = struct();
 assert(exist(filedir,'dir'));
@@ -184,7 +186,8 @@ if any(strcmp(options,'no_figures')); finish_quick_look(); return; end;
 tic
 fprintf('\nCreating figures (provide no_figures in options to skip)...\n')
 Ntags = size(m,3);
-set(figure(1),'color','white','Position',[100   100  max(50+Ntags*100,800)   526],'name','fraction reacted, first 500 designs')
+toggle_to_figure(1);
+set(gcf,'color','white','Position',[100   100  max(50+Ntags*100,800)   526],'name','fraction reacted, first 500 designs')
 Nplot = min(size(f,1),500);
 for i = 1:Ntags
     subplot(1,Ntags,i)
@@ -196,7 +199,8 @@ for i = 1:Ntags
 end
 
 %% Make plot of signal-to-noise vs. coverage
-set(figure(2),'color','white','position',[450   991   355   322],'name','S/N vs. reads'); clf
+toggle_to_figure(2);
+set(gcf,'color','white','position',[450   991   355   322],'name','S/N vs. reads'); clf
 clf
 for k = 1:size(reads,2)
     semilogx(reads(:,k),signal_to_noise(:,k),'.'); hold on
@@ -207,19 +211,23 @@ hold off
 legend(conditions,'Interpreter','none');
 
 %% Histogram of signal to noise
-set(figure(3),'color','white','position',[694   960   400   344],'name','Mean S/N')
+toggle_to_figure(3);
+set(gcf,'color','white','position',[694   960   400   344],'name','Mean S/N')
 clf
 for i = 1:size(r,3)
     subplot(size(r,3),1,i);
     s2n = signal_to_noise(:,i); s2n( find(isnan(s2n)) ) = 0.0;
     histogram( s2n )
     xlabel( 'Signal/noise' );
-    title( {filedir,conditions{i},['Mean signal/noise = ',num2str(mean(s2n))]},'interp','none');
+    cols = strsplit(what(filedir).path,'/');
+    dirname = strjoin(cols(end-1:end),'/');
+    title( {dirname,conditions{i},['Mean signal/noise = ',num2str(mean(s2n))]},'interp','none');
     fprintf( 'Mean signal-to-noise (%s) %f\n',conditions{i},mean(s2n) );
 end
 
 %% Make heat map, up to 500 with high signal to noise 
-set(figure(4),'color','white','name','first designs with good S/N (up to 500)')
+toggle_to_figure(4);
+set(gcf,'color','white','name','first designs with good S/N (up to 500)')
 clf
 good_idx = find( signal_to_noise(:,end)>=1.0 & reads(:,end) > 100);
 Nplot = min(length(good_idx),500);
@@ -229,7 +237,8 @@ make_library_heat_map( r_norm, good_idx, structure_map, headers, BLANK_OUT5, BLA
 %% Make heat map, up to 10000 with high signal to noise
 good_idx = find( signal_to_noise(:,end)>=1.0 & reads(:,end) > 100);
 if length(good_idx)>500
-    set(figure(5),'color','white','name','first designs with good S/N (up to 10000)')
+    toggle_to_figure(5);
+    set(gcf,'color','white','name','first designs with good S/N (up to 10000)')
     clf
     Nplot = min(length(good_idx),10000);
     good_idx = good_idx(1:Nplot);
@@ -237,7 +246,8 @@ if length(good_idx)>500
 end
 
 %% Take a close look at one of the constructs with high apparent signal to noise
-set(figure(6),'color','white','position',[599   477   560   420],'name','Top S/N design')
+toggle_to_figure(6);
+set(gcf,'color','white','position',[599   477   560   420],'name','Top S/N design')
 clf
 [~,idx] = max(sum(signal_to_noise,2));
 for i = 1:length(shape_nomod_idx)
@@ -271,6 +281,8 @@ test_sequence = strrep(sequences{1},'T','U');
 if isempty(BLANK_OUT5)
     if length(test_sequence)>26 & strcmp(test_sequence(1:26),'GGGAACGACUCGAGUAGAGUCGAAAA')
         BLANK_OUT5 = 26;
+    elseif length(test_sequence)>46 & strcmp(test_sequence(1:46),'UUCUAAUACGACUCACUAUAGGGAACGACUCGAGUAGAGUCGAAAA')
+        BLANK_OUT5 = 46;
     else
         BLANK_OUT5 = 0;
     end
@@ -305,6 +317,7 @@ fprintf( 'For normalization, using %d sequences that pass a total coverage cutof
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function shape_nomod_idx = update_shape_nomod_idx( shape_nomod_idx, tags);
+if isempty(shape_nomod_idx) shape_nomod_idx = num2cell(1:length(tags)); end; % look through all tags.
 if length(shape_nomod_idx)==0; return; end;
 if iscell( shape_nomod_idx{1} );
     for i = 1:length(shape_nomod_idx);
@@ -319,7 +332,12 @@ if iscell( shape_nomod_idx{1} );
     shape_nomod_idx = shape_nomod_idx_new;
 end
 for i = 1:length(shape_nomod_idx);
-    fprintf('Condition %d will be %s minus %s.\n', i, tags{shape_nomod_idx{i}(1)}, tags{shape_nomod_idx{i}(2)});
+    if length( shape_nomod_idx{i} ) > 1
+        fprintf('Condition %d will be %s minus %s.\n', i, tags{shape_nomod_idx{i}(1)}, tags{shape_nomod_idx{i}(2)});
+    else
+        assert( length( shape_nomod_idx{i} == 1 ));
+        fprintf('Condition %d will be %s (no background subtraction).\n', i, tags{shape_nomod_idx{i}(1)} );
+    end
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
