@@ -46,7 +46,7 @@ function [r,r_err,f,f_err,coverage,signal_to_noise,r_nomod] = get_reactivity(rc,
 if ~exist('no_GA','var') no_GA = 0; end;
 mut_types = {'AC','AG','AT','CA','CG','CT','GA','GC','GT','TA','TC','TG','ins','del'};
 Nmuttypes = length(mut_types);
-if length(size(rc))~=4;
+if length(size(rc))~=4 & size(rc,3)~=Nmuttypes;
     m = rc;
     [r,r_err,f,f_err,coverage,signal_to_noise,r_nomod] = get_reactivity_OLD(double(m),double(c),shape_nomod_idx,BLANK_OUT5,BLANK_OUT3);
     fprintf(['\n\nWARNING! Get_reactivity requires raw counts (''rc'') as first input:\n[Ndesigns x Nres x Ntags x Nmuttypes] raw counts (Ntags = Number of different',...
