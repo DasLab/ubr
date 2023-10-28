@@ -24,7 +24,7 @@ function output_rdats_from_ubr_analysis( d, out_prefix, name, output_idx, commen
 %                           each condition. 
 %  condition_annotations = cell of Nconditions cells with extra annotations
 %                           for each conditions
-%  chunk_size = max number of sequences per RDAT file (default 10000).
+%  chunk_size = max number of sequences per RDAT file (default 10000 if Nprofiles > 15000).
 %  signal_to_noise_cutoff = Minimum signal-to-noise (default 1.0).
 %  reads_cutoff = Minimum reads (default 100).
 %  output_bad_profiles = Output all profiles, including ones that do not
@@ -45,7 +45,9 @@ if ~exist( 'condition_annotations', 'var') | length(condition_annotations)==0
     condition_annotations = [];
     for i = 1:Nconditions; condition_annotations{i} = {}; end;
 end
-if ~exist( 'chunk_size', 'var') | chunk_size == 0; chunk_size = 10000; end;
+if (~exist( 'chunk_size', 'var') | chunk_size == 0);
+    if size(d.r_norm,1) > 15000; chunk_size = 10000; else; chunk_size = size(d.r_norm,1); end;
+end;
 if ~exist( 'signal_to_noise_cutoff', 'var'); signal_to_noise_cutoff = 1; end
 if ~exist( 'reads_cutoff', 'var'); reads_cutoff = 100; end
 if length(condition_annotations) ~= Nconditions
