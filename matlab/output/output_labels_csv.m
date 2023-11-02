@@ -50,7 +50,7 @@ if exist( 'reads','var') & length(reads)>0; t.reads = reads(good_idx);  end
 if exist( 'signal_to_noise','var') & length(signal_to_noise)>0; t.signal_to_noise = strtrim(cellstr(num2str(signal_to_noise(good_idx),'%.3f')));  end
 if exist( 'SN_filter','var') & length(SN_filter)>0; t.SN_filter = SN_filter(good_idx);  end
 
-Nres = length(sequences{1});
+Nres = size(r_norm,2); %length(sequences{1});
 r_norm = single(r_norm);
 r_norm(:,1:BLANK_OUT5) = NaN;
 r_norm(:,(Nres-BLANK_OUT3+1):Nres) = NaN;
