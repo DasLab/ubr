@@ -65,6 +65,16 @@ assert( args.read1_fastq != args.read2_fastq )
 
 # Check FASTA
 # TODO: use biopython or at least shared util.py
+def check_dup(mylist,mytag):
+    if (len(set(mylist)) != len(mylist)):
+        print('%s not unique!' % mytag)
+        myset = set()
+        for x in mylist:
+            if x in myset: print(x)
+            myset.add(x)
+        exit(0)
+    return
+
 def read_fasta( fasta_file ):
     lines = open( fasta_file ).readlines()
     sequences = []
@@ -84,6 +94,8 @@ def read_fasta( fasta_file ):
         headers.append(header)
         sequences.append(sequence)
     assert( len(sequences) == len(headers ) )
+    check_dup( sequences,'Sequences' )
+    check_dup( headers,'Headers' )
     return (sequences,headers)
 (sequences,headers) = read_fasta( args.sequences_fasta )
 print( 'Read in %d sequences from %s.' % (len(sequences),args.sequences_fasta) )
