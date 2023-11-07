@@ -54,6 +54,9 @@ There are two major steps, each with several sub-steps. The overall workflow is 
 
 Each of these steps are illustrated with working examples below.
 
+Below that are descriptions of two more advanced features: [merging UBR output](#merging-lanes) from multiple sequencer lanes and [subdividing](#subdividing-ubr-output-by-sublibraries) UBR output based on sublibraries.
+
+
 ## Example
 
 ### Step 1
@@ -256,7 +259,7 @@ Or you can look at the log files:
 ```
 tail -f UBR/001/ubr_run.out
 ```
-When jbs are done, the end of the file will report timings, e.g.:
+When jobs are done, the end of the file will report timings, e.g.:
 
 ```
 Timings:
@@ -593,8 +596,63 @@ Outputted 2729 profiles into RDAT/OpenKnotPilot_PK50_RH_Et1_MiSeq_RTB010_CustomA
 Note that example figures and RDAT's for the test and cluster runs are present in the `example/EXAMPLE_OUTPUT` directories.
 
 
+## Handling big libraries
+### Merging lanes
+
+If you have multiple lanes coming back from, e.g., a NovaSeq run:
+
+1. Run [Step 1](#step-1) as above within multiple separate directories for each lane, e.g., `Lane6` and `Lane7`. In each subdirectory process one lane's `fastq` files. You should end up with `*muts`, `*coverage.csv.gz`, etc. files as well as a `raw_counts` directory as per above, within each of these directories, one set for each lane. 
+
+2. Then, create a new directory called `BothLanes`, and go inside that directory. run:
+```
+ubr_merge.py ../Lane6 ../Lane7
+```
+This command merges the output `*muts.csv.gz`, `*coverage.csv.gz`, etc. files. from each of the given directories. (Note that the behavior of `ubr_merge.py` is slightly different than when passing a single argument like `UBR/` which triggers the script to look through subdirectories.)
+
+3. Run through [Step 2](#step-2) to visualize the data as usual!
+
+### Subdividing UBR output by sublibraries 
+
+All of [Step 1](#step-1) has been tested on datasets involving up to 1M different RNA sequences, but the MATLAB data visualization runs out of memory once the number of different sequences goes beyond about 100k.
+
+In that case, it's best to take the output of the cluster runs in [Step 1](#step-1) and subdivide into separate sublibraries. To do this, make a version of your sequences FASTA file where you add to each header a tab and then a tag like `sublibrary:my_sublibrary_name`. Example:
+
+```
+>12462784       sublibrary:DasLabBigLib_OneMil_OpenKnot_Round_2_test
+GGGAACGACUCGAGUAGAGUCGAAAAAACACAUGAAUUUGAGGGUUACAAACCUUAAUGGCAAAAUGCUC
+AGAAAAACGCUUUGUCUGCAUACACAUUGCCUCAACAGAGACAGCUUUCUGACUAAGUACGUAGCGGUAU
+UCGUACCGCUACGUACAAAAGAAACAACAACAACAAC
+
+>12462782       sublibrary:DasLabBigLib_OneMil_OpenKnot_Round_2_train
+GGGAACGACUCGAGUAGAGUCGAAAAAAUUGGUUGACAAGUGUUCCAACAAGCCGCAGUGAGCCAGACCU
+UAAUGAAGACAGAACACGCAAGAUCUUUAUGACUGUAACACAUGAAUUUGAGGGUACCGCAGCCGCUGGU
+UCGCCAGCGGCUGCGGAAAAGAAACAACAACAACAAC
+
+...
+```
+
+Then run:
+
+```
+ubr_subdivide.py PREVIOUS_UBR_OUTPUT_DIR --sequences_fasta sequences_SUBLIBRARY.fa
+```
+
+You'll get a subdirectory called `SUBLIBRARIES`, which contains subdirectories with the names of each of your sublibraries (`DasLabBigLib_OneMil_OpenKnot_Round_2_test`, `DasLabBigLib_OneMil_OpenKnot_Round_2_train`,... in the example here).  Each of these subdirectories will have a sequences fasta file with just the sequences in the sublibrary (e.g., `DasLabBigLib_OneMil_OpenKnot_Round_2_train.fa`) as well as `*muts.csv.gz`, `*coverage.csv.gz` again containing just the sequences in the sublibrary.
+
+It can be more efficient to run the subdivide on a cluster with SLURM. To do that, type:
 
 
+```
+ubr_subdivide.py PREVIOUS_UBR_OUTPUT_DIR --sequences_fasta sequences_SUBLIBRARY.fa -s
+```
+
+and then queue up 4 subdivide jobs handling 16 file subdivisions each with SLURM with:
+
+```
+source	sbatch_subdivide_commands.sh
+```
+
+Then continue on with [Step 1](#step-1)
 
 
 
