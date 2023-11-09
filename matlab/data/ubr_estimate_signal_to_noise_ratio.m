@@ -1,5 +1,5 @@
-function  SN_ratio = estimate_signal_to_noise_ratio( signal, noise );
-%   SN_ratio = estimate_signal_to_noise_ratio( signal, noise );
+function  SN_ratio = ubr_estimate_signal_to_noise_ratio( signal, noise );
+%   SN_ratio = ubr_estimate_signal_to_noise_ratio( signal, noise );
 %
 %  Calculate mean(signal) / mean( noise) over all points with noise>0
 %   Ignore  first and last such points.
