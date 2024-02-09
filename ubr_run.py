@@ -101,7 +101,7 @@ if len(wd)>0:
     if not os.path.isdir( wd ): os.makedirs( wd, exist_ok = True )
 
 # Merge
-merge_pairs = not args.no_merge_pairs
+merge_pairs = not args.no_merge_pairs and args.read2_fastq != None
 if merge_pairs:
     out_prefix = args.read1_fastq.replace('.fq','').replace('.fastq','').replace('.gz','') + '_MERGED'
     merged_fastq = out_prefix+'.assembled.fastq.gz'
@@ -308,7 +308,7 @@ for primer_name in primer_names:
 # Compile information on mutation-type read counts (if available)
 print()
 design_name_idx = {}
-for (idx,header) in enumerate(headers): design_name_idx[ header.strip().split()[0] ] = idx
+for (idx,header) in enumerate(headers): design_name_idx[ header.strip().split()[0].replace('/','_') ] = idx
 assert( len(design_name_idx) == N )
 
 mut_types = ['AC','AG','AT','CA','CG','CT','GA','GC','GT','TA','TC','TG','ins','del']
@@ -324,6 +324,7 @@ for primer_name in primer_names:
             raw_count_lines = [','.join( ['0']*max_seq_length )]*len(design_name_idx)
             for n in range( N ):
                 design_name = lines[16*n].strip('\n')
+                if design_name not in design_name_idx: print('ERROR COULD NOT FIND design_name! '+design_name)
                 assert( design_name in design_name_idx )
                 idx = design_name_idx[ design_name ]
                 cols = lines[16*n+1+k].strip('\n').split()

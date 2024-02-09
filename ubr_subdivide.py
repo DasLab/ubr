@@ -172,7 +172,7 @@ for filename in subdivide_files:
     need_to_make_outfile = 0
     for sublibrary in sublibrary_idx:  # list(sublibrary_idx.keys())[:1]:
         dirname = '%s/%s/%s' % (sublibrary_dir,sublibrary,outdir)
-        if not os.path.isdir(dirname): os.makedirs( dirname )
+        if not os.path.isdir(dirname): os.makedirs( dirname, exist_ok = True )
         outfile= '%s%s' % (dirname,filename)
         if os.path.isfile(outfile): continue
         need_to_make_outfile = 1
