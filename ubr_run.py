@@ -134,7 +134,7 @@ os.makedirs(outdir,exist_ok = True)
 print()
 any_ultraplex_out_files = False
 for primer_barcode,primer_name in zip(primer_barcodes,primer_names):
-    if read2_fastq:
+    if read2_fastq and not merge_pairs:
         i1 = wd + '1_ultraplex/ultraplex_demux_5bc_%s_Fwd.fastq.gz'  % primer_barcode
         i2 = wd + '1_ultraplex/ultraplex_demux_5bc_%s_Rev.fastq.gz'  % primer_barcode
     else:
@@ -262,7 +262,7 @@ for primer_name in primer_names:
     outdir = wd + '4_rctools/%s' % (primer_name)
     rf_count_file = outdir + '/rf_count.csv'
     rf_count_file_gz = rf_count_file + '.gz'
-    if args.overwrite or not os.path.isfile(rf_count_file_gz):
+    if os.path.isfile(rc_file) and (args.overwrite or not os.path.isfile(rf_count_file_gz)):
         os.makedirs(outdir,exist_ok = True)
         command = 'rf-rctools view %s > %s && gzip %s' % (rc_file, rf_count_file, rf_count_file)
         print(command)
@@ -275,15 +275,16 @@ time_rctools = time.time()
 # Compile information into final .txt files.
 print()
 Npos = 0
+N = 0
 for primer_name in primer_names:
     outfile_counts = wd + '%s.muts.txt.gz' % primer_name
     outfile_coverage = wd + '%s.coverage.txt.gz' % primer_name
     fid_counts = gzip.open(outfile_counts,'wt')
     fid_coverage = gzip.open(outfile_coverage,'wt')
 
-    N = 0
     infile = wd + '4_rctools/%s/rf_count.csv.gz' % (primer_name)
     total_coverage = 0
+    tally_coverage = None
     if os.path.isfile( infile ):
         lines = gzip.open( infile, 'rt' ).readlines()
         N = int(len(lines)/5)
@@ -302,14 +303,14 @@ for primer_name in primer_names:
     fid_counts.close()
     fid_coverage.close()
     total_coverage_string = ''
-    if tally_coverage: total_coverage_string = ' with total coverage %d' % total_coverage
+    if tally_coverage != None: total_coverage_string = ' with total coverage %d' % total_coverage
     print( 'Created: %s and %s for %d sequences%s' % (outfile_counts,outfile_coverage,N,total_coverage_string) )
 
 # Compile information on mutation-type read counts (if available)
 print()
 design_name_idx = {}
 for (idx,header) in enumerate(headers): design_name_idx[ header.strip().split()[0].replace('/','_') ] = idx
-assert( len(design_name_idx) == N )
+assert( len(design_name_idx) == N or N == 0)
 
 mut_types = ['AC','AG','AT','CA','CG','CT','GA','GC','GT','TA','TC','TG','ins','del']
 outdir = wd+'raw_counts/'
