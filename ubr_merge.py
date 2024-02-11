@@ -143,8 +143,8 @@ for filename in merge_files:
 
     time_readin += time_after_infile - time_startfile
 
-    if len(infiles) == 0:
-        print( 'Did not find any files to merge. Did you give the UBR directory?' )
+    if len(infiles) == 0 or not df_init:
+        print( 'Did not find any files to merge: %s' % filename )
     else:
         outfile = outdir+filename
         df.to_csv(outfile,sep=',',header=None,index=None)
