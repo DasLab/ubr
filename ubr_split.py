@@ -60,7 +60,7 @@ if args.merge_pairs_pear: assert( shutil.which('pear') )
 assert( os.path.isfile( args.sequences_fasta ) )
 assert( os.path.isfile( args.primer_barcodes_fasta ) )
 assert( os.path.isfile( args.read1_fastq ) )
-assert( os.path.isfile( args.read2_fastq ) )
+assert( args.read2_fastq == None or os.path.isfile( args.read2_fastq ) )
 assert( args.read1_fastq != args.read2_fastq )
 
 # Check FASTA
@@ -132,7 +132,8 @@ for i in range(1,nsplits+1):
     if i>999: index_tag = '%d' % i
     outdir = '%s/%s' % (split_dir,index_tag)
     f1 = '%s.part_%s%s' % ( os.path.basename( args.read1_fastq ).replace(fastq_tag,''), index_tag, fastq_tag )
-    f2 = '%s.part_%s%s' % ( os.path.basename( args.read2_fastq ).replace(fastq_tag,''), index_tag, fastq_tag )
+    if args.read2_fastq: f2 = '%s.part_%s%s' % ( os.path.basename( args.read2_fastq ).replace(fastq_tag,''), index_tag, fastq_tag )
+    else: f2 = f1
     if not os.path.isdir( outdir ) or not os.path.isfile( outdir+'/'+f1 ) or not os.path.isfile( outdir+'/'+f2 ):
         already_did_split = False
         break
@@ -140,11 +141,13 @@ for i in range(1,nsplits+1):
 if already_did_split and not args.overwrite:
     print( 'Skipping seqkit split2 into %s!' % split_dir )
 else:
+    fastq2_tag = ''
+    if args.read2_fastq: fastq2_tag = ' -2 %s' % args.read2_fastq
     if args.sequences_per_partition > 0:
-        command = 'seqkit split2 -s %d -1 %s -2 %s -O %s --threads 12' % (args.sequences_per_partition,args.read1_fastq,args.read2_fastq,split_dir)
+        command = 'seqkit split2 -s %d -1 %s%s -O %s --threads 12' % (args.sequences_per_partition,args.read1_fastq,fastq2_tag,split_dir)
         print(command)
     else:
-        command = 'seqkit split2 -p %d -1 %s -2 %s -O %s --threads 12' % (nsplits,args.read1_fastq,args.read2_fastq,split_dir)
+        command = 'seqkit split2 -p %d -1 %s%s -O %s --threads 12' % (nsplits,args.read1_fastq,fastq2_tag,split_dir)
         print(command)
     os.system( command )
 
@@ -175,7 +178,8 @@ for i in range(1,nsplits+1):
     index_tag = '%03d' % i
     if i>999: index_tag = '%d' % i
     f1 = '%s.part_%s%s' % ( os.path.basename( args.read1_fastq ).replace(fastq_tag,''), index_tag, fastq_tag )
-    f2 = '%s.part_%s%s' % ( os.path.basename( args.read2_fastq ).replace(fastq_tag,''), index_tag, fastq_tag )
+    if args.read2_fastq: f2 = '%s.part_%s%s' % ( os.path.basename( args.read2_fastq ).replace(fastq_tag,''), index_tag, fastq_tag )
+    else: f2 = f1
 
     outdir = '%s/%s' % (split_dir,index_tag)
     os.makedirs(outdir, exist_ok=True )
@@ -210,10 +214,14 @@ for i in range(1,nsplits+1):
     if args.merge_pairs_pear:  extra_flags += ' --merge_pairs_pear'
 
     fid = open( outdir + '/'+ubr_run_sh_name, 'w' )
-    fid.write( 'ubr_run.py -s %s -b %s -1 %s -2 %s%s > ubr_run.out 2> ubr_run.err & \n' % ( os.path.basename(args.sequences_fasta), os.path.basename(args.primer_barcodes_fasta), os.path.basename(f1), os.path.basename(f2),extra_flags) )
+    fastq2_tag = ''
+    if args.read2_fastq: fastq2_tag = ' -2 %s' % os.path.basename(f2)
+    fid.write( 'ubr_run.py -s %s -b %s -1 %s%s%s > ubr_run.out 2> ubr_run.err & \n' % ( os.path.basename(args.sequences_fasta), os.path.basename(args.primer_barcodes_fasta), os.path.basename(f1),fastq2_tag,extra_flags) )
     fid.close()
 
-    command = 'ubr_run.py -s %s/%s -b %s/%s -1 %s/%s -2 %s/%s -O %s%s > %s/ubr_run.out 2> %s/ubr_run.err &' % ( outdir, args.sequences_fasta, outdir, args.primer_barcodes_fasta, outdir, f1, outdir, f2, outdir, extra_flags, outdir, outdir)
+    fastq2_tag = ''
+    if args.read2_fastq: fastq2_tag = ' -2 %s/%s' % (outdir,f2)
+    command = 'ubr_run.py -s %s/%s -b %s/%s -1 %s/%s%s -O %s%s > %s/ubr_run.out 2> %s/ubr_run.err &' % ( outdir, args.sequences_fasta, outdir, args.primer_barcodes_fasta, outdir, f1, fastq2_tag, outdir, extra_flags, outdir, outdir)
     fid_all.write( command + '\n' )
 
     fid_slurm.write( command +'\n' )

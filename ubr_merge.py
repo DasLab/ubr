@@ -111,6 +111,7 @@ for filename in merge_files:
 
     counts = []
     df = None
+    df_init = False
     numfiles = 0
     for (i,infile) in enumerate(infiles):
 
@@ -126,12 +127,15 @@ for filename in merge_files:
         # OK read it in!
         try:
             df_infile = pd.read_table(infile,sep=sepchar,header=None)
+            df_infile_read_correctly = True
         except pd.errors.EmptyDataError:
             print('Note: %s was empty. Skipping.' % infile )
+            df_infile_read_correctly = False
             continue # will skip the rest of the block and move to next file
-        if i==0:
+        if not df_init and df_infile_read_correctly:
             df = df_infile
-        else:
+            df_init = True
+        elif df_infile_read_correctly:
             df = df.add(df_infile,fill_value = 0)
         numfiles += 1
 
