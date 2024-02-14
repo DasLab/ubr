@@ -177,7 +177,6 @@ for filename in subdivide_files:
         if os.path.isfile(outfile): continue
         need_to_make_outfile = 1
     if not need_to_make_outfile: continue
-    print()
 
     # need to figure out separator, b/c pandas doesn't do a good job.
     sepchar = ','
@@ -189,6 +188,7 @@ for filename in subdivide_files:
     fid.close()
 
     # OK read it in!
+    print( infile )
     df = pd.read_table(infile,sep=sepchar,header=None)
 
     time_after_infile = time.time()
@@ -199,6 +199,7 @@ for filename in subdivide_files:
         dirname = '%s/%s/%s' % (sublibrary_dir,sublibrary,outdir)
         os.makedirs( dirname, exist_ok = True )
         outfile= '%s%s.gz' % (dirname,filename)
+        outfile = outfile.replace('.gz.gz','.gz')
         if os.path.isfile(outfile): continue
         print( 'Creating... %s' % outfile )
         df_sub = df[df.index.isin( sublibrary_idx[sublibrary] )]
