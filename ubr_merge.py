@@ -28,15 +28,15 @@ print(split_dirs)
 merge_files = args.merge_files
 
 if merge_files == None:
+    unique_files = []
     for split_dir in split_dirs:
-        unique_files = []
         subdir = ''
         for tag in ['coverage','muts']:
             # Find all the relevant files
             globfiles = sorted(glob.glob('%s/*.%s.txt' % (split_dir,tag)  ))
             globfiles += sorted(glob.glob('%s/*.%s.txt.gz' % (split_dir,tag)  ))
             # Get unique names
-            unique_files = unique_files + sorted(list(set(map( os.path.basename, globfiles ))))
+            unique_files += sorted(list(set(map( os.path.basename, globfiles ))))
 
         mut_types = ['AC','AG','AT','CA','CG','CT','GA','GC','GT','TA','TC','TG','ins','del']
         for tag in mut_types:
@@ -44,9 +44,9 @@ if merge_files == None:
             globfiles = sorted(glob.glob('%s/raw_counts/*.%s.txt' % (split_dir,tag)  ))
             globfiles += sorted(glob.glob('%s/raw_counts/*.%s.txt.gz' % (split_dir,tag)  ))
             # Get unique names
-            unique_files = unique_files + sorted(list(set(map( os.path.basename, globfiles ))))
+            unique_files += sorted(list(set(map( os.path.basename, globfiles ))))
 
-        merge_files = unique_files
+    merge_files = sorted(list(set(unique_files)))
 
 print('\nWill merge:')
 for merge_file in merge_files:
