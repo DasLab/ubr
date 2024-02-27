@@ -56,7 +56,7 @@ if args.setup_slurm:
     if len(merge_files) < args.jobs_per_slurm_node:
         sbatch_file = 'run_ubr_merge.sh'
         fid_slurm = open( sbatch_file, 'w' )
-        sbatch_preface = '#!/bin/bash\n#SBATCH --job-name=ubr_merge\n#SBATCH --output=ubr_merge.o%%j\n#SBATCH --error=ubr_merge.e%%j\n#SBATCH --partition=biochem,owners\n#SBATCH --time=8:00:00\n#SBATCH -n %d\n#SBATCH -N 1\n\n' % len(merge_files)
+        sbatch_preface = '#!/bin/bash\n#SBATCH --job-name=ubr_merge\n#SBATCH --output=ubr_merge.o%%j\n#SBATCH --error=ubr_merge.e%%j\n#SBATCH --partition=biochem,owners\n#SBATCH --time=8:00:00\n#SBATCH -n %d\n#SBATCH -N 1\n#SBATCH --mem=%dG\n\n' % (len(merge_files),2*len(merge_files))
         fid_slurm.write( sbatch_preface )
         for merge_file in merge_files:
             command = 'ubr_merge.py %s --merge_files %s &' % ( ' '.join(args.split_dir), merge_file )
@@ -70,7 +70,7 @@ if args.setup_slurm:
 
         slurm_file_count = 1
         fid_slurm = open( '%s/run_ubr_merge_%03d.sh' % (slurm_file_dir, slurm_file_count), 'w' )
-        sbatch_preface = '#!/bin/bash\n#SBATCH --job-name=ubr_merge\n#SBATCH --output=ubr_merge.o%%j\n#SBATCH --error=ubr_merge.e%%j\n#SBATCH --partition=biochem,owners\n#SBATCH --time=2:00:00\n#SBATCH -n %d\n#SBATCH -N 1\n\n' % args.jobs_per_slurm_node
+        sbatch_preface = '#!/bin/bash\n#SBATCH --job-name=ubr_merge\n#SBATCH --output=ubr_merge.o%%j\n#SBATCH --error=ubr_merge.e%%j\n#SBATCH --partition=biochem,owners\n#SBATCH --time=2:00:00\n#SBATCH -n %d\n#SBATCH -N 1\n#SBATCH --mem=%dG\n\n' % (args.jobs_per_slurm_node,2*args.jobs_per_slurm_node)
         fid_slurm.write( sbatch_preface )
         fid_sbatch_commands = open( 'sbatch_merge_commands.sh', 'w')
 
@@ -126,7 +126,8 @@ for filename in merge_files:
 
         # OK read it in!
         try:
-            df_infile = pd.read_table(infile,sep=sepchar,header=None)
+            # uint32 needed to prevent memory overflow. Note maximum is 4B, so this will soon be issue, and need to shift to streaming.
+            df_infile = pd.read_table(infile,sep=sepchar,header=None,dtype='uint32')
             df_infile_read_correctly = True
         except pd.errors.EmptyDataError:
             print('Note: %s was empty. Skipping.' % infile )
