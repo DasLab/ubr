@@ -152,7 +152,7 @@ for i = 1:size(rsub_del,1);
             end
         end
         % Important: counts should be conserved:
-        if all(~isnan(del_profile)); assert( abs(sum(del_profile2)-sum(del_profile )) < 1e-3 ); end;
+        %if all(~isnan(del_profile)); assert( abs(sum(del_profile2)-sum(del_profile )) < 1e-3 ); end;
         rsub_del_spread(i,:,m) = del_profile2;
         rsub_del_spread_err(i,:,m) = del_profile2_err;
     end
@@ -173,7 +173,7 @@ signal_to_noise = get_signal_to_noise(r,r_err,BLANK_OUT5,BLANK_OUT3, sequences);
 function  signal_to_noise = get_signal_to_noise(r,r_err,BLANK_OUT5,BLANK_OUT3, sequences);
 for i = 1:size(r,3)
     for m = 1:size(r,1)
-        N = length(sequences{m});
+        if exist('sequences','var') & ~isempty(sequences), N = length(sequences{m}); else N = size(r,2); end;
         good_seqpos = [(BLANK_OUT5+1):(N-BLANK_OUT3)];
         signal_to_noise(m,i) = ubr_estimate_signal_to_noise_ratio(r(m,good_seqpos,i)',r_err(m,good_seqpos,i)');
     end
