@@ -284,7 +284,7 @@ for primer_name in primer_names:
 
     infile = wd + '4_rctools/%s/rf_count.csv.gz' % (primer_name)
     total_coverage = 0
-    tally_coverage = None
+    tally_coverage = False
     if os.path.isfile( infile ):
         lines = gzip.open( infile, 'rt' ).readlines()
         N = int(len(lines)/5)
@@ -297,13 +297,13 @@ for primer_name in primer_names:
             pad_string = ',0'*(max_seq_length-len(sequences[n]))
             fid_counts.write( muts + pad_string +'\n' )
             fid_coverage.write( coverage + pad_string + '\n' )
-            if tally_coverage: total_coverage += max(map( lambda x:int(x), coverage.split(',') ))
+            if tally_coverage: total_coverage += max(list(map( lambda x:int(x), coverage.split(',') )))
     else:
         print( 'WARNING! Could not find %s' % infile )
     fid_counts.close()
     fid_coverage.close()
     total_coverage_string = ''
-    if tally_coverage != None: total_coverage_string = ' with total coverage %d' % total_coverage
+    if tally_coverage: total_coverage_string = ' with total coverage %d' % total_coverage
     print( 'Created: %s and %s for %d sequences%s' % (outfile_counts,outfile_coverage,N,total_coverage_string) )
 
 # Compile information on mutation-type read counts (if available)
