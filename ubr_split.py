@@ -20,6 +20,7 @@ parser.add_argument('-q','--sequences_per_partition', default=0, type=int, help=
 parser.add_argument('-j','--jobs_per_slurm_node', default=24,type=int )
 parser.add_argument('-ow','--overwrite',action = 'store_true', help='overwrite all previous files')
 parser.add_argument('-nmp','--no_merge_pairs',action = 'store_true',help='do not merge paired end reads before Bowtie2' )
+parser.add_argument('--ultima',action='store_true',help='recognize Ultima adapter in ultraplex')
 
 # Deprecated
 parser.add_argument('-nm','--no_mixed',action = 'store_true',help=argparse.SUPPRESS )# 'No mixed reads in Bowtie2')
@@ -162,7 +163,7 @@ os.makedirs(slurm_file_dir, exist_ok=True )
 
 slurm_file_count = 1
 fid_slurm = open( '%s/run_slurm_%03d.sh' % (slurm_file_dir, slurm_file_count), 'w' )
-sbatch_preface = '#!/bin/bash\n#SBATCH --job-name=ubr_run\n#SBATCH --output=ubr_run.o%%j\n#SBATCH --error=ubr_run.e%%j\n#SBATCH --partition=biochem,owners\n#SBATCH --time=48:00:00\n#SBATCH -n %d\n#SBATCH -N 1\n#SBATCH --mem=%dG\n\n' % (args.jobs_per_slurm_node,2*args.jobs_per_slurm_node)
+sbatch_preface = '#!/bin/bash\n#SBATCH --job-name=ubr_run\n#SBATCH --output=ubr_run.o%%j\n#SBATCH --error=ubr_run.e%%j\n#SBATCH --partition=biochem,owners\n#SBATCH --time=48:00:00\n#SBATCH -n %d\n#SBATCH -N 1\n#SBATCH --mem=%dG\n\n' % (args.jobs_per_slurm_node,4*args.jobs_per_slurm_node)
 fid_slurm.write( sbatch_preface )
 fid_sbatch_commands = open( 'sbatch_commands.sh', 'w')
 ubr_run_sh_name = 'ubr_run.sh'
@@ -212,6 +213,7 @@ for i in range(1,nsplits+1):
     if args.score_min != None:  extra_flags += ' --score_min %s' % args.score_min
     if args.no_merge_pairs:  extra_flags += ' --no_merge_pairs'
     if args.merge_pairs_pear:  extra_flags += ' --merge_pairs_pear'
+    if args.ultima:  extra_flags += ' --ultima'
 
     fid = open( outdir + '/'+ubr_run_sh_name, 'w' )
     fastq2_tag = ''

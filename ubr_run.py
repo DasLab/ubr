@@ -17,6 +17,7 @@ parser.add_argument('-2','--read2_fastq', help='FASTQ (can be gzipped) of Read 2
 parser.add_argument('-ow','--overwrite',action = 'store_true', help='overwrite all previous files')
 parser.add_argument('-O','--outdir',default='',help='output directory for all files')
 parser.add_argument('-t','--threads',default=1, type=int, help='Number of threads for Bowtie2 and RNAFramework')
+parser.add_argument('--ultima',action='store_true',help='recognize Ultima adapter in ultraplex')
 parser.add_argument('-nmp','--no_merge_pairs',action = 'store_true',help='do not merge paired end reads before Bowtie2' )
 
 
@@ -83,6 +84,7 @@ read2_fastq = args.read2_fastq
 print( 'Read in %d sequences from %s.' % (len(sequences),args.sequences_fasta) )
 (primer_barcodes,primer_names) = read_fasta( args.primer_barcodes_fasta )
 print( 'Read in %d primer barcodes from %s.' % (len(primer_barcodes),args.primer_barcodes_fasta) )
+if args.ultima: primer_barcodes = [ 'CTACACGACGCTCTTCCGATCT'+barcode for barcode in primer_barcodes ]
 
 # check sequences are RNA/DNA
 def check_sequence(sequence):
@@ -149,6 +151,7 @@ if not any_ultraplex_out_files or args.overwrite:
     extra_flags = ''
     fastq_flags = ' -i %s' % (read1_fastq)
     if read2_fastq:  fastq_flags += ' -i2 %s' % (read2_fastq)
+    if args.ultima: extra_flags +=' -a AGATCGGAAGAGCACA'
     command = 'ultraplex%s%s -b %s  -d %s  --dont_build_reference --ignore_no_match --threads %d > %s1_ultraplex/1_ultraplex.out 2> %s1_ultraplex/1_ultraplex.err' % (fastq_flags, extra_flags, primer_barcodes_csv_file, outdir, args.threads, wd, wd)
     print(command)
     os.system( command )
