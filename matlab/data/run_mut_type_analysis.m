@@ -22,7 +22,7 @@ mut_types = {'AC','AG','AT','CA','CG','CT','GA','GC','GT','TA','TC','TG','ins','
 mut_rate_matrix = [];
 for i = 1:length(tags)
     subplot( length(tags),1,i); 
-    mut_count_matrix = reshape(sum(rc(:,:,:,i)),size(rc,2),size(rc,3));
+    mut_count_matrix = reshape(sum(rc(:,:,:,i),1),size(rc,2),size(rc,3));
     coverage_matrix = repmat(reshape(sum(c(:,:,i),1),size(c,2),1),1,length(mut_types));
     mut_rate_matrix(:,:,i) = mut_count_matrix./coverage_matrix;
     imagesc(mut_rate_matrix(:,:,i)',[0 0.01])

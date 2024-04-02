@@ -72,10 +72,10 @@ if no_GA
     mut_del_idx = [1:6,8:12,14];
     strictmut_idx = [1:6,8:12];
 end
-f = squeeze(sum(frc(:,:,mut_del_idx,:),3));
-f_err = squeeze(sqrt(sum(frc_err(:,:,mut_del_idx,:).^2,3)));
+f = reshape(sum(frc(:,:,mut_del_idx,:),3) ,size(frc,1),size(frc,2),size(frc,4));
+f_err = reshape(sqrt(sum(frc_err(:,:,mut_del_idx,:).^2,3)) ,size(frc,1),size(frc,2),size(frc,4));
 
-coverage = squeeze(max(c,[],2));
+coverage = reshape(max(c,[],2),size(c,1),size(c,3));
 
 %% Background subtract, though do keep track of nomod.
 for i = 1:length(shape_nomod_idx)
@@ -93,13 +93,13 @@ for i = 1:length(shape_nomod_idx)
         rsub_pseudocount_err(:,:,i) = f_pseudocount_err(:,:,ci(1));
     end
 end
-rsub_strictmut     = squeeze(sum(rsub(:,:,strictmut_idx,:),3));
-rsub_strictmut_err = squeeze(sqrt(sum(rsub_err(:,:,strictmut_idx,:).^2,3)));
+rsub_strictmut     = reshape(sum(rsub(:,:,strictmut_idx,:),3),size(rsub,1),size(rsub,2),size(rsub,4));
+rsub_strictmut_err = reshape(sqrt(sum(rsub_err(:,:,strictmut_idx,:).^2,3)),size(rsub,1),size(rsub,2),size(rsub,4));
 
-rsub_del     = squeeze(rsub(:,:,del_idx,:));
-rsub_del_err = squeeze(rsub_err(:,:,del_idx,:));
+rsub_del     = reshape(rsub(:,:,del_idx,:), size(rsub,1),size(rsub,2),size(rsub,4));
+rsub_del_err = reshape(rsub_err(:,:,del_idx,:), size(rsub,1),size(rsub,2),size(rsub,4));
 
-r_nomod = squeeze(sum(r_nomod(:,:,mut_del_idx,:),3));
+r_nomod = reshape(sum(r_nomod(:,:,mut_del_idx,:),3),size(r_nomod,1),size(r_nomod,2),size(r_nomod,4));
 toc
 
 if ~exist('sequences') | isempty(sequences)
@@ -174,12 +174,3 @@ r     = rsub_strictmut + rsub_del;
 r_err = sqrt(rsub_strictmut_err.^2 + rsub_del_err.^2 + rsub_pseudocount_err.^2);
 signal_to_noise = get_signal_to_noise(r,r_err,BLANK_OUT5,BLANK_OUT3, sequences);
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function  signal_to_noise = get_signal_to_noise(r,r_err,BLANK_OUT5,BLANK_OUT3, sequences);
-for i = 1:size(r,3)
-    for m = 1:size(r,1)
-        if exist('sequences','var') & ~isempty(sequences), N = length(sequences{m}); else N = size(r,2); end;
-        good_seqpos = [(BLANK_OUT5+1):(N-BLANK_OUT3)];
-        signal_to_noise(m,i) = ubr_estimate_signal_to_noise_ratio(r(m,good_seqpos,i)',r_err(m,good_seqpos,i)');
-    end
-end
