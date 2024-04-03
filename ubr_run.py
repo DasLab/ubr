@@ -22,6 +22,7 @@ parser.add_argument('-nmp','--no_merge_pairs',action = 'store_true',help='do not
 
 
 # Deprecated
+parser.add_argument('--excise_barcode',default=0,type=int,help=argparse.SUPPRESS) # 'remove this many nucleotides from merged FASTQ and sequences' )
 parser.add_argument('-nm','--no_mixed',action = 'store_true',help=argparse.SUPPRESS )# 'No mixed reads in Bowtie2')
 parser.add_argument('-sm','--score_min',help=argparse.SUPPRESS )#'minimum score for Bowtie2')
 parser.add_argument('-mq','--map_quality',default=10,type=int,help=argparse.SUPPRESS )#help='minimum Bowtie2 MAPQ to consider read')
@@ -102,6 +103,16 @@ if len(wd)>0:
     if wd[-1] != '/': wd += '/'
     if not os.path.isdir( wd ): os.makedirs( wd, exist_ok = True )
 
+# excise barcodes [testing if barcodes are important]
+if args.excise_barcode > 0:
+    new_sequence_file = args.sequences_fasta.replace('.fa','.NO_BARCODES.fa')
+    fid = open( new_sequence_file, 'w' )
+    for (i,(sequence,header)) in enumerate(zip(sequences,headers)):
+        sequence = sequence[:(-args.excise_barcode)]
+        fid.write('>%s\n%s\n' % (header,sequence))
+        sequences[i] = sequence
+    print('\nEXCISE_BARCODE: Outputted %d sequences with last %d nucleotides excised in %s\n' % (len(sequences),args.excise_barcode,new_sequence_file))
+
 # Merge
 merge_pairs = not args.no_merge_pairs and args.read2_fastq != None
 if merge_pairs:
@@ -159,6 +170,18 @@ else:
     print('\nSkipping %s' % outdir)
 time_ultraplex1 = time.time()
 
+# Excise barcode segments from FASTQ
+if args.excise_barcode:
+    assert( merge_pairs )
+    for primer_barcode,primer_name in zip(primer_barcodes,primer_names):
+        i1 = wd + '1_ultraplex/ultraplex_demux_5bc_%s.fastq.gz'  % primer_barcode
+        i1_save = i1.replace('.fastq.gz','.SAVE.fastq.gz')
+        if not os.path.isfile( i1_save ):
+            assert( os.path.isfile( i1 ) )
+            shutil.move( i1, i1_save )
+            command = 'seqkit subseq -r %d:-1 %s -o %s' % ((args.excise_barcode+1),i1_save,i1)
+            print(command)
+            os.system( command )
 
 # Bowtie2
 print()
