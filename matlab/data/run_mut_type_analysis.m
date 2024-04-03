@@ -13,7 +13,9 @@ function run_mut_type_analysis( m,c,rc,tags,labels,BLANK_OUT5, BLANK_OUT3)
 %   BLANK_OUT5 = Ignore this number of 5' residues in final summary
 %   BLANK_OUT3 = Ignore this number of 3' residues in final summary  
 %
-if isempty(labels); tags = ''; end;
+if ~exist('labels','var') | isempty(labels); labels = tags; end;
+if ~exist('BLANK_OUT5','var'); BLANK_OUT5 = 0; end;
+if ~exist('BLANK_OUT3','var'); BLANK_OUT3 = 0; end;
 
 toggle_to_figure(8);
 set(gcf,'color','white','pos',[ 517   182   806 485+100*length(tags)],'name','Mutation type analysis, position-wise')
