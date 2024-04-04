@@ -13,7 +13,9 @@ function run_mut_type_analysis( m,c,rc,tags,labels,BLANK_OUT5, BLANK_OUT3)
 %   BLANK_OUT5 = Ignore this number of 5' residues in final summary
 %   BLANK_OUT3 = Ignore this number of 3' residues in final summary  
 %
-if isempty(labels); tags = ''; end;
+if ~exist('labels','var') | isempty(labels); labels = tags; end;
+if ~exist('BLANK_OUT5','var'); BLANK_OUT5 = 0; end;
+if ~exist('BLANK_OUT3','var'); BLANK_OUT3 = 0; end;
 
 toggle_to_figure(8);
 set(gcf,'color','white','pos',[ 517   182   806 485+100*length(tags)],'name','Mutation type analysis, position-wise')
@@ -22,7 +24,7 @@ mut_types = {'AC','AG','AT','CA','CG','CT','GA','GC','GT','TA','TC','TG','ins','
 mut_rate_matrix = [];
 for i = 1:length(tags)
     subplot( length(tags),1,i); 
-    mut_count_matrix = reshape(sum(rc(:,:,:,i)),size(rc,2),size(rc,3));
+    mut_count_matrix = reshape(sum(rc(:,:,:,i),1),size(rc,2),size(rc,3));
     coverage_matrix = repmat(reshape(sum(c(:,:,i),1),size(c,2),1),1,length(mut_types));
     mut_rate_matrix(:,:,i) = mut_count_matrix./coverage_matrix;
     imagesc(mut_rate_matrix(:,:,i)',[0 0.01])

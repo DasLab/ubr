@@ -321,22 +321,22 @@ if isempty(shape_nomod_idx) shape_nomod_idx = num2cell(1:length(tags)); end; % l
 if length(shape_nomod_idx)==0; return; end;
 if iscell( shape_nomod_idx{1} );
     for i = 1:length(shape_nomod_idx);
-        if length( shape_nomod_idx{i}) ~= 2; shape_nomod_idx = []; return; end;
+        if length( shape_nomod_idx{i}) == 0; shape_nomod_idx = [];; end;
+        if length( shape_nomod_idx{i}) > 2; shape_nomod_idx = [];; end;
         if ~ischar( shape_nomod_idx{i}{1}); shape_nomod_idx = []; return; end;
         [shape_nomod_idx_new1,ok] = get_idx(shape_nomod_idx{i}{1},tags);
         if ~ok; shape_nomod_idx = []; return; end;
+        if length( shape_nomod_idx{i}) == 1; shape_nomod_idx{i} = [shape_nomod_idx_new1]; continue; end;
         [shape_nomod_idx_new2,ok] = get_idx(shape_nomod_idx{i}{2},tags);        
-        if ~ok; shape_nomod_idx = []; return; end;
-        shape_nomod_idx_new{i} = [shape_nomod_idx_new1,shape_nomod_idx_new2];
+        shape_nomod_idx{i} = [shape_nomod_idx_new1,shape_nomod_idx_new2];
     end
-    shape_nomod_idx = shape_nomod_idx_new;
 end
 for i = 1:length(shape_nomod_idx);
     if length( shape_nomod_idx{i} ) > 1
         fprintf('Condition %d will be %s minus %s.\n', i, tags{shape_nomod_idx{i}(1)}, tags{shape_nomod_idx{i}(2)});
     else
-        assert( length( shape_nomod_idx{i} == 1 ));
-        fprintf('Condition %d will be %s (no background subtraction).\n', i, tags{shape_nomod_idx{i}(1)} );
+        assert( length(shape_nomod_idx{i}) == 1 );
+        fprintf('Condition %d will be %s (no background subtraction).\n', i, tags{shape_nomod_idx{i}} );
     end
 end
 

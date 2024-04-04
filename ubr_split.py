@@ -23,6 +23,7 @@ parser.add_argument('-nmp','--no_merge_pairs',action = 'store_true',help='do not
 parser.add_argument('--ultima',action='store_true',help='recognize Ultima adapter in ultraplex')
 
 # Deprecated
+parser.add_argument('--excise_barcode',default=0,type=int,help=argparse.SUPPRESS) # 'remove this many nucleotides from merged FASTQ and sequences' )
 parser.add_argument('-nm','--no_mixed',action = 'store_true',help=argparse.SUPPRESS )# 'No mixed reads in Bowtie2')
 parser.add_argument('-sm','--score_min',help=argparse.SUPPRESS )#'minimum score for Bowtie2')
 parser.add_argument('-mq','--map_quality',default=10,type=int,help=argparse.SUPPRESS )#help='minimum Bowtie2 MAPQ to consider read')
@@ -237,6 +238,16 @@ for i in range(1,nsplits+1):
             fid_slurm.write( sbatch_preface )
 
 time_end = time.time()
+
+# excise barcodes [testing if barcodes are important]
+if args.excise_barcode > 0:
+    new_sequence_file = args.sequences_fasta.replace('.fa','.NO_BARCODES.fa')
+    fid = open( new_sequence_file, 'w' )
+    for (i,(sequence,header)) in enumerate(zip(sequences,headers)):
+        sequence = sequence[:(-args.excise_barcode)]
+        fid.write('>%s\n%s\n' % (header,sequence))
+        sequences[i] = sequence
+    print('\nEXCISE_BARCODE: Outputted %d sequences with last %d nucleotides excised in %s\n' % (len(sequences),args.excise_barcode,new_sequence_file))
 
 print( '\nTimings:')
 print( 'seqkit split2 ' + time.strftime("%H:%M:%S",time.gmtime(time_seqkit-time_start) ) )
