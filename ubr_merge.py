@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import os.path
 import glob
 import shutil
 import time
@@ -17,6 +18,7 @@ args = parser.add_argument( 'split_dir',default='UBR/',help='name of directory w
 args = parser.add_argument( '--merge_files' ,nargs='+',help='Filenames to find and merge')
 args = parser.add_argument( '-s','--setup_slurm', action='store_true',help='Instead of running, create sbatch script' )
 args = parser.add_argument('-j','--jobs_per_slurm_node', default=16,type=int )
+args = parser.add_argument( '--no_overwrite', action='store_true',help='Do not merge if merged files already exist' )
 args = parser.parse_args()
 
 split_dirs = args.split_dir
@@ -48,6 +50,9 @@ if merge_files == None:
 
     merge_files = sorted(list(set(unique_files)))
 
+if args.no_overwrite:
+    merge_files = [x for x in merge_files if not os.path.isfile(x) and not os.path.isfile('raw_counts/%s' % x) ]
+
 print('\nWill merge:')
 for merge_file in merge_files:
     print(merge_file)
@@ -70,7 +75,7 @@ if args.setup_slurm:
 
         slurm_file_count = 1
         fid_slurm = open( '%s/run_ubr_merge_%03d.sh' % (slurm_file_dir, slurm_file_count), 'w' )
-        sbatch_preface = '#!/bin/bash\n#SBATCH --job-name=ubr_merge\n#SBATCH --output=ubr_merge.o%%j\n#SBATCH --error=ubr_merge.e%%j\n#SBATCH --partition=biochem,owners\n#SBATCH --time=2:00:00\n#SBATCH -n %d\n#SBATCH -N 1\n#SBATCH --mem=%dG\n\n' % (args.jobs_per_slurm_node,4*args.jobs_per_slurm_node)
+        sbatch_preface = '#!/bin/bash\n#SBATCH --job-name=ubr_merge\n#SBATCH --output=ubr_merge.o%%j\n#SBATCH --error=ubr_merge.e%%j\n#SBATCH --partition=biochem,owners\n#SBATCH --time=4:00:00\n#SBATCH -n %d\n#SBATCH -N 1\n#SBATCH --mem=%dG\n\n' % (args.jobs_per_slurm_node,4*args.jobs_per_slurm_node)
         fid_slurm.write( sbatch_preface )
         fid_sbatch_commands = open( 'sbatch_merge_commands.sh', 'w')
 
