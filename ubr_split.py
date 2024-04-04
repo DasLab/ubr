@@ -215,6 +215,7 @@ for i in range(1,nsplits+1):
     if args.no_merge_pairs:  extra_flags += ' --no_merge_pairs'
     if args.merge_pairs_pear:  extra_flags += ' --merge_pairs_pear'
     if args.ultima:  extra_flags += ' --ultima'
+    if args.excise_barcode>0:  extra_flags += ' --excise_barcode %d' % args.excise_barcode
 
     fid = open( outdir + '/'+ubr_run_sh_name, 'w' )
     fastq2_tag = ''
