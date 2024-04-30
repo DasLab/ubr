@@ -44,6 +44,7 @@ for i = 1:size(r,3)
     vals = vals( find(~isnan(vals)));
     vals_sort = sort(vals(:));
     val_norm = vals_sort( round(0.90 * length(vals_sort) ));
+    if val_norm==0.0; vals = vals(vals~=0.0);  vals_sort = sort(vals(:)); val_norm = vals_sort( round(0.90 * length(vals_sort) )); warning(sprintf('Had to expand number of profiles to all for normalization of %d %s',i,tags_conditions{i})); end
     fprintf( 'Normalizing reactivity profiles for %d %s with value %f.\n', i, tags_conditions{i}, val_norm);
     r_norm(:,:,i) = single(r(:,:,i))/single(val_norm);
     r_norm_err(:,:,i) = single(r_err(:,:,i))/single(val_norm);
