@@ -180,6 +180,18 @@ if ~isempty(strcmp(options,'output_all'));
     d.f_err = f_err;
 end
 
+%% Stats summary
+[~,dirname] = fileparts(pwd)
+fprintf('\n%s\n',dirname)
+fprintf('Statistics over %d sequences with length %d:\n',size(d.r_norm,1),size(d.r_norm,2));
+padlen = max( cellfun(@length,d.conditions));
+fprintf( '%s %9s %8s %6s %6s %6s %7s\n',pad('Condition',padlen,'left'),'reads','mean','median','mn2md','s2n','mnreact' );
+for i = 1:length(d.conditions)
+    vals = d.r_norm(:,(1+d.BLANK_OUT5):(size(d.r_norm,2)-d.BLANK_OUT3),i);
+    fprintf( '%s %9d %8.2f %6d %6.3f %6.3f %7.5f\n',pad(d.conditions{i},padlen,'left'),...
+        sum(d.reads(:,i)), nanmean(d.reads(:,i)),median(d.reads(:,i)),mean(d.reads(:,i))/median(d.reads(:,i)),nanmean(d.signal_to_noise(:,i)),nanmean(vals(:))*d.norm_val(:,i) );
+end
+
 %% Make some heatmaps
 if any(strcmp(options,'no_figures')); finish_quick_look(); return; end;
 
@@ -222,7 +234,6 @@ for i = 1:size(r,3)
     cols = strsplit(what(filedir).path,'/');
     dirname = strjoin(cols(end-1:end),'/');
     title( {dirname,conditions{i},['Mean signal/noise = ',num2str(mean(s2n))]},'interp','none');
-    fprintf( 'Mean signal-to-noise (%s) %f\n',conditions{i},mean(s2n) );
 end
 
 %% Make heat map, up to 500 with high signal to noise 
