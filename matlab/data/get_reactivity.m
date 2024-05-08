@@ -153,8 +153,8 @@ for i = 1:size(rsub_del,1);
         end
         % Important: counts should be conserved:
         if all(~isnan(del_profile)); 
-            %if( abs(sum(del_profile2)-sum(del_profile )) > 1e-3 )
-            if( abs(sum(del_profile2(1+BLANK_OUT5:end-BLANK_OUT3))-sum(del_profile(1+BLANK_OUT5:end-BLANK_OUT3))) > 1e-3 )
+            if( abs(sum(del_profile2)-sum(del_profile )) > 1e-3 )
+            %if( abs(sum(del_profile2(1+BLANK_OUT5:end-BLANK_OUT3))-sum(del_profile(1+BLANK_OUT5:end-BLANK_OUT3))) > 1e-3 )
                 warning( 'spread out deletions may not have worked for profile %d\n',i);
             end
         end;
