@@ -185,11 +185,13 @@ end
 fprintf('\n%s\n',dirname)
 fprintf('Statistics over %d sequences with length %d:\n',size(d.r_norm,1),size(d.r_norm,2));
 padlen = max( cellfun(@length,d.conditions));
-fprintf( '%s %9s %8s %6s %6s %6s %7s\n',pad('Condition',padlen,'left'),'reads','mean','median','mn2md','s2n','mnreact' );
-for i = 1:length(d.conditions)
+fprintf( '%s %9s %8s %6s %6s %6s %7s %7s\n',pad('Condition',padlen,'left'),'reads','mean','median','mn2md','s2n','mnreact','fracSN1' );
+for i = 1:length(d.conditions) %7s
     vals = d.r_norm(:,(1+d.BLANK_OUT5):(size(d.r_norm,2)-d.BLANK_OUT3),i);
-    fprintf( '%s %9d %8.2f %6d %6.3f %6.3f %7.5f\n',pad(d.conditions{i},padlen,'left'),...
-        sum(d.reads(:,i)), nanmean(d.reads(:,i)),median(d.reads(:,i)),mean(d.reads(:,i))/median(d.reads(:,i)),nanmean(d.signal_to_noise(:,i)),nanmean(vals(:))*d.norm_val(:,i) );
+    fprintf( '%s %9d %8.2f %6d %6.3f %6.3f %7.5f %7.5f\n',pad(d.conditions{i},padlen,'left'),...
+        sum(d.reads(:,i)), nanmean(double(d.reads(:,i))),floor(nanmedian(double(d.reads(:,i)))),...
+        nanmean(double(d.reads(:,i)))/nanmedian(double(d.reads(:,i))),nanmean(d.signal_to_noise(:,i)),nanmean(vals(:))*d.norm_val(:,i),...
+        sum(d.signal_to_noise(:,i)>1.0)/size(d.signal_to_noise,1));
 end
 
 %% Make some heatmaps
