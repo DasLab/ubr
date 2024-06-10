@@ -33,6 +33,9 @@ function d = quick_look_ubr(filedir,sequence_file,shape_nomod_idx,structure_csv_
 %                Current option strings are:
 %                 'output_all': return all the intermediate data arrays 
 %                    in output struct 
+%                 'focus_on_shape_nomod': do not use counts across all
+%                     conditions to normalize, just the ones specified in
+%                     shape_nomod_idx
 %                 'no_spread_deletions': for same-nucleotide stretches,
 %                   deletions are ambigous and here, by default, are spread across the
 %                   stretch according to the mutation signal. Supply
@@ -119,6 +122,9 @@ if isempty(m); finish_quick_look(); return; end;
 shape_nomod_idx = update_shape_nomod_idx( shape_nomod_idx, tags);
 if isempty(shape_nomod_idx); finish_quick_look(); return; end;
 
+focus_on_shape_nomod = any(strcmp(options,'focus_on_shape_nomod'));
+if focus_on_shape_nomod; [m,c,rc,tags,shape_nomod_idx] = focus_on_idx(m,c,rc,tags,shape_nomod_idx); end;
+
 [ids,titles,authors,headers,sequences,id_strings] = get_sequence_info( sequence_file );
 [ structures, structure_map ] = read_structure_csv_file( structure_csv_file, sequences );
 [BLANK_OUT5, BLANK_OUT3] = figure_out_BLANK_OUT( BLANK_OUT5, BLANK_OUT3, sequences );
@@ -181,18 +187,7 @@ if ~isempty(strcmp(options,'output_all'));
 end
 
 %% Stats summary
-[~,dirname] = fileparts(pwd)
-fprintf('\n%s\n',dirname)
-fprintf('Statistics over %d sequences with length %d:\n',size(d.r_norm,1),size(d.r_norm,2));
-padlen = max( cellfun(@length,d.conditions));
-fprintf( '%s %9s %8s %6s %6s %6s %7s %7s\n',pad('Condition',padlen,'left'),'reads','mean','median','mn2md','s2n','mnreact','fracSN1' );
-for i = 1:length(d.conditions) %7s
-    vals = d.r_norm(:,(1+d.BLANK_OUT5):(size(d.r_norm,2)-d.BLANK_OUT3),i);
-    fprintf( '%s %9d %8.2f %6d %6.3f %6.3f %7.5f %7.5f\n',pad(d.conditions{i},padlen,'left'),...
-        sum(d.reads(:,i)), nanmean(double(d.reads(:,i))),floor(nanmedian(double(d.reads(:,i)))),...
-        nanmean(double(d.reads(:,i)))/nanmedian(double(d.reads(:,i))),nanmean(d.signal_to_noise(:,i)),nanmean(vals(:))*d.norm_val(:,i),...
-        sum(d.signal_to_noise(:,i)>1.0)/size(d.signal_to_noise,1));
-end
+output_ubr_stats_summary(d);
 
 %% Make some heatmaps
 if any(strcmp(options,'no_figures')); finish_quick_look(); return; end;
@@ -367,9 +362,30 @@ if length(idx) ~= 1;
     return;
 end
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [m,c,rc,tags,shape_nomod_idx] = focus_on_idx(m,c,rc,tags,shape_nomod_idx)
+
+% where are we focusing our attention?
+focus_idx = [];
+for i = 1:length(shape_nomod_idx)
+    focus_idx = union( focus_idx, shape_nomod_idx{i});
+end
+[focus_idx_sorted, sortidx] = sort(focus_idx);
+idx_to_sortidx( focus_idx ) = sortidx;
+m = m(:,:,focus_idx);
+c = c(:,:,focus_idx);
+rc = rc(:,:,:,focus_idx);
+tags = tags(focus_idx);
+for i = 1:length(shape_nomod_idx)
+    shape_nomod_idx{i} = idx_to_sortidx(shape_nomod_idx{i});
+end
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function finish_quick_look();
 diary off
 fprintf('%s\n',datetime);
+
 
 
