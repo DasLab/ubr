@@ -20,7 +20,7 @@ You need *Python3*, and the following packages:
 - `bbmerge.sh`, available in [bbmap](https://sourceforge.net/projects/bbmap/) -- requires `java`.
 - `seqkit`, available via [conda](https://anaconda.org/bioconda/seqkit) or [direct download](https://bioinf.shenwei.me/seqkit/download/)
 - `samtools`, available for [download or github](http://www.htslib.org/)
-- `MATLAB`, for final data processing and visualizing output. (Ideally these last scripts should be ported to Python/matplotlib to increase accessibility.)
+- `MATLAB`, for final data processing and visualizing output. You'll need the Bioinformatics toolbox installed. (Ideally these last scripts should be ported to Python/matplotlib to increase accessibility.)
 
 ## Library expectations
 
