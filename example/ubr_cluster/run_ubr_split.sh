@@ -5,7 +5,7 @@
 #SBATCH --partition=biochem,owners
 #SBATCH --time=48:00:00
 #SBATCH --cpus-per-task=12
-#SBATCH --mem=24G
+#SBATCH --mem=48G
 
 FASTQ_DIR=../data_full
 
