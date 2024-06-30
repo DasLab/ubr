@@ -260,9 +260,9 @@ clf
 [~,idx] = max(sum(signal_to_noise,2));
 for i = 1:length(shape_nomod_idx)
     subplot(length(shape_nomod_idx),1,i);
-    cidx = shape_nomod_idx{i}(end:-1:1);
+    cidx = shape_nomod_idx{i}; %(end:-1:1);
     plot( squeeze(f(idx,:,cidx)),'LineWidth',2 )
-    h = legend( conditions{i});
+    h = legend( tags{cidx});
     set(h,'interp','none');
 end
 h=title(headers(idx));
