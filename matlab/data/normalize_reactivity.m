@@ -34,10 +34,17 @@ if ~exist( 'tags_conditions','var'); tags_conditions = repmat({''},1,size(r,3));
 r(:,1:BLANK_OUT5,:) = NaN;
 r(:,(end-BLANK_OUT3+1):end,:) = NaN;
 if exist( 'sequences','var') & length(sequences)>0
-    for i = 1:length(sequences);
-        N = length(sequences{i});
+    unique_lens = unique(cellfun(@length,sequences));
+    if length(unique_lens > 1)
+        for i = 1:length(sequences);
+            N = length(sequences{i});
+            r(i,(N-BLANK_OUT3+1):end,:) = NaN;
+        end
+    else
+        N = unique_lens;
         r(:,(N-BLANK_OUT3+1):end,:) = NaN;
     end
+
 end
 for i = 1:size(r,3)
     vals = r(good_idx,:,i);
