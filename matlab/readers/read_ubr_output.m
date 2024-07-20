@@ -56,8 +56,8 @@ end
 function m = load_file( filename );
 gzip_file = [filename,'.gz'];
 if ~exist(filename,'file')
-    assert(exist(gzip_file,'file'));
     %fprintf( 'Unzipping %s... \n',gzip_file);
+    assert(exist(gzip_file,'file'));
     gunzip( gzip_file );
 end
 

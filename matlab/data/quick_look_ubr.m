@@ -243,15 +243,18 @@ good_idx = good_idx(1:Nplot);
 make_library_heat_map( r_norm, good_idx, structure_map, headers, BLANK_OUT5, BLANK_OUT3, conditions);
 
 %% Make heat map, up to 10000 with high signal to noise
+toggle_to_figure(5);
 good_idx = find( signal_to_noise(:,end)>=1.0 & reads(:,end) > 100);
 if length(good_idx)>500
-    toggle_to_figure(5);
     set(gcf,'color','white','name','first designs with good S/N (up to 10000)')
     clf
     Nplot = min(length(good_idx),10000);
     good_idx = good_idx(1:Nplot);
     make_library_heat_map( r_norm, good_idx, structure_map, headers, BLANK_OUT5, BLANK_OUT3, conditions);
+else
+   close(5);
 end
+
 
 %% Take a close look at one of the constructs with high apparent signal to noise
 toggle_to_figure(6);
