@@ -115,6 +115,18 @@ if args.excise_barcode > 0:
 
 # Merge
 merge_pairs = not args.no_merge_pairs and args.read2_fastq != None
+
+# Also check if sequence reads are actually long enough to overlap
+if merge_pairs and not args.merge_pairs_bbmerge and not args.merge_pairs_pear:
+    insert_len = len(sequences[0]) + len(primer_barcodes[0])
+    read_len1 = len(os.popen( 'seqkit head -n 1 %s' % args.read1_fastq ).readlines()[1].strip())
+    read_len2 = len(os.popen( 'seqkit head -n 1 %s' % args.read2_fastq ).readlines()[1].strip())
+    overlap = read_len1 + read_len2 - insert_len
+    merge_pairs = overlap >= 12 #minimum overlap for bbmerge.sh
+    if not merge_pairs: print( 'Will not merge pairs due to insufficient overlap of read1 and read2!')
+    #print( 'Insert len: ',insert_len,' Read1_len: ',read_len1,'Read2_len:',read_len2,'overlap: ',overlap,' merge_pairs? ',merge_pairs)
+    #exit()
+
 if merge_pairs:
     out_prefix = args.read1_fastq.replace('.fq','').replace('.fastq','').replace('.gz','') + '_MERGED'
     merged_fastq = out_prefix+'.assembled.fastq.gz'
