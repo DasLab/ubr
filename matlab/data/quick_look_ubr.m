@@ -101,6 +101,7 @@ if ~exist( 'shape_nomod_idx','var') shape_nomod_idx = []; end;
 if ~exist( 'options', 'var') options = {}; end;
 d = struct();
 assert(exist(filedir,'dir'));
+assert(iscell(shape_nomod_idx));
 if ~exist(sequence_file,'file'); sequence_file = [filedir,'/',sequence_file]; end
 assert(exist(sequence_file,'file'));
 if ~isempty(structure_csv_file) assert(exist(structure_csv_file,'file')); end;

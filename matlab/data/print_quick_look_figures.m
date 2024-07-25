@@ -13,7 +13,8 @@ if ~exist( 'filedir','var'); filedir = './'; end;
 figdir = sprintf('%s/Figures',filedir);
 if ~exist(figdir,'dir'); mkdir(figdir); end;
 for i = 1:8
-    toggle_to_figure(i);
+    figure(i);
+    %toggle_to_figure(i);
     name = get(gcf,'Name');
     number = get(gcf,'Number');
     if isempty(get(gcf,'Children')); close(number); continue; end;
