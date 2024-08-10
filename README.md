@@ -33,20 +33,20 @@ The UBR data scripts assume the Illumina sequence inserts have the following for
 
 Notes:
 
- * Above is in the sense direction of the RNA, and for historical reasons the Illumina Read 2 sequence is 5' of the sequence, and Illumina Read 1 is 3' of the sequence.
- * That means that Read 1 in the sequence is the *reverse complement* of the above.
+ * Above sequence is in the sense direction of the RNA, and for historical reasons the Illumina Read 2 sequence is 5' of the sequence, and Illumina Read 1 is 3' of the sequence.
+ * That means that Read 1 is the *reverse complement* of the sequence above.
  * The expbarcode is how experimental conditions (SHAPE, no modification, etc.) are barcoded. This is also historical, as early protocols from our lab were run on MiSeq kits that did not have i5/i7 based multiplexing.  This 12-nt barcode is not in the RNA, but added on with the cDNA primer during reverse transcription.
- * The sequences have a UUCG-tetraloop barcode hairpin at the 3' end. This unique identifier allows sequences to be identified in protocols like inline-seq that read out fragments of the RNA after degradation. In principle, these barcodes are not needed for mutational profiling.
+ * The sequences have a UUCG-tetraloop barcode hairpin at the 3' end. This unique identifier allows sequences to be identified in protocols like inline-seq that read out fragments of the RNA after degradation. In principle, these barcodes are not needed for mutational profiling though they can be important for disambiguating different mutants of a single sequence.
 
 ## How UBR works
 
 There are two major steps, each with several sub-steps. The overall workflow is as follows:
 
- * [Step 1. Process Illumina FASTQ data to get counts (command-line)](#step-1)
-	 0. Merge Read 1 and Read 2 files.
-	 1. Demultiplex based on the 12-nt expbarcode sequences in primer (Ultraplex)
-	 2. Align reads to sequence library (Bowtie2) 
-	 3. Assign mutation/deletion/insertion counts (RNAFramework)
+ * [Step 1. Process Illumina FASTQ data to get counts (command-line)](#step-1)  
+	 1. Merge Read 1 and Read 2 files (if possible)
+	 2. Demultiplex based on the 12-nt expbarcode sequences in primer (Ultraplex)
+	 3. Align reads to sequence library (Bowtie2) 
+	 4. Assign mutation/deletion/insertion counts (RNAFramework)
 
  * [Step 2. Process counts to get & visualize reactivities (MATLAB)](#step-2)
 	 1. Final reactivity processing, visualization (`quick_look_ubr` in matlab/)
@@ -54,7 +54,7 @@ There are two major steps, each with several sub-steps. The overall workflow is 
 
 Each of these steps are illustrated with working examples below.
 
-Below that are descriptions of two more advanced features: [merging UBR output](#merging-lanes) from multiple sequencer lanes and [subdividing](#subdividing-ubr-output-by-sublibraries) UBR output based on sublibraries.
+Below that are descriptions of three more advanced features: [merging UBR output](#merging-lanes) from multiple sequencer lanes, [subdividing](#subdividing-ubr-output-by-sublibraries) UBR output based on sublibraries, and handling data from [Ultima](#ultima) sequencers.
 
 
 ## Example
@@ -64,9 +64,9 @@ Below that are descriptions of two more advanced features: [merging UBR output](
 
 The goal of this first of the two steps is to go from raw Illumina reads in FASTQ files to 'counts' files that count up each mutation. 
 
-Following works through an example run that holds information on 2729 sequences from the Eterna OpenKnot Pilot "PK50" library. This RNA library was prepared from DNA pools ordered from both CustomArray/Genscript and Twist. The two RNA libraries were probed with the SHAPE reagent 1M7 and also, as controls for background subtraction, with mock treatment with DMSO.
+The following section works through an example run that holds information on 2729 sequences from the Eterna OpenKnot Pilot "PK50" library. This RNA library was prepared from DNA pools ordered from both CustomArray/Genscript and Twist. The two RNA libraries were probed with the SHAPE reagent 1M7 and also, as controls for background subtraction, with mock treatment with DMSO.
 
-There are two `FASTA`-formatted with the relvevant information.
+There are two `FASTA`-formatted with the relevant information.
 
  The four experimental conditions are encoded by 12-nt barcodes introduced during reverse transcription, which are encoded in the file `RTBbarcodes_PK50_RNA.fasta`:
 
@@ -169,6 +169,8 @@ Final merge   00:00:01
 
 Total time: 00:02:32
 ```
+
+It's worth noting that if you provide Read1 and Read2 fastq files, `ubr_run.py` will figure out, based on the RNA sequence length, if the Illumina run used sufficient cycles to allow overlap of Read1 and Read2 sequences. If so, `ubr_run.py` will use `bbmerge.sh` to merge the reads to cover the full RNA sequence insert into a single fastq file, with the tag `MERGED.assembled.fastq.gz`. This merge happened in the run above. If the Read1 and Read2 are not long enough to overlap, they will be carried forward separately, and the final data will have NaN in the middle of the sequences where there was no coverage.
 
 The files you need are the `.txt.gz` files that show up in the directory as well as in the `raw_counts/` subdirectory. 
 
@@ -324,9 +326,9 @@ Example output is available in the directory `example/EXAMPLE_OUTPUT/ubr_test_sp
 
 #### Option 1C. Cluster runs (SLURM; needed for NovaSeq scale runs)
 
-For NovaSeq runs (1B-8B reads), you'll likely need to do a cluster run. 
+For Illumina NovaSeq output(1B-8B reads) or Ultima output (100B-1T reads; see also [Ultima section](#ultima)), you'll likely need to process the data through a cluster run. 
 
-The data for a full example directory, even for a Miseq, is too big to store in a GitHub repo, but the example data are available in this [Google Drive folder](https://drive.google.com/drive/folders/1U0ZFlZQ-NXnDy18TsvSxZo8pwM-lzV1N?usp=drive_link). 
+The data for a full example directory, even for a MiSeq, is too big to store in a GitHub repo, but the example data are available in this [Google Drive folder](https://drive.google.com/drive/folders/1U0ZFlZQ-NXnDy18TsvSxZo8pwM-lzV1N?usp=drive_link). 
 
 Download those data, and put the files in the `example/data_full/` directory.
 
@@ -654,6 +656,15 @@ source	sbatch_subdivide_commands.sh
 
 Then continue on with [Step 1](#step-1)
 
+### Ultima
+Ultima instruments provide cheaper, higher throughput data than current Illumina instruments through the use of mostly natural deoxynucleotides and distinct reagent delivery and optical scanning methods. Illumina libraries can be converted with PCR to have Ultima adapters and then sequenced efficiently with Ultima instruments. 
+
+Raw data from Ultima runs can be processed by UBR with the following steps:
+1. Convert the data to FASTQ format (e.g., with `samtools fastq` if the data format is `SAM`, `BAM`, or `CRAM`).
+2. Provide the flag `--ultima` to `ubr_run.py` or `ubr_split.py`, which will trigger UBR to look for extra adapter remnants and trim them in ultraplex and artifically prepend them to the `expbarcode` sequences. If the reads have already been trimmed, do *not* provide this option.
+3. If the reads have already been trimmed and demultiplexed by the 12-nt `expbarcode`, make sure the FASTQ file(s) contains *in the filename* the sequence of the barcode, e.g., `ACCAGGCGCTGG`. Then `ubr_run.py` will recognize that the sequence has already been demultiplexed and skip the ultraplex step. In this mode, you should run UBR separately on each of the demultiplexed Ultima files, and use `ubr_merge.py` to merge results.
+
+More efficient processing of Ultima data, e.g., directly processing CRAM files that have been pre-aligned to library RNA sequences, should be possible; contact rhiju@stanford.edu if you are interested in exploring.
 
 
 
