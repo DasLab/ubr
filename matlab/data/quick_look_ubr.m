@@ -97,7 +97,7 @@ if length(filedir)==0; filedir= './'; end;
 if ~exist( 'BLANK_OUT5','var') BLANK_OUT5 = []; end;
 if ~exist( 'BLANK_OUT3','var') BLANK_OUT3 = []; end;
 if ~exist( 'structure_csv_file','var') structure_csv_file = ''; end;
-if ~exist( 'shape_nomod_idx','var') shape_nomod_idx = []; end;
+if ~exist( 'shape_nomod_idx','var') | isempty(shape_nomod_idx); shape_nomod_idx = {}; end;
 if ~exist( 'options', 'var') options = {}; end;
 d = struct();
 assert(exist(filedir,'dir'));
