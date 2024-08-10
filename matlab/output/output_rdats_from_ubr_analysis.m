@@ -1,4 +1,4 @@
-function output_rdats_from_ubr_analysis( d, out_prefix, name, output_idx, comments, annotations, condition_comments, condition_annotations, chunk_size, signal_to_noise_cutoff, reads_cutoff, output_bad_profiles);
+function output_rdats_from_ubr_analysis( d, out_prefix, name, output_idx, comments, annotations, condition_comments, condition_annotations, chunk_size, signal_to_noise_cutoff, reads_cutoff, output_bad_profiles, extra_info_structs);
 % output_rdats_from_ubr_analysis( d, out_prefix, name, comments, annotations );
 % output_rdats_from_ubr_analysis( d, out_prefix, name, output_idx, comments, annotations, condition_comments, condition_annotations, chunk_size, signal_to_noise_cutoff, reads_cutoff, output_bad_profiles);
 %
@@ -30,6 +30,8 @@ function output_rdats_from_ubr_analysis( d, out_prefix, name, output_idx, commen
 %  output_bad_profiles = Output all profiles, including ones that do not
 %      pass signal_to_noise and reads cutoffs (which will be marked by
 %      'warning:badQuality' in DATA_ANNOTATION). Default 1.
+%  extra_info_structs = cell of Ndesigns cells of extra data_annotations
+%                            for each sequence (Default [])
 %
 % (C) R. Das, Stanford & HHMI, 2023.
 
@@ -54,6 +56,7 @@ if length(condition_annotations) ~= Nconditions
     fprintf('Length of condition_annotations %d needs to equal the number of conditions %d.\n',length(condition_annotations),Nconditions)
 end
 if ~exist('output_bad_profiles','var'); output_bad_profiles = 1; end;
+if ~exist('extra_info_structs','var'); extra_info_structs = []; end;
 if ~isfield(d,'ids'); d.ids = []; d.titles = []; d.authors = []; end;
 
 if ~exist('RDAT','dir'); mkdir('RDAT'); end;
@@ -67,7 +70,7 @@ for i = 1:Nconditions
     if isfield(d,'norm_val') & length(d.norm_val)>=i; annotations_out = [annotations_out,{sprintf('processing:normalization:value:%.4f',d.norm_val(i))}]; end;
     annotations_out = [annotations_out,{sprintf('processing:UBR-v%s',get_ubr_version())}];
 
-    extra_data_annotations = get_extra_data_annotations_for_eterna( d.ids, d.titles, d.authors, [], d.headers);
+    extra_data_annotations = get_extra_data_annotations_for_eterna( d.ids, d.titles, d.authors, extra_info_structs, d.headers);
 
     bad_idx = setdiff([1:Ndesigns],good_idx);
     for n = bad_idx; extra_data_annotations{n} = [extra_data_annotations{n},{'warning:badQuality'}]; end
