@@ -1,4 +1,4 @@
-function output_labels_csv(datafile,good_idx,r_norm,ids,sequences,BLANK_OUT5,BLANK_OUT3,experiment_type,dataset_name, r_norm_err, reads, SN_filter, signal_to_noise);
+function output_labels_csv(datafile,good_idx,r_norm,ids,sequences,BLANK_OUT5,BLANK_OUT3,experiment_type,dataset_name, r_norm_err, reads, SN_filter, signal_to_noise,extra_tags,extra_cols);
 % output_labels_csv(datafile,good_idx,r_norm,ids,sequences,BLANK_OUT5,BLANK_OUT3,experiment_type,dataset_name [,r_norm_err, reads, SN_filters, signal_to_noise]);
 %
 % Create .csv file of UBR for simple i/o to machine learning efforts.
@@ -21,8 +21,13 @@ function output_labels_csv(datafile,good_idx,r_norm,ids,sequences,BLANK_OUT5,BLA
 %  SN_filter = [Optional] array of Ndesigns logicals (booleans) -- whether
 %                  design passes S/N filter.
 %  signal_to_noise = [Optional] numerical signal to noise estimate
+%  extra_tags = [Optional] cell of strings of labels for extra columns
+%  extra_cols = [Optional] cell of cells/matrices for extra columns
 %
 % (C) R. Das, Stanford University & HHMI, 2023
+
+if ~exist('extra_tags','var'); extra_tags = {}; end;
+if ~exist('extra_cols','var'); extra_cols = {}; end;
 
 if isempty(good_idx); good_idx = [1:size(r_norm,1)]; end;
 if size(good_idx,2)>size(good_idx,1); good_idx = good_idx'; end;
@@ -50,6 +55,11 @@ if exist( 'reads','var') & length(reads)>0; t.reads = reads(good_idx);  end
 if exist( 'signal_to_noise','var') & length(signal_to_noise)>0; t.signal_to_noise = strtrim(cellstr(num2str(signal_to_noise(good_idx),'%.3f')));  end
 if exist( 'SN_filter','var') & length(SN_filter)>0; t.SN_filter = SN_filter(good_idx);  end
 
+assert( length(extra_tags)==length(extra_cols));
+for n = 1:length(extra_tags)
+    t.(extra_tags{n}) = extra_cols{n}(good_idx);
+end
+
 Nres = size(r_norm,2); %length(sequences{1});
 r_norm = single(r_norm);
 r_norm(:,1:BLANK_OUT5) = NaN;
@@ -67,6 +77,8 @@ if exist('r_norm_err') & ~isempty(r_norm_err)
         t.(label) = strtrim(cellstr(num2str(r_norm_err(good_idx,k),'%.3f')));
     end
 end
+
+
 writetable(t,datafile);
 strip_nan(datafile, 0);
 fprintf('Outputted heading and %d rows to %s\n',length(good_idx),datafile);
