@@ -1,5 +1,5 @@
-function [r,r_err,f,f_err,coverage,signal_to_noise,r_nomod] = get_reactivity(rc,c,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,sequences,no_GA)
-% [r,r_err,f,f_err,coverage,signal_to_noise,r_nomod] = get_reactivity(rc,c,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,sequences,no_GA)
+function [r,r_err,f,f_err,coverage,signal_to_noise,r_nomod] = get_reactivity(rc,c,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,sequences,no_GA,only_GA)
+% [r,r_err,f,f_err,coverage,signal_to_noise,r_nomod] = get_reactivity(rc,c,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,sequences,no_GA,only_GA)
 %
 % Main data processing routine for UBR. Includes step where deletions,
 % which are assumed to be collected as counts placed at 3' end of same-nt
@@ -26,7 +26,8 @@ function [r,r_err,f,f_err,coverage,signal_to_noise,r_nomod] = get_reactivity(rc,
 %  sequences = (cell of Ndesigns strings) RNA sequences. If not provided or
 %                if empty, will not spread out deletions at homopolymer
 %                stretches.
-%  no_GA = [Optional] Don't count G to A mutations (default: 0, i.e. count GA)
+%  no_GA   = [Optional] Don't count G to A mutations (default: 0, i.e. count GA)
+%  only_GA = [Optional] Only count G to A mutations (default: 0, i.e. count all mutations)
 %                
 %
 % Outputs
@@ -44,6 +45,7 @@ function [r,r_err,f,f_err,coverage,signal_to_noise,r_nomod] = get_reactivity(rc,
 % (C) Rhiju Das, Stanford University & HHMI, 2023.
 %
 if ~exist('no_GA','var') no_GA = 0; end;
+if ~exist('only_GA','var') only_GA = 0; end;
 mut_types = {'AC','AG','AT','CA','CG','CT','GA','GC','GT','TA','TC','TG','ins','del'};
 Nmuttypes = length(mut_types);
 if length(size(rc))~=4 & size(rc,3)~=Nmuttypes;
@@ -69,9 +71,15 @@ mut_del_idx = [1:12,14];
 strictmut_idx = [1:12];
 del_idx = [14];
 if no_GA 
-    mut_del_idx = [1:6,8:12,14];
+    mut_del_idx   = [1:6,8:12,14];
     strictmut_idx = [1:6,8:12];
 end
+if only_GA
+    mut_del_idx   = [7];
+    strictmut_idx = [7];
+    del_idx = [];
+end
+
 f = reshape(sum(frc(:,:,mut_del_idx,:),3) ,size(frc,1),size(frc,2),size(frc,4));
 f_err = reshape(sqrt(sum(frc_err(:,:,mut_del_idx,:).^2,3)) ,size(frc,1),size(frc,2),size(frc,4));
 
@@ -96,8 +104,8 @@ end
 rsub_strictmut     = reshape(sum(rsub(:,:,strictmut_idx,:),3),size(rsub,1),size(rsub,2),size(rsub,4));
 rsub_strictmut_err = reshape(sqrt(sum(rsub_err(:,:,strictmut_idx,:).^2,3)),size(rsub,1),size(rsub,2),size(rsub,4));
 
-rsub_del     = reshape(rsub(:,:,del_idx,:), size(rsub,1),size(rsub,2),size(rsub,4));
-rsub_del_err = reshape(rsub_err(:,:,del_idx,:), size(rsub,1),size(rsub,2),size(rsub,4));
+rsub_del     = reshape(rsub(:,:,del_idx,:), size(rsub,1),size(rsub,2),[]);
+rsub_del_err = reshape(rsub_err(:,:,del_idx,:), size(rsub,1),size(rsub,2),[]);
 
 r_nomod = reshape(sum(r_nomod(:,:,mut_del_idx,:),3),size(r_nomod,1),size(r_nomod,2),size(r_nomod,4));
 toc
@@ -169,7 +177,7 @@ toc
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function   [r, r_err, signal_to_noise] = get_r_from_strictmut_del( rsub_strictmut, rsub_del, rsub_strictmut_err, rsub_del_err, BLANK_OUT5, BLANK_OUT3, rsub_pseudocount_err, sequences);
-
+if size(rsub_del,3) == 0; rsub_del = 0*rsub_strictmut; rsub_del_err = 0*rsub_strictmut; end;
 r     = rsub_strictmut + rsub_del;
 r_err = sqrt(rsub_strictmut_err.^2 + rsub_del_err.^2 + rsub_pseudocount_err.^2);
 signal_to_noise = get_signal_to_noise(r,r_err,BLANK_OUT5,BLANK_OUT3, sequences);

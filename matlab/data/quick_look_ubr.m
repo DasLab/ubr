@@ -45,6 +45,8 @@ function d = quick_look_ubr(filedir,sequence_file,shape_nomod_idx,structure_csv_
 %                 'no_figures': Don't make figures.
 %                 'no_print': Don't export figures, which can take
 %                       a long time
+%                 'no_GA': Exclude G to A mutations
+%                 'only_GA': Only count G to A mutations
 %
 % Output
 %  d = MATLAB struct with the following fields:
@@ -131,12 +133,14 @@ if focus_on_shape_nomod; [m,c,rc,tags,shape_nomod_idx] = focus_on_idx(m,c,rc,tag
 [BLANK_OUT5, BLANK_OUT3] = figure_out_BLANK_OUT( BLANK_OUT5, BLANK_OUT3, sequences );
 
 spread_deletions = ~any(strcmp(options,'no_spread_deletions'));
+no_GA = any(strcmp(options,'no_GA'));
+only_GA = any(strcmp(options,'only_GA'));
 if ~use_raw_counts; rc = m; end;
 if spread_deletions 
     % default is to spread deletions.
-    [r,r_err,f,f_err,coverage,signal_to_noise] = get_reactivity(rc,c,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,sequences);
+    [r,r_err,f,f_err,coverage,signal_to_noise] = get_reactivity(rc,c,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,sequences,no_GA,only_GA);
 else
-    [r,r_err,f,f_err,coverage,signal_to_noise] = get_reactivity(rc,c,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3);
+    [r,r_err,f,f_err,coverage,signal_to_noise] = get_reactivity(rc,c,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,[],no_GA,only_GA);
 end
 
 for i = 1:length(shape_nomod_idx); conditions{i} = tags{ shape_nomod_idx{i}(1)}; end
