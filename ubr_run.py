@@ -33,6 +33,7 @@ parser.add_argument('-mpb','--merge_pairs_bbmerge',action = 'store_true',help=ar
 parser.add_argument('-mpp','--merge_pairs_pear',action = 'store_true',help=argparse.SUPPRESS)
 parser.add_argument('-nlc','--no_length_cutoff',action = 'store_true',help=argparse.SUPPRESS)
 parser.add_argument('-orc','--output_raw_counts',action = 'store_true',help=argparse.SUPPRESS)
+parser.add_argument('--skip_ultraplex',action = 'store_true',help=argparse.SUPPRESS)
 
 args = parser.parse_args()
 if args.no_length_cutoff: print( '--no_length_cutoff is on by default now! Flag will be deprecated later.' )
@@ -64,7 +65,7 @@ def read_fasta( fasta_file ):
     return (sequences,headers)
 
 # Check executables!
-assert( shutil.which( 'ultraplex' ) )
+if not args.skip_ultraplex: assert( shutil.which( 'ultraplex' ) )
 assert( shutil.which( 'bowtie2-build' ) )
 assert( shutil.which( 'bowtie2' ) )
 assert( shutil.which( 'rf-count' ) )
@@ -171,7 +172,7 @@ for primer_barcode,primer_name in zip(primer_barcodes,primer_names):
         break
 
 # has FASTQ file already been demultiplexed? Look for the barcode string like ACCAGGCGCTGG in the filename.
-skip_ultraplex = False
+skip_ultraplex = args.skip_ultraplex
 for primer_barcode in primer_barcodes:
     if read1_fastq.find( primer_barcode ) > -1:
         print('Detected primer %s in name of FASTQ file %s. Assuming FASTQ has already been demultiplexed.' % (primer_barcode,read1_fastq))
@@ -220,11 +221,6 @@ fid = open( seq_file, 'w' )
 for (sequence,header) in zip(sequences, headers): fid.write('>%s\n%s\n' % (header,sequence.replace('U','T')) )
 fid.close()
 
-if not os.path.isfile(bt2_file) or args.overwrite:
-    command = 'bowtie2-build %s %s --threads %d > %s/bt2.out 2> %s/bt2.err' % (seq_file,bt2_prefix,args.threads,bowtie_build_dir,bowtie_build_dir)
-    print(command)
-    os.system( command )
-
 for primer_barcode,primer_name in zip(primer_barcodes,primer_names):
     if read2_fastq:
         i1 = wd + '1_ultraplex/ultraplex_demux_5bc_%s_Fwd.fastq.gz'  % primer_barcode
@@ -246,6 +242,11 @@ for primer_barcode,primer_name in zip(primer_barcodes,primer_names):
     if args.no_mixed: extra_flags += ' --no-mixed'
     if args.score_min != None:  extra_flags += ' --score-min %s' % args.score_min
     if not os.path.isfile( sam_file ) or args.overwrite:
+        if not os.path.isfile(bt2_file) or args.overwrite:
+            command = 'bowtie2-build %s %s --threads %d > %s/bt2.out 2> %s/bt2.err' % (seq_file,bt2_prefix,args.threads,bowtie_build_dir,bowtie_build_dir)
+            print(command)
+            os.system( command )
+
         # previously used --local --sensitive-local, but bowtie2 would punt on aligning 3' ends and misalign reads to some short parasite replicons.
         command = 'bowtie2 --end-to-end --sensitive --maxins=800 --ignore-quals --no-unal --mp 3,1 --rdg 5,1 --rfg 5,1 --dpad 30 -x %s %s -S %s --threads %d %s > %s/bowtie2.out 2> %s/bowtie2.err' % (bt2_prefix,fastq_flags,sam_file,args.threads,extra_flags,outdir,outdir)
         print(command)
