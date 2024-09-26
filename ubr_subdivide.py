@@ -23,6 +23,8 @@ args = parser.parse_args()
 subdivide_files = args.subdivide_files
 ubr_dir = args.ubr_dir
 
+assert( os.path.isfile( args.sequences_fasta ) )
+
 if subdivide_files == None:
     # TODO unify with same code block in ubr_subdivide.py
     globfiles = []
