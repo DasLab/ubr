@@ -172,8 +172,10 @@ ubr_run_sh_name = 'ubr_run.sh'
 if nsplits == 1:
     # We're probably running with sequences_per_partition specified. Let's actually count splits.
     nsplits = len(glob.glob( '%s/*/%s.part_*%s' % ( split_dir, os.path.basename( args.read1_fastq ).replace(fastq_tag,''), fastq_tag ) ))
+    nsplits -= len(glob.glob( '%s/*/%s.part*MERGED*%s' % ( split_dir,os.path.basename( args.read1_fastq ).replace(fastq_tag,''), fastq_tag ) ))
     if nsplits == 0:
-        nsplits = len(glob.glob( '%s/%s.part_*%s' % ( split_dir,os.path.basename( args.read1_fastq ).replace(fastq_tag,''), fastq_tag ) ))
+        nsplits = len(glob.glob( '%s/%s.part*%s' % ( split_dir,os.path.basename( args.read1_fastq ).replace(fastq_tag,''), fastq_tag ) ))
+    print('Found: %d directories.' % nsplits)
     assert( nsplits > 0 )
 
 for i in range(1,nsplits+1):
