@@ -23,6 +23,7 @@ parser.add_argument('-nmp','--no_merge_pairs',action = 'store_true',help='do not
 parser.add_argument('--ultima',action='store_true',help='recognize Ultima adapter in ultraplex')
 
 # Deprecated
+parser.add_argument('--skip_gzip',action='store_true',help=argparse.SUPPRESS) # if FASTQ is not gzipped, leave it gzipped
 parser.add_argument('--excise_barcode',default=0,type=int,help=argparse.SUPPRESS) # 'remove this many nucleotides from merged FASTQ and sequences' )
 parser.add_argument('-nm','--no_mixed',action = 'store_true',help=argparse.SUPPRESS )# 'No mixed reads in Bowtie2')
 parser.add_argument('-sm','--score_min',help=argparse.SUPPRESS )#'minimum score for Bowtie2')
@@ -151,6 +152,7 @@ else:
     else:
         command = 'seqkit split2 -p %d -1 %s%s -O %s --threads 12' % (nsplits,args.read1_fastq,fastq2_tag,split_dir)
         print(command)
+    if not args.skip_gzip: command += ' -e .gz'
     os.system( command )
 
 time_seqkit = time.time()
@@ -169,20 +171,23 @@ fid_slurm.write( sbatch_preface )
 fid_sbatch_commands = open( 'sbatch_commands.sh', 'w')
 ubr_run_sh_name = 'ubr_run.sh'
 
+fastq_tag_out = fastq_tag
+if not args.skip_gzip and fastq_tag[-3:] != '.gz': fastq_tag_out += '.gz'
+
 if nsplits == 1:
     # We're probably running with sequences_per_partition specified. Let's actually count splits.
-    nsplits = len(glob.glob( '%s/*/%s.part_*%s' % ( split_dir, os.path.basename( args.read1_fastq ).replace(fastq_tag,''), fastq_tag ) ))
-    nsplits -= len(glob.glob( '%s/*/%s.part*MERGED*%s' % ( split_dir,os.path.basename( args.read1_fastq ).replace(fastq_tag,''), fastq_tag ) ))
+    nsplits = len(glob.glob( '%s/*/%s.part_*%s' % ( split_dir, os.path.basename( args.read1_fastq ).replace(fastq_tag,''), fastq_tag_out ) ))
+    nsplits -= len(glob.glob( '%s/*/%s.part*MERGED*%s' % ( split_dir,os.path.basename( args.read1_fastq ).replace(fastq_tag,''), fastq_tag_out ) ))
     if nsplits == 0:
-        nsplits = len(glob.glob( '%s/%s.part*%s' % ( split_dir,os.path.basename( args.read1_fastq ).replace(fastq_tag,''), fastq_tag ) ))
+        nsplits = len(glob.glob( '%s/%s.part*%s' % ( split_dir,os.path.basename( args.read1_fastq ).replace(fastq_tag,''), fastq_tag_out ) ))
     print('Found: %d directories.' % nsplits)
     assert( nsplits > 0 )
 
 for i in range(1,nsplits+1):
     index_tag = '%03d' % i
     if i>999: index_tag = '%d' % i
-    f1 = '%s.part_%s%s' % ( os.path.basename( args.read1_fastq ).replace(fastq_tag,''), index_tag, fastq_tag )
-    if args.read2_fastq: f2 = '%s.part_%s%s' % ( os.path.basename( args.read2_fastq ).replace(fastq_tag,''), index_tag, fastq_tag )
+    f1 = '%s.part_%s%s' % ( os.path.basename( args.read1_fastq ).replace(fastq_tag,''), index_tag, fastq_tag_out )
+    if args.read2_fastq: f2 = '%s.part_%s%s' % ( os.path.basename( args.read2_fastq ).replace(fastq_tag,''), index_tag, fastq_tag_out )
     else: f2 = f1
 
     outdir = '%s/%s' % (split_dir,index_tag)
