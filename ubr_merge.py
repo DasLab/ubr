@@ -25,7 +25,8 @@ split_dirs = args.split_dir
 for (i,split_dir) in enumerate(split_dirs):
     if split_dir[:-1] != '/': split_dirs[i]=split_dir+'/'
 if len(split_dirs) == 1: split_dirs[0] = split_dirs[0]+'*/'
-print(split_dirs)
+print("Merging from the following directories: ")
+for split_dir in split_dirs: print(' ',split_dir)
 
 merge_files = args.merge_files
 
