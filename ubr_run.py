@@ -173,8 +173,8 @@ for primer_barcode,primer_name in zip(primer_barcodes,primer_names):
 
 # has FASTQ file already been demultiplexed? Look for the barcode string like ACCAGGCGCTGG in the filename.
 skip_ultraplex = args.skip_ultraplex
-for primer_barcode in primer_barcodes:
-    if read1_fastq.find( primer_barcode ) > -1:
+for (primer_barcode,primer_name) in zip(primer_barcodes,primer_names):
+    if read1_fastq.find( primer_barcode ) > -1 or read1_fastq.find( primer_name ) > -1:
         print('Detected primer %s in name of FASTQ file %s. Assuming FASTQ has already been demultiplexed.' % (primer_barcode,read1_fastq))
         i1 = wd + '1_ultraplex/ultraplex_demux_5bc_%s.fastq.gz'  % primer_barcode
         command = 'rsync -avL %s %s' % (read1_fastq,i1)
