@@ -70,10 +70,10 @@ assert( args.read1_fastq != args.read2_fastq )
 # TODO: use biopython or at least shared util.py
 def check_dup(mylist,mytag):
     if (len(set(mylist)) != len(mylist)):
-        print('%s not unique!' % mytag)
+        print('%s not unique! %d are duplicates.' % (mytag,len(mylist)-len(set(mylist))) )
         myset = set()
-        for x in mylist:
-            if x in myset: print(x)
+        for (i,x) in enumerate(mylist):
+            if x in myset: print('%6d %s' % (i+1,x) )
             myset.add(x)
         exit(0)
     return
@@ -129,13 +129,16 @@ if args.read1_fastq.find( fastq_tag ) < 0: fastq_tag = '.fq.gz'
 if args.read1_fastq.find( fastq_tag ) < 0: fastq_tag = '.fq'
 assert( args.read1_fastq.find( fastq_tag ) >= 0 )
 
+fastq_tag_out = fastq_tag
+if not args.skip_gzip and fastq_tag[-3:] != '.gz': fastq_tag_out += '.gz'
+
 # Check if splits exist...
 for i in range(1,nsplits+1):
     index_tag = '%03d' % i
     if i>999: index_tag = '%d' % i
     outdir = '%s/%s' % (split_dir,index_tag)
-    f1 = '%s.part_%s%s' % ( os.path.basename( args.read1_fastq ).replace(fastq_tag,''), index_tag, fastq_tag )
-    if args.read2_fastq: f2 = '%s.part_%s%s' % ( os.path.basename( args.read2_fastq ).replace(fastq_tag,''), index_tag, fastq_tag )
+    f1 = '%s.part_%s%s' % ( os.path.basename( args.read1_fastq ).replace(fastq_tag,''), index_tag, fastq_tag_out )
+    if args.read2_fastq: f2 = '%s.part_%s%s' % ( os.path.basename( args.read2_fastq ).replace(fastq_tag,''), index_tag, fastq_tag_out )
     else: f2 = f1
     if not os.path.isdir( outdir ) or not os.path.isfile( outdir+'/'+f1 ) or not os.path.isfile( outdir+'/'+f2 ):
         already_did_split = False
@@ -170,9 +173,6 @@ sbatch_preface = '#!/bin/bash\n#SBATCH --job-name=ubr_run\n#SBATCH --output=ubr_
 fid_slurm.write( sbatch_preface )
 fid_sbatch_commands = open( 'sbatch_commands.sh', 'w')
 ubr_run_sh_name = 'ubr_run.sh'
-
-fastq_tag_out = fastq_tag
-if not args.skip_gzip and fastq_tag[-3:] != '.gz': fastq_tag_out += '.gz'
 
 if nsplits == 1:
     # We're probably running with sequences_per_partition specified. Let's actually count splits.
