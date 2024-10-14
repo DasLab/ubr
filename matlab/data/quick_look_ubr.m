@@ -156,7 +156,7 @@ for i = 1:length(shape_nomod_idx)
     reads(:,i) = sum(coverage(:,shape_nomod_idx{i}),2);
 end
 
-[mut_rate_matrix, rfcount_mut_rate_profiles] = get_mut_rate_matrix( m,c,rc )
+[mut_rate_matrix, rfcount_mut_rate_profiles] = get_mut_rate_matrix( m,c,rc );
 
 %% Fill up output struct
 d.sequences = sequences;

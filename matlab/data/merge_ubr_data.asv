@@ -47,14 +47,7 @@ for n = 1:length(cidx_all)
     d_out.coverage = [d_out.coverage, sum(d.coverage(:,sh_idx),2), sum(d.coverage(:,nm_idx),2) ];
     d_out.tags = [d_out.tags, { strjoin(d.tags( sh_idx ),'_'), strjoin(d.tags( nm_idx ),'_')} ];
     d_out.shape_nomod_idx = [d_out.shape_nomod_idx, length(d_out.tags) + [-1,0]];
-    if isfield(d,'mut_rate_matrix');
-        d_out.mut_rate_matrix(:,:,2*n-1) = mean( d.mut_rate_matrix(:,:,sh_idx), 3 );
-        d_out.mut_rate_matrix(:,:,2*n  ) = mean( d.mut_rate_matrix(:,:,nm_idx), 3 );
-    end
-    if isfield(d,'rfcount_mut_rate_profiles');    
-        d_out.rfcount_mut_rate_profiles(:,2*n-1) = mean( d.rfcount_mut_rate_profiles(:,sh_idx), 2 );
-        d_out.rfcount_mut_rate_profiles(:,2*n  ) = mean( d.rfcount_mut_rate_profiles(:,nm_idx), 2 );
-    end
+    d_out.mut_rate_matrix(:,n) = mean( d.mut_rate_matrix(:,) )
 end
 d_out.total_coverage = sum(d_out.coverage,2);
 
