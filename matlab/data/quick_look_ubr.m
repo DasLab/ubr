@@ -156,6 +156,8 @@ for i = 1:length(shape_nomod_idx)
     reads(:,i) = sum(coverage(:,shape_nomod_idx{i}),2);
 end
 
+[mut_rate_matrix, rfcount_mut_rate_profiles] = get_mut_rate_matrix( m,c,rc );
+
 %% Fill up output struct
 d.sequences = sequences;
 d.r_norm = r_norm;
@@ -181,6 +183,9 @@ d.structure_map = structure_map;
 d.filedir = filedir;
 d.sequence_file = sequence_file;
 d.structure_csv_file = structure_csv_file;
+d.mut_rate_matrix = mut_rate_matrix;
+d.rfcount_mut_rate_profiles = rfcount_mut_rate_profiles;
+
 if ~isempty(strcmp(options,'output_all'));
     d.m = m;
     d.c = c;
@@ -278,7 +283,7 @@ set(h,'interpreter','none')
 
 %% Look through each of the conditions - mutational profiles (mean over designs)
 if use_raw_counts
-    run_mut_type_analysis( m,c,rc,tags,tags,BLANK_OUT5, BLANK_OUT3);
+    show_mut_type_analysis(mut_rate_matrix,rfcount_mut_rate_profiles,tags,tags,BLANK_OUT5, BLANK_OUT3);
 end
 toc
 

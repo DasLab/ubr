@@ -1,4 +1,4 @@
-function run_mut_type_analysis( m,c,rc,tags,labels,BLANK_OUT5, BLANK_OUT3)
+function [mut_rate_matrix, rfcount_mut_rate_profiles] = run_mut_type_analysis( m,c,rc,tags,labels,BLANK_OUT5, BLANK_OUT3)
 % run_mut_type_analysis( m,c,rc,tags,labels,BLANK_OUT5, BLANK_OUT3)
 %
 % Inputs
