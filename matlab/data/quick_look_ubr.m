@@ -231,7 +231,7 @@ legend(conditions,'Interpreter','none');
 
 %% Histogram of signal to noise
 toggle_to_figure(3);
-set(gcf,'color','white','position',[694   960   400   344],'name','Mean S/N')
+set(gcf,'color','white','position',[694   960   400   600],'name','Mean S/N')
 clf
 for i = 1:size(r,3)
     subplot(size(r,3),1,i);
@@ -240,7 +240,7 @@ for i = 1:size(r,3)
     xlabel( 'Signal/noise' );
     cols = strsplit(what(filedir).path,'/');
     dirname = strjoin(cols(end-1:end),'/');
-    title( {dirname,conditions{i},['Mean signal/noise = ',num2str(mean(s2n))]},'interp','none');
+    title( [conditions{i},' Mean signal/noise = ',num2str(mean(s2n))],'interp','none');
 end
 
 %% Make heat map, up to 500 with high signal to noise 
