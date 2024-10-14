@@ -21,7 +21,7 @@ parser.add_argument('--ultima',action='store_true',help='recognize Ultima adapte
 parser.add_argument('-nmp','--no_merge_pairs',action = 'store_true',help='do not merge paired end reads before Bowtie2' )
 
 
-# Deprecated
+# Deprecated/secret
 parser.add_argument('--excise_barcode',default=0,type=int,help=argparse.SUPPRESS) # 'remove this many nucleotides from merged FASTQ and sequences' )
 parser.add_argument('-nm','--no_mixed',action = 'store_true',help=argparse.SUPPRESS )# 'No mixed reads in Bowtie2')
 parser.add_argument('-sm','--score_min',help=argparse.SUPPRESS )#'minimum score for Bowtie2')
@@ -34,6 +34,8 @@ parser.add_argument('-mpp','--merge_pairs_pear',action = 'store_true',help=argpa
 parser.add_argument('-nlc','--no_length_cutoff',action = 'store_true',help=argparse.SUPPRESS)
 parser.add_argument('-orc','--output_raw_counts',action = 'store_true',help=argparse.SUPPRESS)
 parser.add_argument('--skip_ultraplex',action = 'store_true',help=argparse.SUPPRESS)
+parser.add_argument('--cutadapt',action = 'store_true',help=argparse.SUPPRESS) # force cutadapt trimming of Read2 side for pre-demuxed Ultima
+parser.add_argument('--precomputed_bowtie_build_dir',default='',help=argparse.SUPPRESS) # precomputed bowtie-build directory, which otherwise takes forever to generate on the fly for >1M seqs
 
 args = parser.parse_args()
 if args.no_length_cutoff: print( '--no_length_cutoff is on by default now! Flag will be deprecated later.' )
@@ -73,6 +75,7 @@ assert( shutil.which( 'samtools' ) )
 assert( shutil.which( 'bbmerge.sh' ) )
 assert( shutil.which( 'java' ) )
 if args.merge_pairs_pear: assert( shutil.which('pear') )
+if args.cutadapt: assert( shutil.which( 'cutadapt' ) )
 
 assert( os.path.isfile( args.sequences_fasta ) )
 assert( os.path.isfile( args.primer_barcodes_fasta ) )
@@ -177,11 +180,16 @@ for (primer_barcode,primer_name) in zip(primer_barcodes,primer_names):
     if read1_fastq.find( primer_barcode ) > -1 or read1_fastq.find( primer_name ) > -1:
         print('Detected primer %s in name of FASTQ file %s. Assuming FASTQ has already been demultiplexed.' % (primer_barcode,read1_fastq))
         i1 = wd + '1_ultraplex/ultraplex_demux_5bc_%s.fastq.gz'  % primer_barcode
-        command = 'rsync -avL %s %s' % (read1_fastq,i1)
+        if args.cutadapt:
+            command = 'cutadapt --trimmed-only %s -a  AGATCGGAAGAGCACA -o %s' % (read1_fastq,i1)
+        else:
+            command = 'rsync -avL %s %s' % (read1_fastq,i1)
         print(command)
         os.system(command)
         skip_ultraplex = True
         assert( not read2_fastq )
+
+if args.cutadapt and not skip_ultraplex: print("--cutadapt option is only for files that have been pre-demultiplexed by ultima.")
 
 if not skip_ultraplex and (not any_ultraplex_out_files or args.overwrite):
     extra_flags = ''
@@ -243,7 +251,12 @@ for primer_barcode,primer_name in zip(primer_barcodes,primer_names):
     if args.score_min != None:  extra_flags += ' --score-min %s' % args.score_min
     if not os.path.isfile( sam_file ) or args.overwrite:
         if not os.path.isfile(bt2_file) or args.overwrite:
-            command = 'bowtie2-build %s %s --threads %d > %s/bt2.out 2> %s/bt2.err' % (seq_file,bt2_prefix,args.threads,bowtie_build_dir,bowtie_build_dir)
+            if len(args.precomputed_bowtie_build_dir)>0:
+                #os.symlink( os.path.abspath(args.precomputed_bowtie_build_dir), bowtie_build_dir,target_is_directory=True )
+                #print( 'Symlinked %s to %s.' % (args.precomputed_bowtie_build_dir, bowtie_build_dir) )
+                command = 'rm -rf %s && ln -fs %s %s' % (bowtie_build_dir, os.path.abspath(args.precomputed_bowtie_build_dir),bowtie_build_dir)
+            else:
+                command = 'bowtie2-build %s %s --threads %d > %s/bt2.out 2> %s/bt2.err' % (seq_file,bt2_prefix,args.threads,bowtie_build_dir,bowtie_build_dir)
             print(command)
             os.system( command )
 
@@ -290,6 +303,7 @@ for (n,primer_name) in enumerate(primer_names):
         if args.max_edit_distance > 0:  extra_flags += ' --max-edit-distance %f' % args.max_edit_distance
 
         command = 'rf-count --processors %d -wt 1 -fast -f %s -m -cc -rd -ni -ds %d %s -o %s %s >> %s 2>> %s' % (args.threads, seq_file, MIN_READ_LENGTH, extra_flags, outdir, sam_file, rf_count_outfile, rf_count_errfile)
+        #command = 'rf-count --processors 1 --working-threads %d -fast -f %s -m -cc -rd -ni -ds %d %s -o %s %s >> %s 2>> %s' % (args.threads, seq_file, MIN_READ_LENGTH, extra_flags, outdir, sam_file, rf_count_outfile, rf_count_errfile)
         print(command)
         os.system( command )
 

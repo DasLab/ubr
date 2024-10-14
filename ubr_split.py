@@ -35,6 +35,8 @@ parser.add_argument('-mpb','--merge_pairs_bbmerge',action = 'store_true',help=ar
 parser.add_argument('-mpp','--merge_pairs_pear',action = 'store_true',help=argparse.SUPPRESS)
 parser.add_argument('-nlc','--no_length_cutoff',action = 'store_true',help=argparse.SUPPRESS)
 parser.add_argument('-orc','--output_raw_counts',action = 'store_true',help=argparse.SUPPRESS)
+parser.add_argument('--cutadapt',action = 'store_true',help=argparse.SUPPRESS) # force cutadapt trimming of Read2 side for pre-demuxed Ultima
+parser.add_argument('--precomputed_bowtie_build_dir',default='',help=argparse.SUPPRESS) # precomputed bowtie-build directory, which otherwise takes forever to generate on the fly for >1M seqs
 
 args = parser.parse_args()
 
@@ -222,6 +224,8 @@ for i in range(1,nsplits+1):
     if args.no_merge_pairs:  extra_flags += ' --no_merge_pairs'
     if args.merge_pairs_pear:  extra_flags += ' --merge_pairs_pear'
     if args.ultima:  extra_flags += ' --ultima'
+    if args.cutadapt:  extra_flags += ' --cutadapt'
+    if len(args.precomputed_bowtie_build_dir)>0: extra_flags += ' --precomputed_bowtie_build_dir %s' % args.precomputed_bowtie_build_dir
     if args.excise_barcode>0:  extra_flags += ' --excise_barcode %d' % args.excise_barcode
 
     fid = open( outdir + '/'+ubr_run_sh_name, 'w' )
