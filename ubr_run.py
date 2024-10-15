@@ -4,6 +4,7 @@ import os
 import time
 import shutil
 import gzip
+import ubr_check_stats
 
 parser = argparse.ArgumentParser(
                     prog = 'ubr_run.py',
@@ -408,6 +409,8 @@ for primer_name in primer_names:
         print( 'WARNING! Could not find %s' % infile )
 
 time_end=time.time()
+
+ubr_check_stats.check_stats( './' )
 
 print( '\nTimings:')
 print( '0_merge_pairs ' + time.strftime("%H:%M:%S",time.gmtime(time_merge_pairs-time_start) ) )

@@ -16,8 +16,6 @@ parser = argparse.ArgumentParser(
 
 args = parser.add_argument( 'ubr_run_dirs',default=['./'],nargs='*',help='Directories in which ubr_run was run')
 #args = parser.add_argument( '--fast', action='store_true',help='Only look through logs, no actual data analysis' )
-args = parser.parse_args()
-
 
 def check_stats( ubr_run_dir ):
     # Merge
@@ -90,6 +88,7 @@ def check_stats( ubr_run_dir ):
     print()
 
 
-
-for ubr_run_dir in args.ubr_run_dirs:
-    check_stats( ubr_run_dir )
+if __name__ == "__main__":
+    args = parser.parse_args()
+    for ubr_run_dir in args.ubr_run_dirs:
+        check_stats( ubr_run_dir )
