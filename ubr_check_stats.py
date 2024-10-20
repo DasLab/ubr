@@ -67,24 +67,26 @@ def check_stats( ubr_run_dir ):
                         numreads_into_rfcount += int(cols[1])
                         numreads_counted += int(cols[0])
 
-    def writeout(tag,numreads,numreads_prev = 0 ):
+    def writeout(tag,numreads,numreads_prev, allreads):
         if numreads>0:
             out_line = '%16s: %9d' % (tag,numreads)
             if numreads_prev > 0:
                 out_line += '   (%5.1f%%)' % (100 * numreads/numreads_prev)
             print(out_line)
+            allreads.append(numreads)
 
-
+    allreads = []
     print()
     print( 'Reads table for', os.path.abspath(ubr_run_dir) )
-    writeout( 'Into bbmerge', numreads_into_merge )
-    writeout( 'Merged pairs', numreads_merged, numreads_into_merge )
-    writeout( 'Into ultraplex', numreads_into_demux, numreads_merged )
-    writeout( 'Demultiplexed', numreads_demultiplexed, numreads_into_demux )
-    writeout( 'Into bowtie2', numreads_into_bt2, numreads_demultiplexed )
-    writeout( 'Aligned bowtie2', numreads_align, numreads_into_bt2 )
-    writeout( 'Into rf-count', numreads_into_rfcount, numreads_align )
-    writeout( 'Counted rf-count', numreads_counted, numreads_into_rfcount )
+    writeout( 'Into bbmerge', numreads_into_merge, 0, allreads )
+    writeout( 'Merged pairs', numreads_merged, numreads_into_merge, allreads )
+    writeout( 'Into ultraplex', numreads_into_demux, numreads_merged, allreads )
+    writeout( 'Demultiplexed', numreads_demultiplexed, numreads_into_demux, allreads )
+    writeout( 'Into bowtie2', numreads_into_bt2, numreads_demultiplexed, allreads )
+    writeout( 'Aligned bowtie2', numreads_align, numreads_into_bt2, allreads )
+    writeout( 'Into rf-count', numreads_into_rfcount, numreads_align, allreads )
+    writeout( 'Counted rf-count', numreads_counted, numreads_into_rfcount, allreads )
+    print( 'Overall: %9d/%9d = %6.2f%% ' % (min(allreads),max(allreads),100*min(allreads)/max(allreads)))
     print()
 
 
