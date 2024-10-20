@@ -47,7 +47,8 @@ assert( not( args.no_merge_pairs and args.merge_pairs_pear ) )
 time_start = time.time()
 
 def read_fasta( fasta_file ):
-    lines = open( fasta_file ).readlines()
+    if len(fasta_file)>3 and fasta_file[-3:]=='.gz': lines = gzip.open( fasta_file, 'rt' ).readlines()
+    else: lines = open( fasta_file ).readlines()
     sequences = []
     headers = []
     header = None
