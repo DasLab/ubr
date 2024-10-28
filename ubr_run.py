@@ -30,19 +30,13 @@ parser.add_argument('-mq','--map_quality',default=10,type=int,help=argparse.SUPP
 parser.add_argument('-lc','--length_cutoff',action = 'store_true',help=argparse.SUPPRESS )#help='Use length cutoff of 0.92 length for RNAFramework')
 parser.add_argument('-norc','--no_output_raw_counts',action = 'store_true',help=argparse.SUPPRESS )#help='do not output raw counts from RNAFramework')
 parser.add_argument('-me','--max_edit_distance',default=0.0,type=float,help=argparse.SUPPRESS )#help='max edit distance for RNAFramework (0.15)')
-parser.add_argument('-mpb','--merge_pairs_bbmerge',action = 'store_true',help=argparse.SUPPRESS)
 parser.add_argument('-mpp','--merge_pairs_pear',action = 'store_true',help=argparse.SUPPRESS)
-parser.add_argument('-nlc','--no_length_cutoff',action = 'store_true',help=argparse.SUPPRESS)
-parser.add_argument('-orc','--output_raw_counts',action = 'store_true',help=argparse.SUPPRESS)
 parser.add_argument('--skip_ultraplex',action = 'store_true',help=argparse.SUPPRESS)
 parser.add_argument('--cutadapt',action = 'store_true',help=argparse.SUPPRESS) # force cutadapt trimming of Read2 side for pre-demuxed Ultima
 parser.add_argument('--precomputed_bowtie_build_dir',default='',help=argparse.SUPPRESS) # precomputed bowtie-build directory, which otherwise takes forever to generate on the fly for >1M seqs
 parser.add_argument('--no_collapse',action = 'store_true',help=argparse.SUPPRESS) # no collapse option in rf-count
 
 args = parser.parse_args()
-if args.no_length_cutoff: print( '--no_length_cutoff is on by default now! Flag will be deprecated later.' )
-if args.output_raw_counts:  print( '--output_raw_counts is on by default now! Flag Will be deprecated later.' )
-if args.merge_pairs_bbmerge: print( '\n--merge_pairs_bbmerge is on by default now!\n' )
 assert( not( args.no_merge_pairs and args.merge_pairs_pear ) )
 
 time_start = time.time()
