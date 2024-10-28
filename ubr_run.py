@@ -37,6 +37,7 @@ parser.add_argument('-orc','--output_raw_counts',action = 'store_true',help=argp
 parser.add_argument('--skip_ultraplex',action = 'store_true',help=argparse.SUPPRESS)
 parser.add_argument('--cutadapt',action = 'store_true',help=argparse.SUPPRESS) # force cutadapt trimming of Read2 side for pre-demuxed Ultima
 parser.add_argument('--precomputed_bowtie_build_dir',default='',help=argparse.SUPPRESS) # precomputed bowtie-build directory, which otherwise takes forever to generate on the fly for >1M seqs
+parser.add_argument('--no_collapse',action = 'store_true',help=argparse.SUPPRESS) # no collapse option in rf-count
 
 args = parser.parse_args()
 if args.no_length_cutoff: print( '--no_length_cutoff is on by default now! Flag will be deprecated later.' )
@@ -303,8 +304,10 @@ for (n,primer_name) in enumerate(primer_names):
         if not args.no_output_raw_counts: extra_flags = ' -orc '
         if args.map_quality != 10:  extra_flags += ' --map-quality %d' % args.map_quality
         if args.max_edit_distance > 0:  extra_flags += ' --max-edit-distance %f' % args.max_edit_distance
+        cc_option = '-cc'
+        if args.no_collapse: cc_option = ''
 
-        command = 'rf-count --processors %d -wt 1 -fast -f %s -m -cc -rd -ni -ds %d %s -o %s %s >> %s 2>> %s' % (args.threads, seq_file, MIN_READ_LENGTH, extra_flags, outdir, sam_file, rf_count_outfile, rf_count_errfile)
+        command = 'rf-count --processors %d -wt 1 -fast -f %s -m%s -rd -ni -ds %d %s -o %s %s >> %s 2>> %s' % (args.threads, seq_file, cc_option, MIN_READ_LENGTH, extra_flags, outdir, sam_file, rf_count_outfile, rf_count_errfile)
         #command = 'rf-count --processors 1 --working-threads %d -fast -f %s -m -cc -rd -ni -ds %d %s -o %s %s >> %s 2>> %s' % (args.threads, seq_file, MIN_READ_LENGTH, extra_flags, outdir, sam_file, rf_count_outfile, rf_count_errfile)
         print(command)
         os.system( command )
