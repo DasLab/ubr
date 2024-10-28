@@ -44,7 +44,7 @@ def writelines(outfile,outdata):
 
 
 outfile_coverage = wd + '%s.coverage.txt.gz' % prefix
-coverage = ds['mutations'][...].sum(2).sum(2) + ds['insertions'][...].sum(2)
+coverage = ds['mutations'][...].sum(2).sum(2)
 writelines(outfile_coverage,coverage)
 
 outdir = wd+'raw_counts/'
