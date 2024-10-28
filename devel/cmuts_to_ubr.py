@@ -53,16 +53,17 @@ os.makedirs(outdir,exist_ok = True)
 nts = 'ACGT'
 mut_types = ['AC','AG','AT','CA','CG','CT','GA','GC','GT','TA','TC','TG','ins','del']
 muts = np.zeros_like( coverage )
-for mut_type in mut_types:
+for mut_type in mut_types[:12]:
     outfile_raw_counts = outdir + '%s.%s.txt.gz' % (prefix,mut_type)
     i = nts.find(mut_type[0])
     j = nts.find(mut_type[1])
-    muts += ds['mutations'][:,:,i,j]
     writelines(outfile_raw_counts, ds['mutations'][:,:,i,j] )
+    muts += ds['mutations'][:,:,i,j]
 
 outfile_raw_counts = outdir + '%s.%s.txt.gz' % (prefix,'del')
-writelines(outfile_raw_counts, ds['mutations'][:,:,:,4].sum(axis=2) )
-muts += ds['mutations'][:,:,:,4].sum(2)
+dels = ds['mutations'][:,:,:,4].sum(axis=2)
+writelines(outfile_raw_counts, dels )
+muts += dels
 
 outfile_raw_counts = outdir + '%s.%s.txt.gz' % (prefix,'ins')
 writelines(outfile_raw_counts, ds['insertions'][:,:,:].sum(axis=2) )
