@@ -20,6 +20,7 @@ parser.add_argument('-q','--sequences_per_partition', default=0, type=int, help=
 parser.add_argument('-j','--jobs_per_slurm_node', default=24,type=int )
 parser.add_argument('-ow','--overwrite',action = 'store_true', help='overwrite all previous files')
 parser.add_argument('-nmp','--no_merge_pairs',action = 'store_true',help='do not merge paired end reads before Bowtie2' )
+parser.add_argument('--cmuts',action = 'store_true',help='use cmuts instead of RNAFramework' )
 parser.add_argument('--ultima',action='store_true',help='recognize Ultima adapter in ultraplex')
 
 # Deprecated
@@ -218,6 +219,7 @@ for i in range(1,nsplits+1):
     if args.no_merge_pairs:  extra_flags += ' --no_merge_pairs'
     if args.merge_pairs_pear:  extra_flags += ' --merge_pairs_pear'
     if args.ultima:  extra_flags += ' --ultima'
+    if args.cmuts:  extra_flags += ' --cmuts'
     if args.cutadapt:  extra_flags += ' --cutadapt'
     if len(args.precomputed_bowtie_build_dir)>0: extra_flags += ' --precomputed_bowtie_build_dir %s' % args.precomputed_bowtie_build_dir
     if args.excise_barcode>0:  extra_flags += ' --excise_barcode %d' % args.excise_barcode

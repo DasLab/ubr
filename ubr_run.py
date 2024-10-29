@@ -20,7 +20,7 @@ parser.add_argument('-O','--outdir',default='',help='output directory for all fi
 parser.add_argument('-t','--threads',default=1, type=int, help='Number of threads for Bowtie2 and RNAFramework')
 parser.add_argument('--ultima',action='store_true',help='recognize Ultima adapter in ultraplex')
 parser.add_argument('-nmp','--no_merge_pairs',action = 'store_true',help='do not merge paired end reads before Bowtie2' )
-
+parser.add_argument('--cmuts',action = 'store_true',help='use cmuts instead of RNAFramework' )
 
 # Deprecated/secret
 parser.add_argument('--excise_barcode',default=0,type=int,help=argparse.SUPPRESS) # 'remove this many nucleotides from merged FASTQ and sequences' )
@@ -67,7 +67,8 @@ def read_fasta( fasta_file ):
 if not args.skip_ultraplex: assert( shutil.which( 'ultraplex' ) )
 assert( shutil.which( 'bowtie2-build' ) )
 assert( shutil.which( 'bowtie2' ) )
-assert( shutil.which( 'rf-count' ) )
+if args.cmuts: assert( shutil.which( 'cmuts' ))
+else: assert( shutil.which( 'rf-count' ) )
 assert( shutil.which( 'samtools' ) )
 assert( shutil.which( 'bbmerge.sh' ) )
 assert( shutil.which( 'java' ) )
@@ -118,7 +119,7 @@ if args.excise_barcode > 0:
 merge_pairs = not args.no_merge_pairs and args.read2_fastq != None
 
 # Also check if sequence reads are actually long enough to overlap
-if merge_pairs and not args.merge_pairs_bbmerge and not args.merge_pairs_pear:
+if merge_pairs and not args.merge_pairs_pear:
     insert_len = len(sequences[0]) + len(primer_barcodes[0])
     read_len1 = len(os.popen( 'seqkit head -n 1 %s' % args.read1_fastq ).readlines()[1].strip())
     read_len2 = len(os.popen( 'seqkit head -n 1 %s' % args.read2_fastq ).readlines()[1].strip())
@@ -266,157 +267,197 @@ for primer_barcode,primer_name in zip(primer_barcodes,primer_names):
 
 time_bowtie2 = time.time()
 
-# Some deprecated options
-if args.length_cutoff:
-    min_seq_length = min( map( lambda x:len(x), sequences ) )
-    MIN_READ_LENGTH = int(min_seq_length * 0.92)
-    print( '\nrf-count will throw out reads with length smaller than 92%% of minimal sequence length: %d' % MIN_READ_LENGTH )
-else:
-    MIN_READ_LENGTH = 1
-max_seq_length = max( map( lambda x:len(x), sequences ) )
+if args.cmuts:
+    cmuts_dir = wd + '3_cmuts'
+    os.makedirs(cmuts_dir,exist_ok = True)
 
-# rf-count to assign muts/dels/inserts
-print()
-rf_count_dir = wd + '3_rf_count'
-os.makedirs(rf_count_dir,exist_ok = True)
-#rf_count_outfile = rf_count_dir+'/rf-count.out'
-#rf_count_errfile = rf_count_dir+'/rf-count.err'
-for (n,primer_name) in enumerate(primer_names):
-    bowtie_align_dir = wd + '2_bowtie2/%s/' % (primer_name)
-    sam_file = '%s/bowtie2.sam' % bowtie_align_dir
-    if not os.path.isfile( sam_file ): continue
+    for (n,primer_name) in enumerate(primer_names):
+        bowtie_align_dir = wd + '2_bowtie2/%s/' % (primer_name)
+        sam_file = '%s/bowtie2.sam' % bowtie_align_dir
+        if not os.path.isfile( sam_file ): continue
+        print()
+        outdir = '%s/%s' % (cmuts_dir,primer_name)
+        os.makedirs(outdir,exist_ok = True)
 
-    outdir = '%s/%s' % (rf_count_dir,primer_name)
-    if args.overwrite or not os.path.isfile(outdir+'/bowtie2.rc'):
-        # need to remove dir and start job; rf-count's overwrite option does crazy things.
-        if os.path.isdir(outdir): shutil.rmtree(outdir)
-        rf_count_outfile = rf_count_dir+'/rf-count_%s.out' % primer_name
-        rf_count_errfile = rf_count_dir+'/rf-count_%s.err' % primer_name
-        if os.path.isfile(rf_count_outfile): os.remove( rf_count_outfile )
-        if os.path.isfile(rf_count_errfile): os.remove( rf_count_errfile )
-        extra_flags = ''
-        if not args.no_output_raw_counts: extra_flags = ' -orc '
-        if args.map_quality != 10:  extra_flags += ' --map-quality %d' % args.map_quality
-        if args.max_edit_distance > 0:  extra_flags += ' --max-edit-distance %f' % args.max_edit_distance
-        cc_option = '-cc'
-        if args.no_collapse: cc_option = ''
-
-        command = 'rf-count --processors %d -wt 1 -fast -f %s -m%s -rd -ni -ds %d %s -o %s %s >> %s 2>> %s' % (args.threads, seq_file, cc_option, MIN_READ_LENGTH, extra_flags, outdir, sam_file, rf_count_outfile, rf_count_errfile)
-        #command = 'rf-count --processors 1 --working-threads %d -fast -f %s -m -cc -rd -ni -ds %d %s -o %s %s >> %s 2>> %s' % (args.threads, seq_file, MIN_READ_LENGTH, extra_flags, outdir, sam_file, rf_count_outfile, rf_count_errfile)
-        print(command)
-        os.system( command )
-
-        if not args.no_output_raw_counts:
-            raw_counts_file = rf_count_dir+'/%s/raw_counts/bowtie2.txt' % primer_name
-            assert( os.path.isfile(raw_counts_file) )
-            command = 'gzip %s' % raw_counts_file
+        sorted_bam_file = '%s/bowtie2.sorted.bam' % outdir
+        if args.overwrite or not os.path.isfile( sorted_bam_file ):
+            command = 'samtools sort %s -o %s > %s.sort.log 2> %s.sort.err' % (sam_file, sorted_bam_file, outdir,outdir)
             print(command)
             os.system( command )
 
+        sorted_bam_index_file = '%s.bai' % sorted_bam_file
+        if args.overwrite or not os.path.isfile( sorted_bam_index_file ):
+            command = 'samtools index %s > %s.index.log 2> %s.index.err' % (sorted_bam_file,outdir,outdir)
+            print(command)
+            os.system( command )
+
+        fasta_index_file = '%s.fai' % seq_file
+        if args.overwrite or not os.path.isfile( fasta_index_file ):
+            command = 'samtools faidx %s > %s/faidx.log 2> %s/faidx.err' % (seq_file,cmuts_dir,cmuts_dir)
+            print(command)
+            os.system( command )
+
+        hdf5_file = wd + '%s.hdf5' % primer_name
+        if args.overwrite or not os.path.isfile( hdf5_file ):
+            command = 'cmuts --fasta=%s --overwrite  --min-cov-base-quality=0 --output %s %s > %s.cmuts.log 2> %s.cmuts.err' % (seq_file,hdf5_file,sorted_bam_file,outdir,outdir)
+            print(command)
+            os.system( command )
+
+else: # use RNAFramework
+    # Some deprecated options
+    if args.length_cutoff:
+        min_seq_length = min( map( lambda x:len(x), sequences ) )
+        MIN_READ_LENGTH = int(min_seq_length * 0.92)
+        print( '\nrf-count will throw out reads with length smaller than 92%% of minimal sequence length: %d' % MIN_READ_LENGTH )
     else:
-        print( 'Skipping rf-count into: %s' % outdir )
+        MIN_READ_LENGTH = 1
+    max_seq_length = max( map( lambda x:len(x), sequences ) )
 
-time_rf_count = time.time()
+    # rf-count to assign muts/dels/inserts
+    print()
+    rf_count_dir = wd + '3_rf_count'
+    os.makedirs(rf_count_dir,exist_ok = True)
+    #rf_count_outfile = rf_count_dir+'/rf-count.out'
+    #rf_count_errfile = rf_count_dir+'/rf-count.err'
+    for (n,primer_name) in enumerate(primer_names):
+        bowtie_align_dir = wd + '2_bowtie2/%s/' % (primer_name)
+        sam_file = '%s/bowtie2.sam' % bowtie_align_dir
+        if not os.path.isfile( sam_file ): continue
 
-# rf-rctools view to create an easy to parse .csv
-print()
-for primer_name in primer_names:
-    rc_file = wd + '3_rf_count/%s/bowtie2.rc' % (primer_name)
+        outdir = '%s/%s' % (rf_count_dir,primer_name)
+        if args.overwrite or not os.path.isfile(outdir+'/bowtie2.rc'):
+            # need to remove dir and start job; rf-count's overwrite option does crazy things.
+            if os.path.isdir(outdir): shutil.rmtree(outdir)
+            rf_count_outfile = rf_count_dir+'/rf-count_%s.out' % primer_name
+            rf_count_errfile = rf_count_dir+'/rf-count_%s.err' % primer_name
+            if os.path.isfile(rf_count_outfile): os.remove( rf_count_outfile )
+            if os.path.isfile(rf_count_errfile): os.remove( rf_count_errfile )
+            extra_flags = ''
+            if not args.no_output_raw_counts: extra_flags = ' -orc '
+            if args.map_quality != 10:  extra_flags += ' --map-quality %d' % args.map_quality
+            if args.max_edit_distance > 0:  extra_flags += ' --max-edit-distance %f' % args.max_edit_distance
+            cc_option = ' -cc'
+            if args.no_collapse: cc_option = ''
 
-    outdir = wd + '4_rctools/%s' % (primer_name)
-    rf_count_file = outdir + '/rf_count.csv'
-    rf_count_file_gz = rf_count_file + '.gz'
-    if os.path.isfile(rc_file) and (args.overwrite or not os.path.isfile(rf_count_file_gz)):
-        os.makedirs(outdir,exist_ok = True)
-        command = 'rf-rctools view %s > %s && gzip %s' % (rc_file, rf_count_file, rf_count_file)
-        print(command)
-        os.system( command )
-        assert( len(gzip.open(rf_count_file_gz).readlines()) == 5 * len(sequences) )
-    else:
-        print( 'Skipping rf-rctools into: %s' % outdir )
-time_rctools = time.time()
+            command = 'rf-count --processors %d -wt 1 -fast -f %s -m%s -rd -ni -ds %d %s -o %s %s >> %s 2>> %s' % (args.threads, seq_file, cc_option, MIN_READ_LENGTH, extra_flags, outdir, sam_file, rf_count_outfile, rf_count_errfile)
+            #command = 'rf-count --processors 1 --working-threads %d -fast -f %s -m -cc -rd -ni -ds %d %s -o %s %s >> %s 2>> %s' % (args.threads, seq_file, MIN_READ_LENGTH, extra_flags, outdir, sam_file, rf_count_outfile, rf_count_errfile)
+            print(command)
+            os.system( command )
 
-# Compile information into final .txt files.
-print()
-Npos = 0
-N = 0
-for primer_name in primer_names:
-    outfile_counts = wd + '%s.muts.txt.gz' % primer_name
-    outfile_coverage = wd + '%s.coverage.txt.gz' % primer_name
-    fid_counts = gzip.open(outfile_counts,'wt')
-    fid_coverage = gzip.open(outfile_coverage,'wt')
+            if not args.no_output_raw_counts:
+                raw_counts_file = rf_count_dir+'/%s/raw_counts/bowtie2.txt' % primer_name
+                assert( os.path.isfile(raw_counts_file) )
+                command = 'gzip %s' % raw_counts_file
+                print(command)
+                os.system( command )
 
-    infile = wd + '4_rctools/%s/rf_count.csv.gz' % (primer_name)
-    total_coverage = 0
-    tally_coverage = False
-    if os.path.isfile( infile ):
-        lines = gzip.open( infile, 'rt' ).readlines()
-        N = int(len(lines)/5)
-        all_muts = []
-        all_coverage = []
-        tally_coverage = (N <= 50000) # takes long time for long libraries
-        for n in range( N ):
-            muts     = lines[5*n+2].strip('\n')
-            coverage = lines[5*n+3].strip('\n')
-            pad_string = ',0'*(max_seq_length-len(sequences[n]))
-            fid_counts.write( muts + pad_string +'\n' )
-            fid_coverage.write( coverage + pad_string + '\n' )
-            if tally_coverage: total_coverage += max(list(map( lambda x:int(x), coverage.split(',') )))
-    else:
-        print( 'WARNING! Could not find %s' % infile )
-    fid_counts.close()
-    fid_coverage.close()
-    total_coverage_string = ''
-    if tally_coverage: total_coverage_string = ' with total coverage %d' % total_coverage
-    print( 'Created: %s and %s for %d sequences%s' % (outfile_counts,outfile_coverage,N,total_coverage_string) )
+        else:
+            print( 'Skipping rf-count into: %s' % outdir )
 
-# Compile information on mutation-type read counts (if available)
-print()
-design_name_idx = {}
-for (idx,header) in enumerate(headers): design_name_idx[ header.strip().split()[0].replace('/','_') ] = idx
-assert( len(design_name_idx) == N or N == 0)
+    time_rf_count = time.time()
 
-mut_types = ['AC','AG','AT','CA','CG','CT','GA','GC','GT','TA','TC','TG','ins','del']
-outdir = wd+'raw_counts/'
-os.makedirs(outdir,exist_ok = True)
-for primer_name in primer_names:
-    infile = wd + '3_rf_count/%s/raw_counts/bowtie2.txt.gz' % (primer_name)
-    if os.path.isfile( infile ):
-        lines = gzip.open(infile,'rt').readlines()
-        N = int(len(lines)/16)
-        outfiles_raw_counts = []
-        for (k,mut_type) in enumerate(mut_types):
-            raw_count_lines = [','.join( ['0']*max_seq_length )]*len(design_name_idx)
+    # rf-rctools view to create an easy to parse .csv
+    print()
+    for primer_name in primer_names:
+        rc_file = wd + '3_rf_count/%s/bowtie2.rc' % (primer_name)
+
+        outdir = wd + '4_rctools/%s' % (primer_name)
+        rf_count_file = outdir + '/rf_count.csv'
+        rf_count_file_gz = rf_count_file + '.gz'
+        if os.path.isfile(rc_file) and (args.overwrite or not os.path.isfile(rf_count_file_gz)):
+            os.makedirs(outdir,exist_ok = True)
+            command = 'rf-rctools view %s > %s && gzip %s' % (rc_file, rf_count_file, rf_count_file)
+            print(command)
+            os.system( command )
+            assert( len(gzip.open(rf_count_file_gz).readlines()) == 5 * len(sequences) )
+        else:
+            print( 'Skipping rf-rctools into: %s' % outdir )
+    time_rctools = time.time()
+
+    # Compile information into final .txt files.
+    print()
+    Npos = 0
+    N = 0
+    for primer_name in primer_names:
+        outfile_counts = wd + '%s.muts.txt.gz' % primer_name
+        outfile_coverage = wd + '%s.coverage.txt.gz' % primer_name
+        fid_counts = gzip.open(outfile_counts,'wt')
+        fid_coverage = gzip.open(outfile_coverage,'wt')
+
+        infile = wd + '4_rctools/%s/rf_count.csv.gz' % (primer_name)
+        total_coverage = 0
+        tally_coverage = False
+        if os.path.isfile( infile ):
+            lines = gzip.open( infile, 'rt' ).readlines()
+            N = int(len(lines)/5)
+            all_muts = []
+            all_coverage = []
+            tally_coverage = (N <= 50000) # takes long time for long libraries
             for n in range( N ):
-                design_name = lines[16*n].strip('\n')
-                if design_name not in design_name_idx: print('ERROR COULD NOT FIND design_name! '+design_name)
-                assert( design_name in design_name_idx )
-                idx = design_name_idx[ design_name ]
-                cols = lines[16*n+1+k].strip('\n').split()
-                assert( cols[0] == mut_type)
-                pad_string = ',0'*(max_seq_length-len(cols[1].split(',')))
-                raw_count_lines[idx] = cols[1] + pad_string
+                muts     = lines[5*n+2].strip('\n')
+                coverage = lines[5*n+3].strip('\n')
+                pad_string = ',0'*(max_seq_length-len(sequences[n]))
+                fid_counts.write( muts + pad_string +'\n' )
+                fid_coverage.write( coverage + pad_string + '\n' )
+                if tally_coverage: total_coverage += max(list(map( lambda x:int(x), coverage.split(',') )))
+        else:
+            print( 'WARNING! Could not find %s' % infile )
+        fid_counts.close()
+        fid_coverage.close()
+        total_coverage_string = ''
+        if tally_coverage: total_coverage_string = ' with total coverage %d' % total_coverage
+        print( 'Created: %s and %s for %d sequences%s' % (outfile_counts,outfile_coverage,N,total_coverage_string) )
 
-            outfile_raw_counts = outdir + '%s.%s.txt.gz' % (primer_name,mut_type)
-            outfiles_raw_counts.append(outfile_raw_counts)
-            fid_raw_counts = gzip.open(outfile_raw_counts,'wt')
-            for line in raw_count_lines: fid_raw_counts.write( line+'\n' )
-            fid_raw_counts.close()
-        print( 'Created %s for %d sequences (found %d designs)' % (','.join(outfiles_raw_counts),len(design_name_idx),N) )
-    else:
-        print( 'WARNING! Could not find %s' % infile )
+    # Compile information on mutation-type read counts (if available)
+    print()
+    design_name_idx = {}
+    for (idx,header) in enumerate(headers): design_name_idx[ header.strip().split()[0].replace('/','_') ] = idx
+    assert( len(design_name_idx) == N or N == 0)
+
+    mut_types = ['AC','AG','AT','CA','CG','CT','GA','GC','GT','TA','TC','TG','ins','del']
+    outdir = wd+'raw_counts/'
+    os.makedirs(outdir,exist_ok = True)
+    for primer_name in primer_names:
+        infile = wd + '3_rf_count/%s/raw_counts/bowtie2.txt.gz' % (primer_name)
+        if os.path.isfile( infile ):
+            lines = gzip.open(infile,'rt').readlines()
+            N = int(len(lines)/16)
+            outfiles_raw_counts = []
+            for (k,mut_type) in enumerate(mut_types):
+                raw_count_lines = [','.join( ['0']*max_seq_length )]*len(design_name_idx)
+                for n in range( N ):
+                    design_name = lines[16*n].strip('\n')
+                    if design_name not in design_name_idx: print('ERROR COULD NOT FIND design_name! '+design_name)
+                    assert( design_name in design_name_idx )
+                    idx = design_name_idx[ design_name ]
+                    cols = lines[16*n+1+k].strip('\n').split()
+                    assert( cols[0] == mut_type)
+                    pad_string = ',0'*(max_seq_length-len(cols[1].split(',')))
+                    raw_count_lines[idx] = cols[1] + pad_string
+
+                outfile_raw_counts = outdir + '%s.%s.txt.gz' % (primer_name,mut_type)
+                outfiles_raw_counts.append(outfile_raw_counts)
+                fid_raw_counts = gzip.open(outfile_raw_counts,'wt')
+                for line in raw_count_lines: fid_raw_counts.write( line+'\n' )
+                fid_raw_counts.close()
+            print( 'Created %s for %d sequences (found %d designs)' % (','.join(outfiles_raw_counts),len(design_name_idx),N) )
+        else:
+            print( 'WARNING! Could not find %s' % infile )
 
 time_end=time.time()
 
-ubr_check_stats.check_stats( './' )
+ubr_check_stats.check_stats( wd )
 
 print( '\nTimings:')
 print( '0_merge_pairs ' + time.strftime("%H:%M:%S",time.gmtime(time_merge_pairs-time_start) ) )
 print( '1_ultraplex   ' + time.strftime("%H:%M:%S",time.gmtime(time_ultraplex1-time_merge_pairs) ) )
 print( '2_bowtie2     ' + time.strftime("%H:%M:%S",time.gmtime(time_bowtie2-time_ultraplex1) ) )
-print( '3_rf_count    ' + time.strftime("%H:%M:%S",time.gmtime(time_rf_count-time_bowtie2) ) )
-print( '4_rctools     ' + time.strftime("%H:%M:%S",time.gmtime(time_rctools-time_rf_count) ) )
-print( 'Final merge   ' + time.strftime("%H:%M:%S",time.gmtime(time_end-time_rctools) ) )
+if args.cmuts:
+    print( '3_cmuts    ' + time.strftime("%H:%M:%S",time.gmtime(time_end-time_bowtie2) ) )
+else:
+    print( '3_rf_count    ' + time.strftime("%H:%M:%S",time.gmtime(time_rf_count-time_bowtie2) ) )
+    print( '4_rctools     ' + time.strftime("%H:%M:%S",time.gmtime(time_rctools-time_rf_count) ) )
+    print( 'Final merge   ' + time.strftime("%H:%M:%S",time.gmtime(time_end-time_rctools) ) )
 
 print( '\nTotal time: ' + time.strftime("%H:%M:%S",time.gmtime(time_end-time_start) ) )
 
