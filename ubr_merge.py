@@ -7,7 +7,6 @@ import glob
 import shutil
 import time
 import gzip
-import pandas as pd
 
 parser = argparse.ArgumentParser(
                     prog = 'ubr_merge.py',
@@ -49,6 +48,11 @@ if merge_files == None:
             # Get unique names
             unique_files += sorted(list(set(map( os.path.basename, globfiles ))))
 
+        # cmuts output is .hdf5
+        globfiles = sorted(glob.glob('%s/*.hdf5' % (split_dir)  ))
+        # Get unique names
+        unique_files += sorted(list(set(map( os.path.basename, globfiles ))))
+
     merge_files = sorted(list(set(unique_files)))
 
 if args.no_overwrite:
@@ -64,6 +68,7 @@ if args.setup_slurm:
         fid_slurm = open( sbatch_file, 'w' )
         sbatch_preface = '#!/bin/bash\n#SBATCH --job-name=ubr_merge\n#SBATCH --output=ubr_merge.o%%j\n#SBATCH --error=ubr_merge.e%%j\n#SBATCH --partition=biochem,owners\n#SBATCH --time=8:00:00\n#SBATCH -n %d\n#SBATCH -N 1\n#SBATCH --mem=%dG\n\n' % (len(merge_files),4*len(merge_files))
         fid_slurm.write( sbatch_preface )
+        fid_slurm.write('ml py-h5py/3.7.0_py39\n')
         for merge_file in merge_files:
             command = 'ubr_merge.py %s --merge_files %s &' % ( ' '.join(args.split_dir), merge_file )
             fid_slurm.write( command +'\n' )
@@ -78,6 +83,7 @@ if args.setup_slurm:
         fid_slurm = open( '%s/run_ubr_merge_%03d.sh' % (slurm_file_dir, slurm_file_count), 'w' )
         sbatch_preface = '#!/bin/bash\n#SBATCH --job-name=ubr_merge\n#SBATCH --output=ubr_merge.o%%j\n#SBATCH --error=ubr_merge.e%%j\n#SBATCH --partition=biochem,owners\n#SBATCH --time=8:00:00\n#SBATCH -n %d\n#SBATCH -N 1\n#SBATCH --mem=%dG\n\n' % (args.jobs_per_slurm_node,4*args.jobs_per_slurm_node)
         fid_slurm.write( sbatch_preface )
+        fid_slurm.write('ml py-h5py/3.7.0_py39\n')
         fid_sbatch_commands = open( 'sbatch_merge_commands.sh', 'w')
 
         for (i,merge_file) in enumerate(merge_files):
@@ -115,52 +121,102 @@ for filename in merge_files:
             outdir = 'raw_counts/'
             os.makedirs( outdir, exist_ok = True )
 
-    counts = []
-    df = None
-    df_init = False
-    numfiles = 0
-    for (i,infile) in enumerate(infiles):
+    assert(len(infiles)>0)
+    if len(filename) > 4 and filename[-5:]=='.hdf5': # handle cmuts output (HDF5 format)
+        import h5py
+        outfile = outdir + filename
+        f_out = h5py.File(outfile,'w')
+        ds_all = []
+        f_all = []
+        print('Reading in h5py files')
+        for infile in infiles:
+            try:
+                f = h5py.File(infile,'r')
+                dataname = list(f.keys())[0]
+                ds_all.append( f[dataname] )
+                f_all.append(f)
+            except:
+                continue
+        numfiles = len(ds_all)
 
-        # need to figure out separator
-        sepchar = ','
-        if infile.find('.gz')>-1:
-            fid = gzip.open(infile,'rt')
-        else:
-            fid = open(infile)
-        if fid.readline().find(sepchar) == -1: sepchar = ' '
-        fid.close()
+        ds = ds_all[0]
+        nseq = ds['mutations'].shape[0]
+        compression = 'gzip'
+        for ds_type in ['mutations','insertions']:
+            f_out.create_dataset( '%s/%s' % (filename,ds_type), ds[ds_type].shape,
+                                  dtype=ds[ds_type].dtype,chunks=ds[ds_type].chunks,compression=compression )
+        ds_out = f_out[filename]
 
-        # OK read it in!
-        try:
-            # uint32 needed to prevent memory overflow. Note maximum is 4Gb, so this will soon be issue, and need to shift to streaming.
-            df_infile = pd.read_table(infile,sep=sepchar,header=None,dtype='uint32')
-            df_infile_read_correctly = True
-        except pd.errors.EmptyDataError:
-            print('Note: %s was empty. Skipping.' % infile )
-            df_infile_read_correctly = False
-            continue # will skip the rest of the block and move to next file
-        if not df_init and df_infile_read_correctly:
-            df = df_infile
-            df_init = True
-        elif df_infile_read_correctly:
-            df = df.add(df_infile,fill_value = 0)
-        numfiles += 1
+        tot_counts = 0
+        for ds_type in ['mutations','insertions']:
+            print('Adding up %s by chunk from %d files' % (ds_type, numfiles))
+            for s in ds_out[ds_type].iter_chunks():
+                time_start_read = time.time()
 
-    time_after_infile = time.time()
+                chunk = ds_all[0][ds_type][s]
+                for ds in ds_all[1:]: chunk += ds[ds_type][s]
+                time_end_read = time.time()
 
-    time_readin += time_after_infile - time_startfile
+                if ds_type=='mutations': tot_counts += chunk.max(axis=1).sum()
+                ds_out[ds_type][s] = chunk
+                time_end_write = time.time()
 
-    if len(infiles) == 0 or not df_init:
-        print( 'Did not find any files to merge: %s' % filename )
-    else:
-        outfile = outdir+filename
-        df.to_csv(outfile,sep=',',header=None,index=None)
+                time_readin += (time_end_read - time_start_read)
+                time_output += (time_end_write - time_end_read)
 
-        nseq = len(df)
-        tot_counts = df.max(axis=1).sum()
         print( 'Compiled %8d total counts for %6d sequences from %6d of %6d files into: %s' % (tot_counts,nseq,numfiles,len(infiles),outfile) )
 
-    time_output += (time.time()-time_after_infile)
+        for f in f_all: f.close()
+        f_out.close()
+
+    else: # handle .txt.gz files with pandas dataframes
+        import pandas as pd
+        counts = []
+        df = None
+        df_init = False
+        numfiles = 0
+        for (i,infile) in enumerate(infiles):
+
+            # need to figure out separator
+            sepchar = ','
+            if infile.find('.gz')>-1:
+                fid = gzip.open(infile,'rt')
+            else:
+                fid = open(infile)
+            if fid.readline().find(sepchar) == -1: sepchar = ' '
+            fid.close()
+
+            # OK read it in!
+            try:
+                # uint32 needed to prevent memory overflow. Note maximum is 4Gb, so this will soon be issue, and need to shift to streaming.
+                df_infile = pd.read_table(infile,sep=sepchar,header=None,dtype='uint32')
+                df_infile_read_correctly = True
+            except pd.errors.EmptyDataError:
+                print('Note: %s was empty. Skipping.' % infile )
+                df_infile_read_correctly = False
+                continue # will skip the rest of the block and move to next file
+            if not df_init and df_infile_read_correctly:
+                df = df_infile
+                df_init = True
+            elif df_infile_read_correctly:
+                df = df.add(df_infile,fill_value = 0)
+            numfiles += 1
+
+        time_after_infile = time.time()
+
+        time_readin += time_after_infile - time_startfile
+
+        if len(infiles) == 0 or not df_init:
+            print( 'Did not find any files to merge: %s' % filename )
+        else:
+            outfile = outdir+filename
+            df.to_csv(outfile,sep=',',header=None,index=None)
+
+            nseq = len(df)
+            tot_counts = df.max(axis=1).sum()
+            print( 'Compiled %8d total counts for %6d sequences from %6d of %6d files into: %s' % (tot_counts,nseq,numfiles,len(infiles),outfile) )
+
+        time_output += (time.time()-time_after_infile)
 
 time_end = time.time()
 
