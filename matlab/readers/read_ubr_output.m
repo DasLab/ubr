@@ -54,7 +54,9 @@ mut_types = {'AC','AG','AT','CA','CG','CT','GA','GC','GT','TA','TC','TG','ins','
 
 if hdf5_format    
     for n = 1:length(tags)
-        muts = h5read([tags{n},'.hdf5'],'/bowtie2.sorted/mutations'); % this could be updated.
+        hdf5_file = [tags{n},'.hdf5'];
+        hdf5_name = h5info(hdf5_file).Groups(1).Name;
+        muts = h5read(hdf5_file,[hdf5_name,'/mutations']); % this could be updated.
         muts = permute( muts, [4:-1:1]);
         c(:,:,n) = squeeze(sum(sum(muts,3),4));
 
@@ -63,7 +65,7 @@ if hdf5_format
         end
         rc(:,:,strcmp(mut_types,'del'),n) = squeeze(sum(muts(:,:,:,5),3));
 
-        ins =  h5read([tags{n},'.hdf5'],'/bowtie2.sorted/insertions');
+        ins =  h5read(hdf5_file,[hdf5_name,'/insertions']);
         ins = permute(ins,[3:-1:1]);
         rc(:,:,strcmp(mut_types,'ins'),n) = squeeze(sum(sum(ins,3),4));
 
