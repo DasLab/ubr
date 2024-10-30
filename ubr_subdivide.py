@@ -18,6 +18,7 @@ parser.add_argument( '--subdivide_files' ,nargs='+',help='Filenames to find and 
 parser.add_argument( 'ubr_dir',default='./',help='name of directory with files *.mut.txt, raw_counts/, etc.' )
 parser.add_argument( '-s','--setup_slurm', action='store_true',help='Instead of running, create sbatch script' )
 parser.add_argument('-j','--jobs_per_slurm_node', default=16,type=int )
+parser.add_argument('-ow','--overwrite',action = 'store_true', help='overwrite all previous files')
 
 args = parser.parse_args()
 subdivide_files = args.subdivide_files
@@ -26,8 +27,13 @@ ubr_dir = args.ubr_dir
 assert( os.path.isfile( args.sequences_fasta ) )
 
 if subdivide_files == None:
-    # TODO unify with same code block in ubr_subdivide.py
-    globfiles = []
+    # TODO unify with same code block in ubr_merge.py
+
+    # cmuts output is .hdf5
+    globfiles = sorted(glob.glob('%s/*.hdf5' % (split_dir)  ))
+    # Get unique names
+    unique_files += sorted(list(set(map( os.path.basename, globfiles ))))
+
     for tag in ['coverage','muts']:
         # Find all the relevant files
         globfiles += sorted(glob.glob('%s/*.%s.txt' % (ubr_dir,tag)  ))
@@ -178,8 +184,44 @@ for filename in subdivide_files:
         outfile= '%s%s' % (dirname,filename)
         if os.path.isfile(outfile): continue
         need_to_make_outfile = 1
-    if not need_to_make_outfile: continue
+    if not need_to_make_outfile and not args.overwrite: continue
 
+    # handle cmuts output (HDF5 format)
+    if len(filename) > 4 and filename[-5:]=='.hdf5':
+        import h5py
+        f = h5py.File(filename,'r')
+        dataname = list(f.keys())[0]
+        ds = f[dataname]
+
+        for sublibrary in sublibrary_idx: #list(sublibrary_idx.keys())[:1]:
+            dirname = '%s/%s/%s' % (sublibrary_dir,sublibrary,outdir)
+            os.makedirs( dirname, exist_ok = True )
+            outfile= '%s%s' % (dirname,filename)
+            if os.path.isfile(outfile) and not args.overwrite: continue
+            print( 'Creating... %s' % outfile )
+
+            f_out = h5py.File(outfile,'w')
+            for ds_type in ['mutations','insertions']:
+                ds_shape = list(ds[ds_type].shape)
+                ds_shape[0] = len(sublibrary_idx[sublibrary]) # smaller file
+                f_out.create_dataset( '%s/%s' % (filename,ds_type), ds_shape,
+                                  dtype=ds[ds_type].dtype,chunks=ds[ds_type].chunks,compression=ds[ds_type].compression )
+                ds_out = f_out[filename]
+
+                time_start_read = time.time()
+                chunk = ds[ds_type][sublibrary_idx[sublibrary],...]
+                time_end_read = time.time()
+
+                #if ds_type=='mutations': tot_counts += chunk.max(axis=1).sum()
+                ds_out[ds_type][...] = chunk
+                time_end_write = time.time()
+
+                time_readin += (time_end_read - time_start_read)
+                time_output += (time_end_write - time_end_read)
+            f_out.close()
+        continue # no need to go onto next block for .txt.gz processing
+
+    # legacy UBR format with .txt.gz
     # need to figure out separator, b/c pandas doesn't do a good job.
     sepchar = ','
     if infile.find('.gz')>-1:
