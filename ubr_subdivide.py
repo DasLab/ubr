@@ -6,7 +6,6 @@ import glob
 import shutil
 import time
 import gzip
-import pandas as pd
 
 parser = argparse.ArgumentParser(
                     prog = 'ubr_subdivide.py',
@@ -28,11 +27,8 @@ assert( os.path.isfile( args.sequences_fasta ) )
 
 if subdivide_files == None:
     # TODO unify with same code block in ubr_merge.py
-
     # cmuts output is .hdf5
-    globfiles = sorted(glob.glob('%s/*.hdf5' % (split_dir)  ))
-    # Get unique names
-    unique_files += sorted(list(set(map( os.path.basename, globfiles ))))
+    globfiles = sorted(glob.glob('%s/*.hdf5' % (ubr_dir)  ))
 
     for tag in ['coverage','muts']:
         # Find all the relevant files
@@ -221,6 +217,7 @@ for filename in subdivide_files:
             f_out.close()
         continue # no need to go onto next block for .txt.gz processing
 
+    import pandas as pd
     # legacy UBR format with .txt.gz
     # need to figure out separator, b/c pandas doesn't do a good job.
     sepchar = ','
