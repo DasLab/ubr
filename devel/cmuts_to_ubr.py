@@ -11,7 +11,7 @@ import string
 parser = argparse.ArgumentParser(
                     prog = 'cmuts_to_ubr.py',
                     description = 'Convert cmuts hdf5 output to text files',
-                    epilog = 'cmuts to hdf5' )
+                    epilog = 'cmuts hdf5 file to legacy .txt.gz format' )
 
 parser.add_argument('cmuts_file', help='HDF5-formatted file output by cmuts')
 parser.add_argument('-o','--out_prefix', default='out', help='Name of output prefix')
@@ -19,6 +19,9 @@ parser.add_argument('-o','--out_prefix', default='out', help='Name of output pre
 args = parser.parse_args()
 cmuts_file = args.cmuts_file
 prefix = args.out_prefix
+if prefix == 'out':
+    if len(cmuts_file)>4 and cmuts_file[-5:] =='.hdf5':
+        prefix = cmuts_file[:-5]
 
 f = h5py.File(cmuts_file,'r')
 dataname = list(f.keys())[0]
