@@ -137,10 +137,10 @@ for filename in merge_files:
     assert(len(infiles)>0)
     if len(filename) > 4 and filename[-5:]=='.hdf5': # handle cmuts output (HDF5 format)
         import h5py
+        assert( shutil.which('ubr_combine_hdf5_splits.py') ) # found in ubr/devel/
 
         ds_all = []
         f_all = []
-
         if args.nsplits > 0:
             nseq = 0
             for infile in infiles: # figure out sequence length
