@@ -20,9 +20,11 @@ args = parser.add_argument( '-s','--setup_slurm', action='store_true',help='Inst
 args = parser.add_argument('-j','--jobs_per_slurm_node', default=16,type=int )
 args = parser.add_argument('--start_seq', default=0,type=int,help='which sequence to start with [default 1]' )
 args = parser.add_argument('--end_seq', default=0,type=int,help='which sequence to end on [default Nseq]' )
-args = parser.add_argument('-n','--nsplits', default=0, type=int, help='number of separate partitions & threads for hdf5 split' )
+args = parser.add_argument('-n','--nsplits', default=0, type=int, help='number of separate partitions & threads for hdf5 split; creates SLURM job' )
 args = parser.add_argument( '--no_compression', action='store_true',help='Do not compress hdf5 files' )
 args = parser.add_argument( '--no_overwrite', action='store_true',help='Do not merge if merged files already exist' )
+args = parser.add_argument( '--save_split_files', action='store_true',help='Save hdf5,log,err files from splits instead of removing' )
+args = parser.add_argument('-O','--outdir',default='',help='output directory for files')
 args = parser.parse_args()
 
 split_dirs = args.split_dir
@@ -31,6 +33,7 @@ for (i,split_dir) in enumerate(split_dirs):
 if len(split_dirs) == 1: split_dirs[0] = split_dirs[0]+'*/'
 print("Merging from the following directories: ")
 for split_dir in split_dirs: print(' ',split_dir)
+if len(args.outdir)>0 and args.outdir[-1] != '/': args.outdir += '/'
 
 merge_files = args.merge_files
 
@@ -64,19 +67,23 @@ if merge_files == None:
 if args.no_overwrite:
     merge_files = [x for x in merge_files if not os.path.isfile(x) and not os.path.isfile('raw_counts/%s' % x) ]
 
+has_hdf5 = False
 print('\nWill merge:')
 for merge_file in merge_files:
     print(merge_file)
+    if merge_file.find( '.hdf5')>-1: has_hdf5 = True
 
-if args.setup_slurm:
+if args.setup_slurm and args.nsplits==0:
     if len(merge_files) < args.jobs_per_slurm_node:
         sbatch_file = 'run_ubr_merge.sh'
         fid_slurm = open( sbatch_file, 'w' )
         sbatch_preface = '#!/bin/bash\n#SBATCH --job-name=ubr_merge\n#SBATCH --output=ubr_merge.o%%j\n#SBATCH --error=ubr_merge.e%%j\n#SBATCH --partition=biochem,owners\n#SBATCH --time=8:00:00\n#SBATCH -n %d\n#SBATCH -N 1\n#SBATCH --mem=%dG\n\n' % (len(merge_files),4*len(merge_files))
         fid_slurm.write( sbatch_preface )
-        fid_slurm.write('ml py-h5py/3.10.0_py312\n')
+        if has_hdf5: fid_slurm.write('ml py-h5py/3.10.0_py312\n')
+        outdir_tag = ''
+        if len(args.outdir)>0: outdir_tag = ' --outdir %s' % args.outdir
         for merge_file in merge_files:
-            command = 'ubr_merge.py %s --merge_files %s &' % ( ' '.join(args.split_dir), merge_file )
+            command = 'ubr_merge.py %s --merge_files %s %s&' % ( ' '.join(args.split_dir), merge_file, outdir_tag)
             fid_slurm.write( command +'\n' )
         fid_slurm.write('\nwait\n')
         fid_slurm.close()
@@ -89,11 +96,13 @@ if args.setup_slurm:
         fid_slurm = open( '%s/run_ubr_merge_%03d.sh' % (slurm_file_dir, slurm_file_count), 'w' )
         sbatch_preface = '#!/bin/bash\n#SBATCH --job-name=ubr_merge\n#SBATCH --output=ubr_merge.o%%j\n#SBATCH --error=ubr_merge.e%%j\n#SBATCH --partition=biochem,owners\n#SBATCH --time=8:00:00\n#SBATCH -n %d\n#SBATCH -N 1\n#SBATCH --mem=%dG\n\n' % (args.jobs_per_slurm_node,4*args.jobs_per_slurm_node)
         fid_slurm.write( sbatch_preface )
-        fid_slurm.write('ml py-h5py/3.10.0_py312\n')
+        if has_hdf5: fid_slurm.write('ml py-h5py/3.10.0_py312\n')
         fid_sbatch_commands = open( 'sbatch_merge_commands.sh', 'w')
 
         for (i,merge_file) in enumerate(merge_files):
-            command = 'ubr_merge.py %s --merge_files %s &' % ( ' '.join(args.split_dir), merge_file )
+            outdir_tag = ''
+            if len(args.outdir)>0: outdir_tag = ' --outdir %s' % args.outdir
+            command = 'ubr_merge.py %s --merge_files %s %s&' % ( ' '.join(args.split_dir), merge_file, outdir_tag)
             fid_slurm.write( command +'\n' )
             if ( (i+1) % args.jobs_per_slurm_node == 0 ) or i == len(merge_files)-1:
                 fid_sbatch_commands.write('sbatch %s\n' % fid_slurm.name )
@@ -125,13 +134,13 @@ for filename in merge_files:
     for split_dir in split_dirs:
         infiles += sorted(glob.glob('%s/%s' % (split_dir,filename) ))
         infiles += sorted(glob.glob('%s/%s.gz' % (split_dir,filename) ))
-        outdir = ''
+        outdir = args.outdir
 
     if len(infiles) == 0:
         for split_dir in split_dirs:
             infiles += sorted(glob.glob('%s/raw_counts/%s' % (split_dir,filename) ))
             infiles += sorted(glob.glob('%s/raw_counts/%s.gz' % (split_dir,filename) ))
-            outdir = 'raw_counts/'
+            outdir = args.outdir + 'raw_counts/'
             os.makedirs( outdir, exist_ok = True )
 
     assert(len(infiles)>0)
@@ -160,15 +169,23 @@ for filename in merge_files:
             chunk_size = math.ceil(nseq/args.nsplits)
             fid_slurm.write( 'date\n' )
             fid_slurm.write( 'echo "Kicking off %d jobs"\n' % args.nsplits )
+            tmp_dir = args.outdir + 'tmp_merge/'
+            os.makedirs( tmp_dir, exist_ok = True )
+            out_tags = []
             for n in range(args.nsplits):
                 start_seq = n*chunk_size+1
                 end_seq   = min( (n+1)*chunk_size, nseq)
-                out_tag = filename.replace('.hdf5','.%07d_%07d.hdf5' % (start_seq,end_seq))
-                command = 'ubr_merge.py %s --merge_files %s --start_seq %s --end_seq %s --no_compression > %s.out 2> %s.err &' % \
-                    ( ' '.join(args.split_dir), filename, start_seq,end_seq,out_tag,out_tag )
+                out_file = tmp_dir+filename
+                out_tag = out_file.replace('.hdf5','.%07d_%07d.hdf5' % (start_seq,end_seq))
+                out_tags.append( out_tag )
+                command = 'ubr_merge.py %s --merge_files %s --start_seq %s --end_seq %s --no_compression --outdir %s > %s.out 2> %s.err &' % \
+                    ( ' '.join(args.split_dir), filename, start_seq,end_seq,tmp_dir,out_tag,out_tag )
                 fid_slurm.write( command +'\n' )
             fid_slurm.write('\nwait\n')
-            fid_slurm.write('ubr_combine_hdf5_splits.py %s\n' % filename.replace('.hdf5','.*_*.hdf5') )
+            fid_slurm.write('ubr_combine_hdf5_splits.py %s%s\n' % (tmp_dir,filename.replace('.hdf5','.*_*.hdf5') ))
+            if not args.save_split_files:
+                for out_tag in out_tags:
+                    fid_slurm.write('rm  %s %s.out %s.err\n' % (out_tag,out_tag,out_tag))
             fid_slurm.write('\necho "DONE"\n')
             fid_slurm.write( 'date\n' )
             fid_slurm.close()

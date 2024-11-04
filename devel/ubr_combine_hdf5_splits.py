@@ -18,6 +18,7 @@ parser = argparse.ArgumentParser(
 args = parser.add_argument( 'split_files',help='hdf5 files to merge',nargs='+' )
 args = parser.add_argument( '--no_compression', action='store_true',help='Do not compress hdf5 files' )
 args = parser.add_argument( '--no_overwrite', action='store_true',help='Do not merge if merged files already exist' )
+args = parser.add_argument('-O','--outdir',default='',help='output directory for files')
 args = parser.parse_args()
 
 time_start = time.time()
@@ -50,8 +51,10 @@ for (i,split_file) in enumerate(split_files):
 assert( len(set(tags)) == 1 )
 numfiles = len(ds_all)
 
-tag = tags[0]
-outfile = tag + '.hdf5'
+tag = os.path.basename(tags[0])
+outdir = args.outdir
+if len(outdir)>0 and outdir[-1] != '/': outdir += '/'
+outfile = outdir + tag + '.hdf5'
 f_out = h5py.File(outfile,'w')
 
 ds = ds_all[0]
