@@ -7,10 +7,12 @@ function t = output_ubr_stats_summary( d )
 %
 % (C) R. Das, HHMI & Stanford, 2024
 
-[~,dirname] = fileparts(pwd);
-if ~strcmp(d.filedir,'./') dirname = fileparts(d.filedir); end;
+if strcmp(d.filedir,'./') d.filedir = pwd(); end;
+dir_parts = strsplit(d.filedir,'/');
+dirname = strjoin(dir_parts( max(end-2,1): end ),'/');
 fprintf('\n%s\n',dirname)
-fprintf('Statistics over %d sequences with length %d:\n',size(d.r_norm,1),size(d.r_norm,2));
+tot_reads = sum(d.reads(:));
+fprintf('Statistics over %d sequences with length %d and total reads %d (%s reads):\n',size(d.r_norm,1),size(d.r_norm,2),tot_reads,human_readable(tot_reads));
 padlen = max(50,max( cellfun(@length,d.conditions)));
 
 if isfield(d,'mut_rate_matrix')
@@ -24,14 +26,14 @@ if isfield(d,'mut_rate_matrix')
     rfcount_mut_rate = mean(d.rfcount_mut_rate_profiles(mutpos,:),1);
  
     padlen = max(50,max( cellfun(@length,d.tags)));
-    fprintf( '%s %9s %8s %6s %8s | %7s %7s %7s %7s %7s\n',pad('Expt tag',padlen,'left'),'reads','mean','median','mn2md',...
+    fprintf( '%s %11s %8s %6s %8s | %7s %7s %7s %7s %7s\n',pad('Expt tag',padlen,'left'),'reads','mean','median','mn2md',...
         'mut','ins','del','mut+del','rfcount');
     for i = 1:length(d.tags) %7s
         reads(i) = sum(d.coverage(:,i));
         meanreads(i) = nanmean(double(d.coverage(:,i)));
         medianreads(i) = floor(nanmedian(double(d.coverage(:,i))));
         mn2med(i) = nanmean(double(d.coverage(:,i)))/nanmedian(double(d.coverage(:,i)));
-        fprintf( '%s %9d %8.1f %6d %8.3f | %7.4f %7.4f %7.4f %7.4f %7.4f\n',...
+        fprintf( '%s %11d %8.1f %6d %8.3f | %7.4f %7.4f %7.4f %7.4f %7.4f\n',...
             pad(d.tags{i},padlen,'left'),...
             uint64(reads(i)), ...
             meanreads(i),...
@@ -46,19 +48,21 @@ if isfield(d,'mut_rate_matrix')
 end
 
 fprintf('\n\n');
-fprintf( '%s %9s %8s %6s %8s | %7s %7s | %6s %7s\n',pad('Condition',padlen,'left'),'reads','mean','median','mn2md','normval','mnreact','s2n','fracSN1' );
+fprintf( '%s %11s %8s %6s %8s | %7s %7s | %6s %7s\n',pad('Condition',padlen,'left'),'reads','mean','median','mn2md','normval','mnreact','s2n','fracSN1' );
 reads  = []; meanreads = []; medianreads = []; mn2med = [];
-for i = 1:length(d.conditions) %7s
-    vals = d.r_norm(:,(1+d.BLANK_OUT5):(size(d.r_norm,2)-d.BLANK_OUT3),i);
+for i = 1:length(d.conditions)
     conditions{i} = d.conditions{i};
     reads(i) = sum(d.reads(:,i));
     meanreads(i) = nanmean(double(d.reads(:,i)));
     medianreads(i) = floor(nanmedian(double(d.reads(:,i))));
     mn2med(i) = nanmean(double(d.reads(:,i)))/nanmedian(double(d.reads(:,i)));
+
+    vals = d.r_norm(:,(1+d.BLANK_OUT5):(size(d.r_norm,2)-d.BLANK_OUT3),i);
     meanreact(i) = nanmean(vals(:))*d.norm_val(:,i);
+
     meanSN(i) = nanmean(d.signal_to_noise(:,i));
     fracSN1(i) = sum(d.signal_to_noise(:,i)>1.0)/size(d.signal_to_noise,1);
-    fprintf( '%s %9d %8.1f %6d %8.3f | %7.5f %7.5f | %6.3f %7.3f\n',...
+    fprintf( '%s %11d %8.1f %6d %8.3f | %7.5f %7.5f | %6.3f %7.3f\n',...
         pad(d.conditions{i},padlen,'left'),...
         uint64(reads(i)) , ...
         meanreads(i),...
@@ -80,4 +84,10 @@ meanreact = meanreact';
 fracSN1 = fracSN1';
 t = table(conditions,reads,meanreads,medianreads,mn2med,meanSN,meanreact);
 
+
+
+function r = human_readable(reads)
+s = {'', 'k', 'M', 'B', 'T'}; 
+e = floor(log(reads)/log(1000));
+r = sprintf(['%.1f',s{e+1}], (reads/(1000^floor(e))));
 
