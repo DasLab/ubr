@@ -1,5 +1,5 @@
-function [m,c,rc,tags] = read_ubr_output( filedir, tags, read_raw_counts, IGNORE_HDF5 );
-% [m,c] = read_ubr_output( filedir, tags, read_raw_counts, IGNORE_HDF5 );
+function [m,c,rc,tags] = read_ubr_output( filedir, tags, read_raw_counts, IGNORE_HDF5, seq_range );
+% [m,c] = read_ubr_output( filedir, tags, read_raw_counts, IGNORE_HDF5, seq_range );
 % Read in data from ubr (ultraplex-bowtie2-RNAframework pipeline)
 %
 % Inputs
@@ -11,7 +11,9 @@ function [m,c,rc,tags] = read_ubr_output( filedir, tags, read_raw_counts, IGNORE
 %                        with .muts.txt).
 %  IGNORE_HDF5 = ignore .hdf5 (new format) in favor of .muts.txt (legacy
 %                format) Default: 0.
-%
+%  seq_range    =  [start_idx, end_idx] two integers with range of sequences
+%                   to read in. If oneinteger is specified, assumed to be maximum number of 
+%                   sequences to read in. Default [], read all sequences.
 % Outputs
 %  m = [Ndesigns x Nres x Ntags] mutation counts 
 %  c = [Ndesigns x Nres x Ntags] coverage counts 
@@ -26,6 +28,9 @@ m = []; c = []; rc = [];
 if ~exist( 'tags', 'var') tags = []; end;
 if ~exist( 'read_raw_counts','var') read_raw_counts = 0; end;
 if ~exist( 'IGNORE_HDF5', 'var') IGNORE_HDF5 = 0; end;
+if ~exist( 'seq_range', 'var') seq_range = []; end;
+if length(seq_range)==1; seq_range = [1 seq_range(1)]; end;
+
 if ~exist( filedir, 'dir');
     fprintf('Could not find directory %s\n',filedir);
     return;
@@ -54,19 +59,16 @@ mut_types = {'AC','AG','AT','CA','CG','CT','GA','GC','GT','TA','TC','TG','ins','
 
 if hdf5_format    
     for n = 1:length(tags)
-        hdf5_file = [tags{n},'.hdf5'];
-        hdf5_name = h5info(hdf5_file).Groups(1).Name;
-        muts = h5read(hdf5_file,[hdf5_name,'/mutations']); % this could be updated.
-        muts = permute( muts, [4:-1:1]);
+        hdf5_file = [filedir,'/',tags{n},'.hdf5'];
+        fprintf('Reading from ... %s\n',hdf5_file)
+        muts = load_hdf5_file(hdf5_file, 'mutations', seq_range );
         c(:,:,n) = squeeze(sum(sum(muts,3),4));
-
         for q = 1:12
             rc(:,:,q,n) = muts(:,:,find(nts==mut_types{q}(1)),find(nts==mut_types{q}(2)));
         end
         rc(:,:,strcmp(mut_types,'del'),n) = squeeze(sum(muts(:,:,:,5),3));
 
-        ins =  h5read(hdf5_file,[hdf5_name,'/insertions']);
-        ins = permute(ins,[3:-1:1]);
+        ins = load_hdf5_file(hdf5_file, 'insertions', seq_range );
         rc(:,:,strcmp(mut_types,'ins'),n) = squeeze(sum(sum(ins,3),4));
 
         m(:,:,n) = sum(rc(:,:,~strcmp(mut_types,'ins'),n),3);
@@ -94,6 +96,14 @@ if read_raw_counts
     end
 end
 
+if ~isempty(seq_range)
+    chunk = [seq_range(1):seq_range(2)];
+    m = m(chunk,:,:);
+    c = c(chunk,:,:);
+    rc = rc(chunk,:,:,:);
+end
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function m = load_file( filename );
 gzip_file = [filename,'.gz'];
@@ -110,4 +120,21 @@ m = table2array(t,'unt32');
 if exist(gzip_file,'file')
     delete(filename); % to save space.
 end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function d = load_hdf5_file(hdf5_file, tag, seq_range);
+hdf5_name = h5info(hdf5_file).Groups(1).Name;
+hdf5_size = h5info(hdf5_file,[hdf5_name,'/',tag]).Dataspace.Size;
+Ndim = length(hdf5_size);
+Nseqs = hdf5_size(end);
+if ~isempty(seq_range) 
+    seq_range(2) = min( seq_range(2), Nseqs );
+    start = [ones(1,Ndim-1), seq_range(1)];
+    count = [hdf5_size(1:end-1), seq_range(2)-seq_range(1)+1];
+    d = h5read(hdf5_file,[hdf5_name,'/',tag],start,count); 
+else
+    d = h5read(hdf5_file,[hdf5_name,'/',tag]);
+end
+d = permute( d, [Ndim:-1:1]);
+
 

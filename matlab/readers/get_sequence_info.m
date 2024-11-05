@@ -1,10 +1,12 @@
-function [ids,titles,authors,headers,sequences,id_strings] = get_sequence_info( fasta_file );
-% [ids,titles,authors,headers,sequences,id_strings] = get_sequence_info( fasta_file );
+function [ids,titles,authors,headers,sequences,id_strings] = get_sequence_info( fasta_file, seq_range );
+% [ids,titles,authors,headers,sequences,id_strings] = get_sequence_info( fasta_file, seq_range );
 % Read in sequences and Eterna information
 %
 % Inputs
 %  fasta_file = Fasta file describing all sequences in library, with tab
-%  delimited headers containing numerical id, title, author.
+%                 delimited headers containing numerical id, title, author.
+%                 Can also be FASTA struct() read in by fastaread().
+%  MAX_SIZE   = (integer) Maximum number of sequences to read in [default 0, no max]
 %
 % Outputs
 %  ids = (list of numbers) Eterna ids (column 1 in header)
@@ -19,8 +21,21 @@ function [ids,titles,authors,headers,sequences,id_strings] = get_sequence_info( 
 %
 % (C) R. Das, HHMI/Stanford University 2023.
 
-fprintf( 'Reading sequence FASTA file...: %s.\n', fasta_file)
-seqs = fastaread(fasta_file);
+if ~exist( 'seq_range', 'var') seq_range = []; end;
+if length(seq_range)==1; seq_range = [1 seq_range(1)]; end;
+
+if ischar(fasta_file)
+    fprintf( 'Reading sequence FASTA file...: %s.\n', fasta_file)
+    seqs = fastaread(fasta_file);
+else
+    assert(isstruct(fasta_file));
+    seqs = fasta_file;
+end
+
+if ~isempty(seq_range) > 0
+    if length(seqs) < seq_range(2); seq_range(2) = length(seqs); end;
+    seqs = seqs( [seq_range(1):seq_range(2)] );
+end
 
 ids = [];
 id_strings = repmat({''},1,length(seqs));
@@ -43,4 +58,5 @@ if length(unique(titles))<length(unique(authors)) % swap
     titles = authors;
     authors = x;
 end
-fprintf( 'Read in %d sequences from %s.\n', length(sequences),fasta_file)
+if ischar(fasta_file); fprintf( 'Read in %d sequences from %s.\n', length(sequences),fasta_file); end;
+

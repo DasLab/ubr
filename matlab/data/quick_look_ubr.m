@@ -1,16 +1,17 @@
-function d = quick_look_ubr(filedir,sequence_file,shape_nomod_idx,structure_csv_file,BLANK_OUT5,BLANK_OUT3,options);
+function d = quick_look_ubr(filedir,sequence_file,shape_nomod_idx,structure_csv_file,BLANK_OUT5,BLANK_OUT3,options,seq_range);
 % Read in data from ubr (ultraplex-bowtie2-RNAframework pipeline)
 %
 % Usage:
 %  d = quick_look_ubr(filedir,sequence_file,shape_nomod_idx);
-%  d = quick_look_ubr(filedir,sequence_file,shape_nomod_idx,structure_csv_file,BLANK_OUT5,BLANK_OUT3,options);
+%  d = quick_look_ubr(filedir,sequence_file,shape_nomod_idx,structure_csv_file,BLANK_OUT5,BLANK_OUT3,options,seq_range);
 %
 %
 % Inputs
 %  filedir       = Directory name with merged UBR output (files like
 %       RTB002.muts.txt, RTB002.coverage.txt, etc.)
 %  sequence_file = FASTA file describing all sequences in library. Ideally with tab
-%       delimited headers containing id, title, author.
+%       delimited headers containing id, title, author. [Can be FASTA
+%       struct read in by fastaread() instead of file.]
 %  shape_nomod_idx = cell of Nconditions pairs of tags or indices into experimental conditions
 %            in order [shape_i,nomod_i]. 
 %                Example (tags): {'RTB028_Agilent_15k_DMS','RTB029_Agilent_15k_MaraNomod'},{'RTB030_Agilent_15k_2A3','RTB031_Agilent_15k_SSIINomod'}
@@ -29,7 +30,7 @@ function d = quick_look_ubr(filedir,sequence_file,shape_nomod_idx,structure_csv_
 %  BLANK_OUT3 = Ignore this number of 3' residues in signal_to_noise
 %                  calculation.  Default [], which triggers to 26 if using
 %                  sequences that all end with AAAGAAACAACAACAACAAC, 0 otherwise.    
-%  options     = cell of strings specifying possible options. (Default: {})
+%  options    = cell of strings specifying possible options. (Default: {})
 %                Current option strings are:
 %                 'output_all': return all the intermediate data arrays 
 %                    in output struct 
@@ -47,7 +48,10 @@ function d = quick_look_ubr(filedir,sequence_file,shape_nomod_idx,structure_csv_
 %                       a long time
 %                 'no_GA': Exclude G to A mutations
 %                 'only_GA': Only count G to A mutations
-%
+% seq_range    =  [start_idx, end_idx] two integers with range of sequences
+%                   to read in. If oneinteger is specified, assumed to be maximum number of 
+%                   sequences to read in. Default [], read all sequences.
+%                   
 % Output
 %  d = MATLAB struct with the following fields:
 %   .sequences = (cell of Ndesigns strings) RNA sequences
@@ -101,11 +105,16 @@ if ~exist( 'BLANK_OUT3','var') BLANK_OUT3 = []; end;
 if ~exist( 'structure_csv_file','var') structure_csv_file = ''; end;
 if ~exist( 'shape_nomod_idx','var') | isempty(shape_nomod_idx); shape_nomod_idx = {}; end;
 if ~exist( 'options', 'var') options = {}; end;
+if ~exist( 'seq_range', 'var') seq_range = []; end;
+if length(seq_range)==1; seq_range = [1 seq_range(1)]; end;
+
 d = struct();
 assert(exist(filedir,'dir'));
 assert(iscell(shape_nomod_idx));
-if ~exist(sequence_file,'file'); sequence_file = [filedir,'/',sequence_file]; end
-assert(exist(sequence_file,'file'));
+if ~isstruct(sequence_file)
+    if ~exist(sequence_file,'file'); sequence_file = [filedir,'/',sequence_file]; end
+    assert(exist(sequence_file,'file'));
+end
 if ~isempty(structure_csv_file) assert(exist(structure_csv_file,'file')); end;
 
 %% Get logging setup
@@ -119,7 +128,7 @@ tic
 fprintf('Reading and processing data...\n')
 
 use_raw_counts = ~any(strcmp(options,'no_raw_counts'));
-[m,c,rc,tags] = read_ubr_output( filedir,[],use_raw_counts);
+[m,c,rc,tags] = read_ubr_output( filedir,[],use_raw_counts, 0, seq_range);
 if isempty(m); finish_quick_look(); return; end;
 
 shape_nomod_idx = update_shape_nomod_idx( shape_nomod_idx, tags);
@@ -128,7 +137,7 @@ if isempty(shape_nomod_idx); finish_quick_look(); return; end;
 focus_on_shape_nomod = any(strcmp(options,'focus_on_shape_nomod'));
 if focus_on_shape_nomod; [m,c,rc,tags,shape_nomod_idx] = focus_on_idx(m,c,rc,tags,shape_nomod_idx); end;
 
-[ids,titles,authors,headers,sequences,id_strings] = get_sequence_info( sequence_file );
+[ids,titles,authors,headers,sequences,id_strings] = get_sequence_info( sequence_file, seq_range);
 [ structures, structure_map ] = read_structure_csv_file( structure_csv_file, sequences );
 [BLANK_OUT5, BLANK_OUT3] = figure_out_BLANK_OUT( BLANK_OUT5, BLANK_OUT3, sequences );
 
@@ -156,7 +165,7 @@ for i = 1:length(shape_nomod_idx)
     reads(:,i) = sum(coverage(:,shape_nomod_idx{i}),2);
 end
 
-[mut_rate_matrix, rfcount_mut_rate_profiles] = get_mut_rate_matrix( m,c,rc );
+[mut_rate_matrix, rfcount_mut_rate_profiles, coverage_matrix] = get_mut_rate_matrix( m,c,rc );
 
 %% Fill up output struct
 d.sequences = sequences;
@@ -181,12 +190,12 @@ d.norm_val = norm_val;
 d.structures = structures;
 d.structure_map = structure_map;
 d.filedir = filedir;
-d.sequence_file = sequence_file;
+if ischar(sequence_file); d.sequence_file = sequence_file; end;
 d.structure_csv_file = structure_csv_file;
 d.mut_rate_matrix = mut_rate_matrix;
 d.rfcount_mut_rate_profiles = rfcount_mut_rate_profiles;
-
-if ~isempty(strcmp(options,'output_all'));
+d.coverage_matrix = coverage_matrix;
+if ~isempty(find(strcmp(options,'output_all')));
     d.m = m;
     d.c = c;
     d.rc = rc;
@@ -317,24 +326,6 @@ if isempty(BLANK_OUT3)
     end
     fprintf( 'Setting BLANK_OUT3 to be %d nucleotides; if this does not look right, re-run with explicit specification of BLANK_OUT3\n',BLANK_OUT3);
 end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function good_idx = figure_out_idx_for_normalization( total_coverage );
-COVERAGE_CUTOFF = 10000; % stringent cutoff.
-good_idx = find( total_coverage > COVERAGE_CUTOFF );
-if length(good_idx) < 10
-    COVERAGE_CUTOFF = 1000; % less stringent cutoff.
-    good_idx = find( total_coverage > COVERAGE_CUTOFF );
-end
-if length(good_idx) < 10
-    COVERAGE_CUTOFF = 100; % not stringent
-    good_idx = find( total_coverage > COVERAGE_CUTOFF );
-end
-if length(good_idx) < 10
-    COVERAGE_CUTOFF = 0; % not stringent
-    good_idx = [1:length(total_coverage)];
-end
-fprintf( 'For normalization, using %d sequences that pass a total coverage cutoff of %d \n',length(good_idx),COVERAGE_CUTOFF)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function shape_nomod_idx = update_shape_nomod_idx( shape_nomod_idx, tags);
