@@ -86,7 +86,7 @@ def check_stats( ubr_run_dir ):
     writeout( 'Aligned bowtie2', numreads_align, numreads_into_bt2, allreads )
     writeout( 'Into rf-count', numreads_into_rfcount, numreads_align, allreads )
     writeout( 'Counted rf-count', numreads_counted, numreads_into_rfcount, allreads )
-    print( 'Overall: %9d/%9d = %6.2f%% ' % (min(allreads),max(allreads),100*min(allreads)/max(allreads)))
+    if len(allreads)>0: print( 'Overall: %9d/%9d = %6.2f%% ' % (min(allreads),max(allreads),100*min(allreads)/max(allreads)))
     print()
 
 
