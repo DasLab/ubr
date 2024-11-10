@@ -17,7 +17,7 @@ parser = argparse.ArgumentParser(
 args = parser.add_argument( 'split_dir',default='UBR/',help='name of directory with 001/,002/ job subdirectories; if multiple directories, just look directly inside directories.',nargs='+' )
 args = parser.add_argument( '--merge_files' ,nargs='+',help='Filenames to find and merge')
 args = parser.add_argument( '-s','--setup_slurm', action='store_true',help='Instead of running, create sbatch script' )
-args = parser.add_argument('-j','--jobs_per_slurm_node', default=16,type=int )
+args = parser.add_argument('-j','--jobs_per_slurm_node', default=24,type=int )
 args = parser.add_argument('--start_seq', default=0,type=int,help='which sequence to start with [default 1]' )
 args = parser.add_argument('--end_seq', default=0,type=int,help='which sequence to end on [default Nseq]' )
 args = parser.add_argument('-n','--nsplits', default=0, type=int, help='number of separate partitions & threads for hdf5 split; creates SLURM job' )
@@ -121,7 +121,10 @@ if args.nsplits > 0:
     slurm_file_dir = 'slurm_files'
     os.makedirs(slurm_file_dir, exist_ok=True )
     slurm_file_count = 0
+    slurm_command_count = 0
     fid_sbatch_commands = open( 'sbatch_merge_commands.sh', 'w')
+    slurm_combine_file_count = 0
+    fid_sbatch_combine_commands = open( 'sbatch_combine_commands.sh', 'w')
 
 # Do the merges
 time_start = time.time()
@@ -150,7 +153,7 @@ for filename in merge_files:
 
         ds_all = []
         f_all = []
-        if args.nsplits > 0:
+        if args.nsplits > 0: # NEED TO UNIFY WITH SLURM CODE BLOCK ABOVE!
             nseq = 0
             for infile in infiles: # figure out sequence length
                 try:
@@ -161,35 +164,55 @@ for filename in merge_files:
                     continue
                 if nseq > 0: break
 
-            slurm_file_count += 1
-            fid_slurm = open( '%s/run_ubr_merge_%03d.sh' % (slurm_file_dir, slurm_file_count), 'w' )
-            sbatch_preface = '#!/bin/bash\n#SBATCH --job-name=ubr_merge\n#SBATCH --output=ubr_merge.o%%j\n#SBATCH --error=ubr_merge.e%%j\n#SBATCH --partition=biochem,owners\n#SBATCH --time=24:00:00\n#SBATCH -n %d\n#SBATCH -N 1\n#SBATCH --mem=%dG\n\n' % (args.nsplits,4*args.nsplits)
+            num_slurm_files = math.ceil(args.nsplits/args.jobs_per_slurm_node)
+            chunk_size = math.ceil(nseq/args.nsplits)
+            out_tags = []
+            for k in range(num_slurm_files):
+                slurm_file_start_seq = k * args.jobs_per_slurm_node * chunk_size + 1
+                slurm_file_end_seq   = min(slurm_file_start_seq + args.jobs_per_slurm_node * chunk_size - 1, nseq)
+                num_jobs_for_slurm_file = math.ceil( (slurm_file_end_seq - slurm_file_start_seq + 1) / chunk_size )
+                slurm_file_count += 1
+                fid_slurm = open( '%s/run_ubr_merge_%03d.sh' % (slurm_file_dir, slurm_file_count), 'w' )
+                sbatch_preface = '#!/bin/bash\n#SBATCH --job-name=ubr_merge\n#SBATCH --output=ubr_merge.o%%j\n#SBATCH --error=ubr_merge.e%%j\n#SBATCH --partition=biochem,owners\n#SBATCH --time=24:00:00\n#SBATCH -n %d\n#SBATCH -N 1\n#SBATCH --mem=%dG\n\n' % (num_jobs_for_slurm_file,4*num_jobs_for_slurm_file)
+                fid_slurm.write( sbatch_preface )
+                fid_slurm.write('ml py-h5py/3.10.0_py312\n')
+                fid_slurm.write( 'date\n' )
+                fid_slurm.write( 'echo "Kicking off %d jobs"\n' % args.nsplits )
+                tmp_dir = args.outdir + 'tmp_merge/'
+                os.makedirs( tmp_dir, exist_ok = True )
+                for n in range(num_jobs_for_slurm_file):
+                    slurm_command_count += 1
+                    start_seq = slurm_file_start_seq + n*chunk_size
+                    end_seq   = min( start_seq + chunk_size - 1, nseq)
+                    out_file = tmp_dir+filename
+                    out_tag = out_file.replace('.hdf5','.%07d_%07d.hdf5' % (start_seq,end_seq))
+                    out_tags.append( out_tag )
+                    command = 'ubr_merge.py %s --merge_files %s --start_seq %s --end_seq %s --no_compression --outdir %s > %s.out 2> %s.err &' % \
+                        ( ' '.join(args.split_dir), filename, start_seq,end_seq,tmp_dir,out_tag,out_tag )
+                    fid_slurm.write( command +'\n' )
+                fid_slurm.write('\nwait\n')
+                fid_slurm.write('\necho "DONE"\n')
+                fid_slurm.write( 'date\n' )
+                fid_slurm.close()
+                fid_sbatch_commands.write('sbatch %s\n' % fid_slurm.name )
+
+            # also prepare a job to run_ubr_combine.
+            slurm_combine_file_count += 1
+            fid_slurm = open( '%s/run_ubr_combine_%03d.sh' % (slurm_file_dir, slurm_combine_file_count), 'w' )
+            num_jobs_per_slurm_file = 1
+            sbatch_preface = '#!/bin/bash\n#SBATCH --job-name=ubr_combine\n#SBATCH --output=ubr_combine.o%%j\n#SBATCH --error=ubr_combine.e%%j\n#SBATCH --partition=biochem,owners\n#SBATCH --time=24:00:00\n#SBATCH -n %d\n#SBATCH -N 1\n#SBATCH --mem=%dG\n\n' % (num_jobs_for_slurm_file,4*num_jobs_for_slurm_file)
+            fid_slurm.write('ubr_combine_hdf5_splits.py %s%s\n' % (tmp_dir,filename.replace('.hdf5','.*_*.hdf5') ))
             fid_slurm.write( sbatch_preface )
             fid_slurm.write('ml py-h5py/3.10.0_py312\n')
-            chunk_size = math.ceil(nseq/args.nsplits)
             fid_slurm.write( 'date\n' )
-            fid_slurm.write( 'echo "Kicking off %d jobs"\n' % args.nsplits )
-            tmp_dir = args.outdir + 'tmp_merge/'
-            os.makedirs( tmp_dir, exist_ok = True )
-            out_tags = []
-            for n in range(args.nsplits):
-                start_seq = n*chunk_size+1
-                end_seq   = min( (n+1)*chunk_size, nseq)
-                out_file = tmp_dir+filename
-                out_tag = out_file.replace('.hdf5','.%07d_%07d.hdf5' % (start_seq,end_seq))
-                out_tags.append( out_tag )
-                command = 'ubr_merge.py %s --merge_files %s --start_seq %s --end_seq %s --no_compression --outdir %s > %s.out 2> %s.err &' % \
-                    ( ' '.join(args.split_dir), filename, start_seq,end_seq,tmp_dir,out_tag,out_tag )
-                fid_slurm.write( command +'\n' )
-            fid_slurm.write('\nwait\n')
-            fid_slurm.write('ubr_combine_hdf5_splits.py %s%s\n' % (tmp_dir,filename.replace('.hdf5','.*_*.hdf5') ))
             if not args.save_split_files:
                 for out_tag in out_tags:
                     fid_slurm.write('rm  %s %s.out %s.err\n' % (out_tag,out_tag,out_tag))
             fid_slurm.write('\necho "DONE"\n')
             fid_slurm.write( 'date\n' )
             fid_slurm.close()
-            fid_sbatch_commands.write('sbatch %s\n' % fid_slurm.name )
+            fid_sbatch_combine_commands.write('sbatch %s\n' % fid_slurm.name )
+
             continue
 
         print('Reading in h5py files')
@@ -226,7 +249,10 @@ for filename in merge_files:
                 time_start_read = time.time()
 
                 chunk = ds_all[0][ds_type][s]
-                for ds in ds_all[1:]: chunk += ds[ds_type][s]
+                for (q,ds) in enumerate(ds_all[1:]):
+                    print( 'Adding chunk %d of %d',q,len(ds_all) )
+                    chunk += ds[ds_type][s]
+                    if (q % 10) == 0: ds_out[ds_type][s] = chunk # to allow tracking of progress...
                 time_end_read = time.time()
 
                 if ds_type=='mutations': tot_counts += chunk.max(axis=1).sum()
@@ -295,7 +321,9 @@ time_end = time.time()
 # Finish up separately process chunks of hdf5 files in different processes
 if args.nsplits > 0:
     fid_sbatch_commands.close()
-    print( '\nCreated %s slurm files containing %d commands. Run:\n source %s\n' % (slurm_file_count,len(merge_files),fid_sbatch_commands.name) )
+    print( '\nCreated %s slurm files containing %d commands. Run:\n source %s\n' % (slurm_file_count,slurm_command_count,fid_sbatch_commands.name) )
+    fid_sbatch_commands.close()
+    print( '\n[ Then run: source %s ]\n' % (fid_sbatch_combine_commands.name) )
     exit(0)
 
 print( '\nTimings:')
