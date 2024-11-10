@@ -33,8 +33,10 @@ parser.add_argument('-lc','--length_cutoff',action = 'store_true',help=argparse.
 parser.add_argument('-norc','--no_output_raw_counts',action = 'store_true',help=argparse.SUPPRESS )#help='do not output raw counts from RNAFramework')
 parser.add_argument('-me','--max_edit_distance',default=0.0,type=float,help=argparse.SUPPRESS )#help='max edit distance for RNAFramework (0.15)')
 parser.add_argument('-mpp','--merge_pairs_pear',action = 'store_true',help=argparse.SUPPRESS)
+parser.add_argument('--force_merge_pairs',action = 'store_true',help=argparse.SUPPRESS) # force merge pairs (don't bother to check for overlap)
 parser.add_argument('--cutadapt',action = 'store_true',help=argparse.SUPPRESS) # force cutadapt trimming of Read2 side for pre-demuxed Ultima
 parser.add_argument('--precomputed_bowtie_build_dir',default='',help=argparse.SUPPRESS) # precomputed bowtie-build directory, which otherwise takes forever to generate on the fly for >1M seqs
+parser.add_argument('--use_tmp_dir',action = 'store_true',help=argparse.SUPPRESS) # For cmuts, run job in /tmp/ to try to reduce disk i/o
 
 args = parser.parse_args()
 
@@ -94,7 +96,7 @@ def read_fasta( fasta_file ):
         headers.append(header)
         sequences.append(sequence)
     assert( len(sequences) == len(headers ) )
-    check_dup( sequences,'Sequences' )
+    #check_dup( sequences,'Sequences' )
     check_dup( headers,'Headers' )
     return (sequences,headers)
 (sequences,headers) = read_fasta( args.sequences_fasta )
@@ -166,7 +168,7 @@ os.makedirs(slurm_file_dir, exist_ok=True )
 
 slurm_file_count = 1
 fid_slurm = open( '%s/run_slurm_%03d.sh' % (slurm_file_dir, slurm_file_count), 'w' )
-sbatch_preface = '#!/bin/bash\n#SBATCH --job-name=ubr_run\n#SBATCH --output=ubr_run.o%%j\n#SBATCH --error=ubr_run.e%%j\n#SBATCH --partition=biochem,owners\n#SBATCH --time=48:00:00\n#SBATCH -n %d\n#SBATCH -N 1\n#SBATCH --mem=%dG\n\n' % (args.jobs_per_slurm_node,4*args.jobs_per_slurm_node)
+sbatch_preface = '#!/bin/bash\n#SBATCH --job-name=ubr_run\n#SBATCH --output=ubr_run.o%%j\n#SBATCH --error=ubr_run.e%%j\n#SBATCH --partition=biochem,owners\n#SBATCH --time=48:00:00\n#SBATCH -n %d\n#SBATCH -N 1\n#SBATCH --mem=%dG\n\n' % (args.jobs_per_slurm_node,8*args.jobs_per_slurm_node)
 fid_slurm.write( sbatch_preface )
 fid_sbatch_commands = open( 'sbatch_commands.sh', 'w')
 ubr_run_sh_name = 'ubr_run.sh'
@@ -218,9 +220,11 @@ for i in range(1,nsplits+1):
     if args.score_min != None:  extra_flags += ' --score_min %s' % args.score_min
     if args.no_merge_pairs:  extra_flags += ' --no_merge_pairs'
     if args.merge_pairs_pear:  extra_flags += ' --merge_pairs_pear'
+    if args.force_merge_pairs:  extra_flags += ' --force_merge_pairs'
     if args.ultima:  extra_flags += ' --ultima'
     if args.cmuts:  extra_flags += ' --cmuts'
     if args.cutadapt:  extra_flags += ' --cutadapt'
+    if args.use_tmp_dir:  extra_flags += ' --use_tmp_dir'
     if len(args.precomputed_bowtie_build_dir)>0: extra_flags += ' --precomputed_bowtie_build_dir %s' % args.precomputed_bowtie_build_dir
     if args.excise_barcode>0:  extra_flags += ' --excise_barcode %d' % args.excise_barcode
 
