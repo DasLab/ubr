@@ -4,6 +4,8 @@ import os
 import time
 import shutil
 import gzip
+import glob
+import random
 import ubr_check_stats
 
 parser = argparse.ArgumentParser(
@@ -31,10 +33,12 @@ parser.add_argument('-lc','--length_cutoff',action = 'store_true',help=argparse.
 parser.add_argument('-norc','--no_output_raw_counts',action = 'store_true',help=argparse.SUPPRESS )#help='do not output raw counts from RNAFramework')
 parser.add_argument('-me','--max_edit_distance',default=0.0,type=float,help=argparse.SUPPRESS )#help='max edit distance for RNAFramework (0.15)')
 parser.add_argument('-mpp','--merge_pairs_pear',action = 'store_true',help=argparse.SUPPRESS)
+parser.add_argument('--force_merge_pairs',action = 'store_true',help=argparse.SUPPRESS) # force merge pairs (don't bother to check for overlap)
 parser.add_argument('--skip_ultraplex',action = 'store_true',help=argparse.SUPPRESS)
 parser.add_argument('--cutadapt',action = 'store_true',help=argparse.SUPPRESS) # force cutadapt trimming of Read2 side for pre-demuxed Ultima
 parser.add_argument('--precomputed_bowtie_build_dir',default='',help=argparse.SUPPRESS) # precomputed bowtie-build directory, which otherwise takes forever to generate on the fly for >1M seqs
 parser.add_argument('--no_collapse',action = 'store_true',help=argparse.SUPPRESS) # no collapse option in rf-count
+parser.add_argument('--use_tmp_dir',action = 'store_true',help=argparse.SUPPRESS) # For cmuts, run job in /tmp/ to try to reduce disk i/o
 
 args = parser.parse_args()
 assert( not( args.no_merge_pairs and args.merge_pairs_pear ) )
@@ -119,7 +123,7 @@ if args.excise_barcode > 0:
 merge_pairs = not args.no_merge_pairs and args.read2_fastq != None
 
 # Also check if sequence reads are actually long enough to overlap
-if merge_pairs and not args.merge_pairs_pear:
+if merge_pairs and not args.merge_pairs_pear and not args.force_merge_pairs:
     insert_len = len(sequences[0]) + len(primer_barcodes[0])
     read_len1 = len(os.popen( 'seqkit head -n 1 %s' % args.read1_fastq ).readlines()[1].strip())
     read_len2 = len(os.popen( 'seqkit head -n 1 %s' % args.read2_fastq ).readlines()[1].strip())
@@ -298,10 +302,30 @@ if args.cmuts:
             os.system( command )
 
         hdf5_file = wd + '%s.hdf5' % primer_name
-        if args.overwrite or not os.path.isfile( hdf5_file ):
-            command = 'cmuts --fasta=%s --overwrite  --min-cov-base-quality=0 --output %s %s > %s.cmuts.log 2> %s.cmuts.err' % (seq_file,hdf5_file,sorted_bam_file,outdir,outdir)
+        hdf5_outfile = hdf5_file
+        lockfiles = glob.glob( hdf5_file+'-*.lock' )
+        if args.overwrite or not os.path.isfile( hdf5_file ) or len( lockfiles ) > 0:
+            for lockfile in lockfiles: os.remove( lockfile )
+            if os.path.isfile( hdf5_file ): os.remove( hdf5_file )
+            if args.use_tmp_dir: # output to /tmp/ to mitigate cost of disk output on cluster
+                rand_dir = '/tmp/%d' % random.getrandbits(64)
+                if os.path.isdir( rand_dir ): shutil.rmtree( rand_dir )
+                os.makedirs(rand_dir,exist_ok = True)
+                hdf5_outfile = '%s/%s.hdf5' % (rand_dir,primer_name)
+                # also consider rsync of sorted_bam_file to /tmp/ to reduce *input* from disk
+            command = 'cmuts --fasta=%s --overwrite  --min-cov-base-quality=0 --output %s %s > %s.cmuts.log 2> %s.cmuts.err' % (seq_file,hdf5_outfile,sorted_bam_file,outdir,outdir)
             print(command)
             os.system( command )
+            if args.use_tmp_dir:
+                if os.path.isfile( hdf5_outfile ):
+                    command = 'rsync -avL %s %s' % (hdf5_outfile, hdf5_file)
+                    print(command)
+                    os.system(command)
+                else:
+                    printf('Job failed! Could not find: %s!' % hdf5_outfile )
+                    continue
+                shutil.rmtree(rand_dir)
+
 
 else: # use RNAFramework
     # Some deprecated options
