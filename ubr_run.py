@@ -96,7 +96,7 @@ if args.ultima: primer_barcodes = [ 'CTACACGACGCTCTTCCGATCT'+barcode for barcode
 # check sequences are RNA/DNA
 def check_sequence(sequence):
     for c in sequence:
-        if c not in 'ACGTU': return False
+        if c not in 'ACGTUN': return False
     return True
 
 for sequence in sequences:
