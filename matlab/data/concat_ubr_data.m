@@ -43,6 +43,8 @@ d_out.reads = zeros(count,size(d.reads,2));
 d_out.coverage = zeros(count,size(d.coverage,2));
 d_out.signal_to_noise = zeros(count,size(d.signal_to_noise,2));
 d_out.sequences = cell(1,count);
+d_out.headers   = cell(1,count);
+
 if isfield(d,'coverage_matrix')
     mut_count = zeros('like',d.mut_rate_matrix);
     rfcount   = zeros('like',d.rfcount_mut_rate_profiles);
@@ -60,6 +62,7 @@ for q = 1:length( all_d )
     d_out.coverage(idx,:) = d.coverage;
     d_out.signal_to_noise(idx,:) = d.signal_to_noise;
     d_out.sequences(idx) = d.sequences;
+    if length(d.headers) == length(idx); d_out.headers(idx) = d.headers; else; warning('Could not create headers since it is not filled correctly.'); end;
 
     r_tmp = []; r_tmp_err = [];
     for i = 1:size(d.r_norm,3)

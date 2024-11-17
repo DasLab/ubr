@@ -1,5 +1,6 @@
 function make_library_heat_map( r_norm, good_idx, structure_map, headers, BLANK_OUT5, BLANK_OUT3, tags_conditions);
 % make_library_heat_map( r_norm, good_idx, structure_map, headers, BLANK_OUT5, BLANK_OUT3, tags_conditions);
+% make_library_heat_map( d, good_idx );
 %
 % Inputs
 %  r_norm = [Ndesign x Nres x Nconditions] Reactivity matrix, normalized.
@@ -14,10 +15,20 @@ function make_library_heat_map( r_norm, good_idx, structure_map, headers, BLANK_
 %  plot)
 %  BLANK_OUT5 = gray out this number of 5' residues
 %  BLANK_OUT3 = gray out this number of 3' residues 
+%  tags_conditions = cell of Nconditions strings with display tags for each
+%                          condition
 %
 % (C) R. Das, HHMI/Stanford, 2023
 
-if isempty(good_idx) good_idx = [1:size(r_norm,1)]; end;
+if isstruct(r_norm); d = r_norm; r_norm = d.r_norm; end;
+if ~exist( 'good_idx','var') | isempty(good_idx), good_idx = [1:size(r_norm,1)]; end;
+if ~exist( 'structure_map','var' ) & exist('d','var'); structure_map = d.structure_map; end;
+if ~exist( 'structure_map','var' ); structure_map = []; end
+if ~exist( 'headers','var' ) & exist('d','var'); headers = d.headers; end
+if ~exist( 'BLANK_OUT5','var' ) & exist('d','var'); BLANK_OUT5 = d.BLANK_OUT5; end
+if ~exist( 'BLANK_OUT3','var' ) & exist('d','var'); BLANK_OUT3 = d.BLANK_OUT3; end
+if ~exist( 'tags_conditions','var' ) & exist('d','var'); tags_conditions = d.conditions; end
+
 Nconditions = size(r_norm,3);
 N = size(r_norm,2);
 Nseq = length(good_idx);

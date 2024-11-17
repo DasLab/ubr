@@ -67,11 +67,12 @@ if hdf5_format
             rc(:,:,q,n) = muts(:,:,find(nts==mut_types{q}(1)),find(nts==mut_types{q}(2)));
         end
         rc(:,:,strcmp(mut_types,'del'),n) = squeeze(sum(muts(:,:,:,5),3));
-
-        ins = load_hdf5_file(hdf5_file, 'insertions', seq_range );
-        rc(:,:,strcmp(mut_types,'ins'),n) = squeeze(sum(sum(ins,3),4));
-
         m(:,:,n) = sum(rc(:,:,~strcmp(mut_types,'ins'),n),3);
+
+        if read_raw_counts
+            ins = load_hdf5_file(hdf5_file, 'insertions', seq_range );
+            rc(:,:,strcmp(mut_types,'ins'),n) = squeeze(sum(sum(ins,3),4));
+        end
     end
     return;
 end
