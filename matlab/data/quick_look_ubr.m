@@ -222,7 +222,7 @@ for i = 1:Ntags
     imagesc(sum(f(1:Nplot,:,i),3),[0 0.1]);
     colormap(1-gray(100));
     title(strsplit(tags{i},'_'),'interpreter','none')
-    ylim([0 Nplot])
+    ylim([0.5 Nplot+0.5])
     colorbar('Location','SouthOutside');
 end
 
