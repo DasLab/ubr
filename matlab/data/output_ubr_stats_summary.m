@@ -18,12 +18,12 @@ padlen = max(50,max( cellfun(@length,d.conditions)));
 if isfield(d,'mut_rate_matrix')
 
     mutpos = [1+d.BLANK_OUT5:(size(d.mut_rate_matrix,1)-d.BLANK_OUT3)];
-    mean_mut_rate_by_type = reshape(mean(d.mut_rate_matrix(mutpos,:,:),1),size(d.mut_rate_matrix,2),size(d.mut_rate_matrix,3));
-    strictmuts = sum(mean_mut_rate_by_type(1:12,:),1);
+    mean_mut_rate_by_type = reshape(nanmean(d.mut_rate_matrix(mutpos,:,:),1),size(d.mut_rate_matrix,2),size(d.mut_rate_matrix,3));
+    strictmuts = nansum(mean_mut_rate_by_type(1:12,:),1);
     inserts = mean_mut_rate_by_type(13,:);
     dels = mean_mut_rate_by_type(14,:);
-    strictmuts_dels = sum(mean_mut_rate_by_type([1:12,14],:),1);
-    rfcount_mut_rate = mean(d.rfcount_mut_rate_profiles(mutpos,:),1);
+    strictmuts_dels = nansum(mean_mut_rate_by_type([1:12,14],:),1);
+    rfcount_mut_rate = nanmean(d.rfcount_mut_rate_profiles(mutpos,:),1);
  
     padlen = max(50,max( cellfun(@length,d.tags)));
     fprintf( '%s %11s %8s %6s %8s | %7s %7s %7s %7s %7s\n',pad('Expt tag',padlen,'left'),'reads','mean','median','mn2md',...
@@ -88,6 +88,7 @@ t = table(conditions,reads,meanreads,medianreads,mn2med,meanSN,meanreact);
 
 function r = human_readable(reads)
 s = {'', 'k', 'M', 'B', 'T'}; 
+if reads == 0; r = '0'; return; end
 e = floor(log(reads)/log(1000));
 r = sprintf(['%.1f',s{e+1}], (reads/(1000^floor(e))));
 
