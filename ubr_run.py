@@ -7,6 +7,7 @@ import gzip
 import glob
 import random
 import ubr_check_stats
+from ubr_util import read_fasta,check_sequence,create_seq_fasta
 
 parser = argparse.ArgumentParser(
                     prog = 'ubr_run.py',
@@ -20,9 +21,10 @@ parser.add_argument('-2','--read2_fastq', help='FASTQ (can be gzipped) of Read 2
 parser.add_argument('-ow','--overwrite',action = 'store_true', help='overwrite all previous files')
 parser.add_argument('-O','--outdir',default='',help='output directory for all files')
 parser.add_argument('-t','--threads',default=1, type=int, help='Number of threads for Bowtie2 and RNAFramework')
-parser.add_argument('--ultima',action='store_true',help='recognize Ultima adapter in ultraplex')
 parser.add_argument('-nmp','--no_merge_pairs',action = 'store_true',help='do not merge paired end reads before Bowtie2' )
 parser.add_argument('--cmuts',action = 'store_true',help='use cmuts instead of RNAFramework' )
+parser.add_argument('--precomputed_bowtie_build_dir',default='',help=argparse.SUPPRESS) # precomputed bowtie-build directory, which otherwise takes forever to generate on the fly for >1M seqs
+parser.add_argument('-f','--force',action='store_true',help='override some warnings' )
 
 # Deprecated/secret
 parser.add_argument('--excise_barcode',default=0,type=int,help=argparse.SUPPRESS) # 'remove this many nucleotides from merged FASTQ and sequences' )
@@ -36,36 +38,14 @@ parser.add_argument('-mpp','--merge_pairs_pear',action = 'store_true',help=argpa
 parser.add_argument('--force_merge_pairs',action = 'store_true',help=argparse.SUPPRESS) # force merge pairs (don't bother to check for overlap)
 parser.add_argument('--skip_ultraplex',action = 'store_true',help=argparse.SUPPRESS)
 parser.add_argument('--cutadapt',action = 'store_true',help=argparse.SUPPRESS) # force cutadapt trimming of Read2 side for pre-demuxed Ultima
-parser.add_argument('--precomputed_bowtie_build_dir',default='',help=argparse.SUPPRESS) # precomputed bowtie-build directory, which otherwise takes forever to generate on the fly for >1M seqs
 parser.add_argument('--no_collapse',action = 'store_true',help=argparse.SUPPRESS) # no collapse option in rf-count
 parser.add_argument('--use_tmp_dir',action = 'store_true',help=argparse.SUPPRESS) # For cmuts, run job in /tmp/ to try to reduce disk i/o
+parser.add_argument('--ultima',action='store_true',help=argparse.SUPPRESS) # recognize Ultima adapter in ultraplex
 
 args = parser.parse_args()
 assert( not( args.no_merge_pairs and args.merge_pairs_pear ) )
 
 time_start = time.time()
-
-def read_fasta( fasta_file ):
-    if len(fasta_file)>3 and fasta_file[-3:]=='.gz': lines = gzip.open( fasta_file, 'rt' ).readlines()
-    else: lines = open( fasta_file ).readlines()
-    sequences = []
-    headers = []
-    header = None
-    sequence = ''
-    for line in lines:
-        if len(line) > 0 and line[0] == '>':
-            if header is not None:
-                headers.append(header)
-                sequences.append(sequence)
-            sequence = ''
-            header = line[1:].strip('\n')
-            continue
-        sequence = sequence + line.strip('\n')
-    if header is not None:
-        headers.append(header)
-        sequences.append(sequence)
-    assert( len(sequences) == len(headers ) )
-    return (sequences,headers)
 
 # Check executables!
 if not args.skip_ultraplex: assert( shutil.which( 'ultraplex' ) )
@@ -87,17 +67,19 @@ read1_fastq = args.read1_fastq
 read2_fastq = args.read2_fastq
 
 # Read in FASTA files (sequences, and primer barcodes)
-(sequences,headers) = read_fasta( args.sequences_fasta )
+(sequences,headers) = read_fasta( args.sequences_fasta, args.force )
 print( 'Read in %d sequences from %s.' % (len(sequences),args.sequences_fasta) )
-(primer_barcodes,primer_names) = read_fasta( args.primer_barcodes_fasta )
+(primer_barcodes,primer_names) = read_fasta( args.primer_barcodes_fasta, args.force )
 print( 'Read in %d primer barcodes from %s.' % (len(primer_barcodes),args.primer_barcodes_fasta) )
 if args.ultima: primer_barcodes = [ 'CTACACGACGCTCTTCCGATCT'+barcode for barcode in primer_barcodes ]
 
-# check sequences are RNA/DNA
-def check_sequence(sequence):
-    for c in sequence:
-        if c not in 'ACGTUN': return False
-    return True
+if len(sequences)>1000000:
+    if not args.precomputed_bowtie_build_dir:
+        print( '\nYou have a lot of sequences. It is recommended to pre-index bowtie2 build with:\n\n ubr_util.py --build_bowtie2_index -s %s\n\nThen re-run this script with flag --precomputed_bowtie_build_dir bowtie-build.\n(To bypass this message, use --force)\n' % args.sequences_fasta )
+        if not args.force: exit()
+    if not args.cmuts:
+        print( '\nYou have a lot of sequences. It is recommended to use cmuts with the flag --cmuts.\n(To bypass this message, use --force)\n')
+        if not args.force: exit()
 
 for sequence in sequences:
     if not check_sequence(sequence): exit('problem with sequence in sequences file: %s' % sequence )
@@ -226,10 +208,7 @@ bt2_prefix = '%s/seq'% (bowtie_build_dir)
 bt2_file = '%s.1.bt2' % bt2_prefix
 
 # Need to make sure we have DNA versions
-seq_file = wd + 'seq.fasta'
-fid = open( seq_file, 'w' )
-for (sequence,header) in zip(sequences, headers): fid.write('>%s\n%s\n' % (header,sequence.replace('U','T')) )
-fid.close()
+seq_file = create_seq_fasta( sequences, headers, wd )
 
 for primer_barcode,primer_name in zip(primer_barcodes,primer_names):
     if read2_fastq:
