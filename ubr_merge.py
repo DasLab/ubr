@@ -200,7 +200,7 @@ for filename in merge_files:
             # also prepare a job to run_ubr_combine.
             slurm_combine_file_count += 1
             fid_slurm = open( '%s/run_ubr_combine_%03d.sh' % (slurm_file_dir, slurm_combine_file_count), 'w' )
-            num_jobs_per_slurm_file = 1
+            num_jobs_for_slurm_file = 1
             sbatch_preface = '#!/bin/bash\n#SBATCH --job-name=ubr_combine\n#SBATCH --output=ubr_combine.o%%j\n#SBATCH --error=ubr_combine.e%%j\n#SBATCH --partition=biochem,owners\n#SBATCH --time=24:00:00\n#SBATCH -n %d\n#SBATCH -N 1\n#SBATCH --mem=%dG\n\n' % (num_jobs_for_slurm_file,4*num_jobs_for_slurm_file)
             fid_slurm.write( sbatch_preface )
             fid_slurm.write('ml py-h5py/3.10.0_py312\n')
@@ -245,13 +245,19 @@ for filename in merge_files:
         for ds_type in ['mutations','insertions']:
             print('Adding up %s by chunk from %d files' % (ds_type, numfiles))
             chunks = ds_out[ds_type].iter_chunks()
-            if args.start_seq > 0: chunks = [range(args.start_seq-1,args.end_seq)]
-            for s in chunks:
+            if args.start_seq > 0:
+                chunks = []
+                chunk_size = 10000 # sort of arbitrary
+                for q in range(args.start_seq-1,args.end_seq,chunk_size):
+                    chunk_start_seq = q + 1
+                    chunk_end_seq = min( chunk_start_seq + chunk_size - 1, args.end_seq)
+                    chunks.append( range(chunk_start_seq - 1, chunk_end_seq) )
+            for (k,s) in enumerate(chunks):
                 time_start_read = time.time()
 
                 chunk = ds_all[0][ds_type][s]
                 for (q,ds) in enumerate(ds_all[1:]):
-                    print( 'Adding chunk %d of %d' % (q,len(ds_all)) )
+                    print( 'Adding chunk %d of %d from file %d of %d' % (k+1,len(chunks),q+2,len(ds_all)) )
                     chunk += ds[ds_type][s]
                     if (q % 10) == 0: ds_out[ds_type][s] = chunk # to allow tracking of progress...
                 time_end_read = time.time()

@@ -40,13 +40,18 @@ for (i,split_file) in enumerate(split_files):
     start_seqs.append( int(cols[-2].split('_')[0]) )
     end_seqs.append( int(cols[-2].split('_')[1]) )
 
-    try:
-        f = h5py.File(split_file,'r')
-        dataname = list(f.keys())[0]
-        ds_all.append( f[dataname] )
-        f_all.append(f)
-    except:
-        pass
+    f = h5py.File(split_file,'r')
+    dataname = list(f.keys())[0]
+    ds_all.append( f[dataname] )
+    f_all.append(f)
+
+    #try:
+    #    f = h5py.File(split_file,'r')
+    #    dataname = list(f.keys())[0]
+    #    ds_all.append( f[dataname] )
+    #    f_all.append(f)
+    #except:
+    #    pass
 
 assert( len(set(tags)) == 1 )
 numfiles = len(ds_all)
@@ -67,20 +72,25 @@ for ds_type in ['mutations','insertions']:
 ds_out = f_out[tag]
 
 tot_counts = 0
+chunk_size = 1000 # sort of arbitrary -- chunk size.
 for (f,ds,split_file,start_seq,end_seq) in zip(f_all,ds_all,split_files,start_seqs,end_seqs):
     print( 'Reading in from: ',split_file )
     for ds_type in ['mutations','insertions']:
-        time_start_read = time.time()
-        s = range(start_seq-1,end_seq)
-        chunk = ds[ds_type][s]
-        time_end_read = time.time()
+        for q in range(start_seq-1,end_seq,chunk_size):
+            time_start_read = time.time()
+            chunk_start_seq = q + 1
+            chunk_end_seq = min( chunk_start_seq + chunk_size - 1, end_seq)
+            #s = range(start_seq-1,end_seq)
+            s = range(chunk_start_seq - 1, chunk_end_seq)
+            #print('Doing chunk %d-%d' % (chunk_start_seq,chunk_end_seq))
+            chunk = ds[ds_type][s]
+            time_end_read = time.time()
+            time_readin += (time_end_read - time_start_read)
 
-        if ds_type=='mutations': tot_counts += chunk.max(axis=1).sum()
-        ds_out[ds_type][s] = chunk
-        time_end_write = time.time()
-
-        time_readin += (time_end_read - time_start_read)
-        time_output += (time_end_write - time_end_read)
+            if ds_type=='mutations': tot_counts += chunk.max(axis=1).sum()
+            ds_out[ds_type][s] = chunk
+            time_end_write = time.time()
+            time_output += (time_end_write - time_end_read)
 
 
 time_end = time.time()
