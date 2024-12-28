@@ -5,7 +5,7 @@ import os
 import shutil
 import time
 import glob
-from ubr_util import read_fasta
+from ubr_util import read_fasta,check_sequence
 
 parser = argparse.ArgumentParser(
                     prog = 'ubr_split.py',
@@ -71,11 +71,6 @@ assert( args.read1_fastq != args.read2_fastq )
 print( 'Read in %d sequences from %s.' % (len(sequences),args.sequences_fasta) )
 (primer_barcodes,primer_names) = read_fasta( args.primer_barcodes_fasta )
 print( 'Read in %d primer barcodes from %s.\n' % (len(primer_barcodes),args.primer_barcodes_fasta) )
-
-def check_sequence(sequence):
-    for c in sequence:
-        if c not in 'ACGTU': return False
-    return True
 
 for sequence in sequences:
     if not check_sequence(sequence): exit('problem with sequence in sequences file: %s' % sequence )
