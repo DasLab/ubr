@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import os
+import gzip
 
 parser = argparse.ArgumentParser(
                     prog = 'ubr_utile.py',
@@ -27,7 +28,8 @@ def check_dup(mylist,mytag, force = False):
     return
 
 def read_fasta( fasta_file, force = False ):
-    lines = open( fasta_file ).readlines()
+    if len(fasta_file)>3 and fasta_file[-3:]=='.gz': lines = gzip.open( fasta_file, 'rt' ).readlines()
+    else: lines = open( fasta_file ).readlines()
     sequences = []
     headers = []
     header = None
@@ -58,6 +60,7 @@ def create_seq_fasta( sequences, headers, wd = './' ):
     return seq_file
 
 def build_bowtie2_index( sequences_fasta ):
+    print('Reading in sequences from %s...' % sequences_fasta )
     (sequences,headers) = read_fasta( sequences_fasta )
     seq_file = create_seq_fasta( sequences, headers )
 

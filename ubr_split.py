@@ -72,18 +72,19 @@ print( 'Read in %d sequences from %s.' % (len(sequences),args.sequences_fasta) )
 (primer_barcodes,primer_names) = read_fasta( args.primer_barcodes_fasta )
 print( 'Read in %d primer barcodes from %s.\n' % (len(primer_barcodes),args.primer_barcodes_fasta) )
 
-for sequence in sequences:
-    if not check_sequence(sequence): exit('problem with sequence in sequences file: %s' % sequence )
-for sequence in primer_barcodes:
-    if not check_sequence(sequence): exit('problem with sequence in primer barcode file: %s' % sequence )
-
 if len(sequences)>1000000:
     if not args.precomputed_bowtie_build_dir:
-        print( '\nYou have a lot of sequences. It is recommended to pre-index bowtie2 build with:\n\n ubr_util.py --build_bowtie2_index -s %s\n\nThen re-run this script with flag --precomputed_bowtie_build_dir bowtie-build.\n(To bypass this message, use --force)\n' % args.sequences_fasta )
+        print( '\nYou have a lot of sequences. It is recommended to pre-index bowtie2 build with:\n\n ubr_util.py --threads 24 --build_bowtie2_index -s %s\n\nThen re-run this script with flag --precomputed_bowtie_build_dir bowtie-build.\n(To bypass this message, use --force)\n' % args.sequences_fasta )
         if not args.force: exit()
     if not args.cmuts:
         print( '\nYou have a lot of sequences. It is recommended to use cmuts with the flag --cmuts.\n(To bypass this message, use --force)\n')
         if not args.force: exit()
+
+print('Checking sequences...')
+for sequence in sequences:
+    if not check_sequence(sequence): exit('problem with sequence in sequences file: %s' % sequence )
+for sequence in primer_barcodes:
+    if not check_sequence(sequence): exit('problem with sequence in primer barcode file: %s' % sequence )
 
 # Do the split
 split_dir = 'UBR'
