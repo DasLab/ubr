@@ -280,7 +280,7 @@ if args.cmuts:
 
         sorted_bam_index_file = '%s.bai' % sorted_bam_file
         if args.overwrite or not os.path.isfile( sorted_bam_index_file ):
-            command = 'samtools index %s > %s/bai.log 2> %s/bai.err' % (bowtie_align_dir,bowtie_align_dir)
+            command = 'samtools index %s > %s/bai.log 2> %s/bai.err' % (sorted_bam_file,bowtie_align_dir,bowtie_align_dir)
             print(command)
             os.system( command )
 
