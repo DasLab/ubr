@@ -117,8 +117,8 @@ if merge_pairs and not args.merge_pairs_pear and not args.force_merge_pairs:
     #exit()
 
 if merge_pairs:
-    out_prefix = args.read1_fastq.replace('.fq','').replace('.fastq','').replace('.gz','') + '_MERGED'
-    merged_fastq = out_prefix+'.assembled.fastq.gz'
+    out_prefix = os.path.basename(args.read1_fastq).replace('.fq','').replace('.fastq','').replace('.gz','') + '_MERGED'
+    merged_fastq = wd+out_prefix+'.assembled.fastq.gz'
     if os.path.isfile( merged_fastq ):
         print('Merged file already exists, skipping merge:',merged_fastq)
     else:
