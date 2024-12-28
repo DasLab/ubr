@@ -160,6 +160,7 @@ for filename in merge_files:
                     f = h5py.File(infile,'r')
                     dataname = list(f.keys())[0]
                     nseq = f[dataname]['mutations'].shape[0]
+                    print(infile,nseq)
                 except:
                     continue
                 if nseq > 0: break
@@ -201,10 +202,10 @@ for filename in merge_files:
             fid_slurm = open( '%s/run_ubr_combine_%03d.sh' % (slurm_file_dir, slurm_combine_file_count), 'w' )
             num_jobs_per_slurm_file = 1
             sbatch_preface = '#!/bin/bash\n#SBATCH --job-name=ubr_combine\n#SBATCH --output=ubr_combine.o%%j\n#SBATCH --error=ubr_combine.e%%j\n#SBATCH --partition=biochem,owners\n#SBATCH --time=24:00:00\n#SBATCH -n %d\n#SBATCH -N 1\n#SBATCH --mem=%dG\n\n' % (num_jobs_for_slurm_file,4*num_jobs_for_slurm_file)
-            fid_slurm.write('ubr_combine_hdf5_splits.py %s%s\n' % (tmp_dir,filename.replace('.hdf5','.*_*.hdf5') ))
             fid_slurm.write( sbatch_preface )
             fid_slurm.write('ml py-h5py/3.10.0_py312\n')
             fid_slurm.write( 'date\n' )
+            fid_slurm.write('ubr_combine_hdf5_splits.py %s%s\n' % (tmp_dir,filename.replace('.hdf5','.*_*.hdf5') ))
             if not args.save_split_files:
                 for out_tag in out_tags:
                     fid_slurm.write('rm  %s %s.out %s.err\n' % (out_tag,out_tag,out_tag))
@@ -250,7 +251,7 @@ for filename in merge_files:
 
                 chunk = ds_all[0][ds_type][s]
                 for (q,ds) in enumerate(ds_all[1:]):
-                    print( 'Adding chunk %d of %d',q,len(ds_all) )
+                    print( 'Adding chunk %d of %d' % (q,len(ds_all)) )
                     chunk += ds[ds_type][s]
                     if (q % 10) == 0: ds_out[ds_type][s] = chunk # to allow tracking of progress...
                 time_end_read = time.time()

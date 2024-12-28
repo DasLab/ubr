@@ -470,6 +470,7 @@ else: # use RNAFramework
 
 time_end=time.time()
 
+if len(wd) == 0: wd = './'
 ubr_check_stats.check_stats( wd )
 
 print( '\nTimings:')
