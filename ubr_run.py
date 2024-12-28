@@ -251,35 +251,42 @@ for primer_barcode,primer_name in zip(primer_barcodes,primer_names):
     else:
         print( 'Skipping bowtie2-align for %s' % outdir )
 
+# Run sorts -- useful for all later steps.
+print()
+for (n,primer_name) in enumerate(primer_names):
+    bowtie_align_dir = wd + '2_bowtie2/%s' % (primer_name)
+    sam_file = '%s/bowtie2.sam' % bowtie_align_dir
+    if not os.path.isfile( sam_file ): continue
+
+    sorted_bam_file = '%s/bowtie2.sorted.bam' % bowtie_align_dir
+    if args.overwrite or not os.path.isfile( sorted_bam_file ):
+        command = 'samtools sort %s -o %s > %s/sort.log 2> %s/sort.err' % (sam_file, sorted_bam_file, bowtie_align_dir, bowtie_align_dir)
+        print(command)
+        os.system( command )
+
 time_bowtie2 = time.time()
 
 if args.cmuts:
     cmuts_dir = wd + '3_cmuts'
     os.makedirs(cmuts_dir,exist_ok = True)
+    print()
 
     for (n,primer_name) in enumerate(primer_names):
         bowtie_align_dir = wd + '2_bowtie2/%s/' % (primer_name)
-        sam_file = '%s/bowtie2.sam' % bowtie_align_dir
-        if not os.path.isfile( sam_file ): continue
-        print()
         outdir = '%s/%s' % (cmuts_dir,primer_name)
         os.makedirs(outdir,exist_ok = True)
 
-        sorted_bam_file = '%s/bowtie2.sorted.bam' % outdir
-        if args.overwrite or not os.path.isfile( sorted_bam_file ):
-            command = 'samtools sort %s -o %s > %s.sort.log 2> %s.sort.err' % (sam_file, sorted_bam_file, outdir,outdir)
-            print(command)
-            os.system( command )
+        sorted_bam_file = '%s/bowtie2.sorted.bam' % bowtie_align_dir
 
         sorted_bam_index_file = '%s.bai' % sorted_bam_file
         if args.overwrite or not os.path.isfile( sorted_bam_index_file ):
-            command = 'samtools index %s > %s.index.log 2> %s.index.err' % (sorted_bam_file,outdir,outdir)
+            command = 'samtools index %s > %s/bai.log 2> %s/bai.err' % (bowtie_align_dir,bowtie_align_dir)
             print(command)
             os.system( command )
 
         fasta_index_file = '%s.fai' % seq_file
         if args.overwrite or not os.path.isfile( fasta_index_file ):
-            command = 'samtools faidx %s > %s/faidx.log 2> %s/faidx.err' % (seq_file,cmuts_dir,cmuts_dir)
+            command = 'samtools faidx %s > %s/faidx.log 2> %s/faidx.err' % (seq_file,bowtie_align_dir,bowtie_align_dir)
             print(command)
             os.system( command )
 
@@ -323,15 +330,13 @@ else: # use RNAFramework
     print()
     rf_count_dir = wd + '3_rf_count'
     os.makedirs(rf_count_dir,exist_ok = True)
-    #rf_count_outfile = rf_count_dir+'/rf-count.out'
-    #rf_count_errfile = rf_count_dir+'/rf-count.err'
     for (n,primer_name) in enumerate(primer_names):
         bowtie_align_dir = wd + '2_bowtie2/%s/' % (primer_name)
-        sam_file = '%s/bowtie2.sam' % bowtie_align_dir
+        bam_file = '%s/bowtie2.sorted.bam' % bowtie_align_dir
         if not os.path.isfile( sam_file ): continue
 
         outdir = '%s/%s' % (rf_count_dir,primer_name)
-        if args.overwrite or not os.path.isfile(outdir+'/bowtie2.rc'):
+        if args.overwrite or not os.path.isfile(outdir+'/bowtie2.sorted.rc'):
             # need to remove dir and start job; rf-count's overwrite option does crazy things.
             if os.path.isdir(outdir): shutil.rmtree(outdir)
             rf_count_outfile = rf_count_dir+'/rf-count_%s.out' % primer_name
@@ -345,13 +350,13 @@ else: # use RNAFramework
             cc_option = ' -cc'
             if args.no_collapse: cc_option = ''
 
-            command = 'rf-count --processors %d -wt 1 -fast -f %s -m%s -rd -ni -ds %d %s -o %s %s >> %s 2>> %s' % (args.threads, seq_file, cc_option, MIN_READ_LENGTH, extra_flags, outdir, sam_file, rf_count_outfile, rf_count_errfile)
+            command = 'rf-count --processors %d -r -wt 1 -fast -f %s -m%s -rd -ni -ds %d %s -o %s %s >> %s 2>> %s' % (args.threads, seq_file, cc_option, MIN_READ_LENGTH, extra_flags, outdir, bam_file, rf_count_outfile, rf_count_errfile)
             #command = 'rf-count --processors 1 --working-threads %d -fast -f %s -m -cc -rd -ni -ds %d %s -o %s %s >> %s 2>> %s' % (args.threads, seq_file, MIN_READ_LENGTH, extra_flags, outdir, sam_file, rf_count_outfile, rf_count_errfile)
             print(command)
             os.system( command )
 
             if not args.no_output_raw_counts:
-                raw_counts_file = rf_count_dir+'/%s/raw_counts/bowtie2.txt' % primer_name
+                raw_counts_file = rf_count_dir+'/%s/raw_counts/bowtie2.sorted.txt' % primer_name
                 assert( os.path.isfile(raw_counts_file) )
                 command = 'gzip %s' % raw_counts_file
                 print(command)
@@ -365,7 +370,7 @@ else: # use RNAFramework
     # rf-rctools view to create an easy to parse .csv
     print()
     for primer_name in primer_names:
-        rc_file = wd + '3_rf_count/%s/bowtie2.rc' % (primer_name)
+        rc_file = wd + '3_rf_count/%s/bowtie2.sorted.rc' % (primer_name)
 
         outdir = wd + '4_rctools/%s' % (primer_name)
         rf_count_file = outdir + '/rf_count.csv'
