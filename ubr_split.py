@@ -5,6 +5,7 @@ import os
 import shutil
 import time
 import glob
+from ubr_util import read_fasta,check_sequence
 
 parser = argparse.ArgumentParser(
                     prog = 'ubr_split.py',
@@ -21,7 +22,8 @@ parser.add_argument('-j','--jobs_per_slurm_node', default=24,type=int )
 parser.add_argument('-ow','--overwrite',action = 'store_true', help='overwrite all previous files')
 parser.add_argument('-nmp','--no_merge_pairs',action = 'store_true',help='do not merge paired end reads before Bowtie2' )
 parser.add_argument('--cmuts',action = 'store_true',help='use cmuts instead of RNAFramework' )
-parser.add_argument('--ultima',action='store_true',help='recognize Ultima adapter in ultraplex')
+parser.add_argument('--precomputed_bowtie_build_dir',default='',help=argparse.SUPPRESS) # precomputed bowtie-build directory, which otherwise takes forever to generate on the fly for >1M seqs
+parser.add_argument('-f','--force',action='store_true',help='override some warnings' )
 
 # Deprecated
 parser.add_argument('--skip_gzip',action='store_true',help=argparse.SUPPRESS) # if FASTQ is not gzipped, leave it gzipped
@@ -35,8 +37,8 @@ parser.add_argument('-me','--max_edit_distance',default=0.0,type=float,help=argp
 parser.add_argument('-mpp','--merge_pairs_pear',action = 'store_true',help=argparse.SUPPRESS)
 parser.add_argument('--force_merge_pairs',action = 'store_true',help=argparse.SUPPRESS) # force merge pairs (don't bother to check for overlap)
 parser.add_argument('--cutadapt',action = 'store_true',help=argparse.SUPPRESS) # force cutadapt trimming of Read2 side for pre-demuxed Ultima
-parser.add_argument('--precomputed_bowtie_build_dir',default='',help=argparse.SUPPRESS) # precomputed bowtie-build directory, which otherwise takes forever to generate on the fly for >1M seqs
 parser.add_argument('--use_tmp_dir',action = 'store_true',help=argparse.SUPPRESS) # For cmuts, run job in /tmp/ to try to reduce disk i/o
+parser.add_argument('--ultima',action='store_true',help=argparse.SUPPRESS) # recognize Ultima adapter in ultraplex
 
 args = parser.parse_args()
 
@@ -65,54 +67,23 @@ assert( os.path.isfile( args.read1_fastq ) )
 assert( args.read2_fastq == None or os.path.isfile( args.read2_fastq ) )
 assert( args.read1_fastq != args.read2_fastq )
 
-# Check FASTA
-# TODO: use biopython or at least shared util.py
-def check_dup(mylist,mytag):
-    if (len(set(mylist)) != len(mylist)):
-        print('%s not unique! %d are duplicates.' % (mytag,len(mylist)-len(set(mylist))) )
-        myset = set()
-        for (i,x) in enumerate(mylist):
-            if x in myset: print('%6d %s' % (i+1,x) )
-            myset.add(x)
-        exit(0)
-    return
-
-def read_fasta( fasta_file ):
-    lines = open( fasta_file ).readlines()
-    sequences = []
-    headers = []
-    header = None
-    sequence = ''
-    for line in lines:
-        if len(line) > 0 and line[0] == '>':
-            if header is not None:
-                headers.append(header)
-                sequences.append(sequence)
-            sequence = ''
-            header = line[1:].strip('\n')
-            continue
-        sequence = sequence + line.strip('\n')
-    if header is not None:
-        headers.append(header)
-        sequences.append(sequence)
-    assert( len(sequences) == len(headers ) )
-    #check_dup( sequences,'Sequences' )
-    check_dup( headers,'Headers' )
-    return (sequences,headers)
 (sequences,headers) = read_fasta( args.sequences_fasta )
 print( 'Read in %d sequences from %s.' % (len(sequences),args.sequences_fasta) )
 (primer_barcodes,primer_names) = read_fasta( args.primer_barcodes_fasta )
 print( 'Read in %d primer barcodes from %s.\n' % (len(primer_barcodes),args.primer_barcodes_fasta) )
 
-def check_sequence(sequence):
-    for c in sequence:
-        if c not in 'ACGTU': return False
-    return True
-
 for sequence in sequences:
     if not check_sequence(sequence): exit('problem with sequence in sequences file: %s' % sequence )
 for sequence in primer_barcodes:
     if not check_sequence(sequence): exit('problem with sequence in primer barcode file: %s' % sequence )
+
+if len(sequences)>1000000:
+    if not args.precomputed_bowtie_build_dir:
+        print( '\nYou have a lot of sequences. It is recommended to pre-index bowtie2 build with:\n\n ubr_util.py --build_bowtie2_index -s %s\n\nThen re-run this script with flag --precomputed_bowtie_build_dir bowtie-build.\n(To bypass this message, use --force)\n' % args.sequences_fasta )
+        if not args.force: exit()
+    if not args.cmuts:
+        print( '\nYou have a lot of sequences. It is recommended to use cmuts with the flag --cmuts.\n(To bypass this message, use --force)\n')
+        if not args.force: exit()
 
 # Do the split
 split_dir = 'UBR'
