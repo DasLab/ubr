@@ -71,6 +71,7 @@ assert( args.read1_fastq != args.read2_fastq )
 print( 'Read in %d sequences from %s.' % (len(sequences),args.sequences_fasta) )
 (primer_barcodes,primer_names) = read_fasta( args.primer_barcodes_fasta )
 print( 'Read in %d primer barcodes from %s.\n' % (len(primer_barcodes),args.primer_barcodes_fasta) )
+for primer_name in primer_names: assert( primer_name.find(' ')==-1 )
 
 if len(sequences)>1000000:
     if not args.precomputed_bowtie_build_dir:

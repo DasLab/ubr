@@ -71,6 +71,8 @@ read2_fastq = args.read2_fastq
 print( 'Read in %d sequences from %s.' % (len(sequences),args.sequences_fasta) )
 (primer_barcodes,primer_names) = read_fasta( args.primer_barcodes_fasta, args.force )
 print( 'Read in %d primer barcodes from %s.' % (len(primer_barcodes),args.primer_barcodes_fasta) )
+for primer_name in primer_names: assert( primer_name.find(' ')==-1 )
+
 if args.ultima: primer_barcodes = [ 'CTACACGACGCTCTTCCGATCT'+barcode for barcode in primer_barcodes ]
 
 if len(sequences)>1000000:
@@ -138,7 +140,7 @@ time_merge_pairs = time.time()
 # Ultraplex -- round 1 to demultiplex with respect to reverse transcription primers (e.g., RTB barcodes).
 primer_barcodes_csv_file = wd + 'primer_barcodes.csv'
 fid = open( primer_barcodes_csv_file, 'w' )
-for barcode in primer_barcodes:  fid.write( barcode+'\n' )
+for (primer_name,barcode) in zip(primer_names,primer_barcodes):  fid.write( barcode+':'+primer_name+'\n' )
 fid.close()
 
 outdir = wd + '1_ultraplex/'
@@ -149,10 +151,10 @@ print()
 any_ultraplex_out_files = False
 for primer_barcode,primer_name in zip(primer_barcodes,primer_names):
     if read2_fastq and not merge_pairs:
-        i1 = wd + '1_ultraplex/ultraplex_demux_5bc_%s_Fwd.fastq.gz'  % primer_barcode
-        i2 = wd + '1_ultraplex/ultraplex_demux_5bc_%s_Rev.fastq.gz'  % primer_barcode
+        i1 = wd + '1_ultraplex/ultraplex_demux_%s_Fwd.fastq.gz'  % primer_name
+        i2 = wd + '1_ultraplex/ultraplex_demux_%s_Rev.fastq.gz'  % primer_name
     else:
-        i1 = wd + '1_ultraplex/ultraplex_demux_5bc_%s.fastq.gz'  % primer_barcode
+        i1 = wd + '1_ultraplex/ultraplex_demux_%s.fastq.gz'  % primer_name
         i2 = ''
 
     if os.path.isfile(i1) or os.path.isfile(i2):
@@ -163,8 +165,8 @@ for primer_barcode,primer_name in zip(primer_barcodes,primer_names):
 skip_ultraplex = args.skip_ultraplex
 for (primer_barcode,primer_name) in zip(primer_barcodes,primer_names):
     if read1_fastq.find( primer_barcode ) > -1 or read1_fastq.find( primer_name ) > -1:
-        print('Detected primer %s in name of FASTQ file %s. Assuming FASTQ has already been demultiplexed.' % (primer_barcode,read1_fastq))
-        i1 = wd + '1_ultraplex/ultraplex_demux_5bc_%s.fastq.gz'  % primer_barcode
+        print('Detected primer %s (%s) in name of FASTQ file %s. Assuming FASTQ has already been demultiplexed.' % (primer_name,primer_barcode,read1_fastq))
+        i1 = wd + '1_ultraplex/ultraplex_demux_%s.fastq.gz'  % primer_name
         if args.cutadapt:
             command = 'cutadapt --trimmed-only %s -a  AGATCGGAAGAGCACA -o %s' % (read1_fastq,i1)
         else:
@@ -192,7 +194,7 @@ time_ultraplex1 = time.time()
 if args.excise_barcode:
     assert( merge_pairs )
     for primer_barcode,primer_name in zip(primer_barcodes,primer_names):
-        i1 = wd + '1_ultraplex/ultraplex_demux_5bc_%s.fastq.gz'  % primer_barcode
+        i1 = wd + '1_ultraplex/ultraplex_demux_%s.fastq.gz'  % primer_name
         i1_save = i1.replace('.fastq.gz','.SAVE.fastq.gz')
         if not os.path.isfile( i1_save ):
             assert( os.path.isfile( i1 ) )
@@ -213,13 +215,13 @@ seq_file = create_seq_fasta( sequences, headers, wd )
 
 for primer_barcode,primer_name in zip(primer_barcodes,primer_names):
     if read2_fastq:
-        i1 = wd + '1_ultraplex/ultraplex_demux_5bc_%s_Fwd.fastq.gz'  % primer_barcode
-        i2 = wd + '1_ultraplex/ultraplex_demux_5bc_%s_Rev.fastq.gz'  % primer_barcode
+        i1 = wd + '1_ultraplex/ultraplex_demux_%s_Fwd.fastq.gz'  % primer_name
+        i2 = wd + '1_ultraplex/ultraplex_demux_%s_Rev.fastq.gz'  % primer_name
         if not os.path.isfile(i1): continue
         if not os.path.isfile(i2): continue
         fastq_flags = ' -1 %s -2 %s' % (i1,i2)
     else:
-        i1 = wd + '1_ultraplex/ultraplex_demux_5bc_%s.fastq.gz'  % primer_barcode
+        i1 = wd + '1_ultraplex/ultraplex_demux_%s.fastq.gz'  % primer_name
         if not os.path.isfile(i1): continue
         fastq_flags = ' -U %s' % i1
 
