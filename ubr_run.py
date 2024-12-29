@@ -25,6 +25,7 @@ parser.add_argument('-nmp','--no_merge_pairs',action = 'store_true',help='do not
 parser.add_argument('--cmuts',action = 'store_true',help='use cmuts instead of RNAFramework' )
 parser.add_argument('--precomputed_bowtie_build_dir',default='',help=argparse.SUPPRESS) # precomputed bowtie-build directory, which otherwise takes forever to generate on the fly for >1M seqs
 parser.add_argument('-f','--force',action='store_true',help='override some warnings' )
+parser.add_argument('--dedup',action='store_true',help='dedup if N''s in barcode' )
 
 # Deprecated/secret
 parser.add_argument('--excise_barcode',default=0,type=int,help=argparse.SUPPRESS) # 'remove this many nucleotides from merged FASTQ and sequences' )
@@ -58,6 +59,7 @@ assert( shutil.which( 'bbmerge.sh' ) )
 assert( shutil.which( 'java' ) )
 if args.merge_pairs_pear: assert( shutil.which('pear') )
 if args.cutadapt: assert( shutil.which( 'cutadapt' ) )
+if args.dedup: assert( shutil.which('umi_tools') )
 
 assert( os.path.isfile( args.sequences_fasta ) )
 assert( os.path.isfile( args.primer_barcodes_fasta ) )
@@ -142,6 +144,15 @@ primer_barcodes_csv_file = wd + 'primer_barcodes.csv'
 fid = open( primer_barcodes_csv_file, 'w' )
 for (primer_name,barcode) in zip(primer_names,primer_barcodes):  fid.write( barcode+':'+primer_name+'\n' )
 fid.close()
+
+# Don't run dedup
+dedup = args.dedup
+barcodes_have_N = False
+for barcode in primer_barcodes:
+    if barcode.find('N')>-1:  barcodes_have_N = True
+if dedup and not barcodes_have_N:
+    print('\nAsked for --dedup but no N''s in any barcodes. Will not deduplicate.')
+    dedup = False
 
 outdir = wd + '1_ultraplex/'
 os.makedirs(outdir,exist_ok = True)
@@ -264,6 +275,26 @@ for (n,primer_name) in enumerate(primer_names):
         print(command)
         os.system( command )
 
+if dedup:
+    for (n,primer_name) in enumerate(primer_names):
+        bowtie_align_dir = wd + '2_bowtie2/%s' % (primer_name)
+        sorted_bam_file = '%s/bowtie2.sorted.bam' % bowtie_align_dir
+        if not os.path.isfile( sam_file ): continue
+
+        sorted_bam_index_file = '%s.bai' % sorted_bam_file
+        if args.overwrite or not os.path.isfile( sorted_bam_index_file ):
+            command = 'samtools index %s > %s/bai.log 2> %s/bai.err' % (sorted_bam_file,bowtie_align_dir,bowtie_align_dir)
+            print(command)
+            os.system( command )
+
+        dedup_bam_file = '%s/bowtie2.sorted.dedup.bam' % bowtie_align_dir
+        if args.overwrite or not os.path.isfile( dedup_bam_file ):
+            dedup_log_file = '%s/bowtie2.sorted.dedup.log' % bowtie_align_dir
+            command = "umi_tools dedup --stdin=%s --log=%s --umi-separator=':'  > %s" % (sorted_bam_file,dedup_log_file,dedup_bam_file)
+            print(command)
+            os.system( command )
+
+
 time_bowtie2 = time.time()
 
 if args.cmuts:
@@ -277,6 +308,7 @@ if args.cmuts:
         os.makedirs(outdir,exist_ok = True)
 
         sorted_bam_file = '%s/bowtie2.sorted.bam' % bowtie_align_dir
+        if dedup: sorted_bam_file = '%s/bowtie2.sorted.dedup.bam' % bowtie_align_dir
 
         sorted_bam_index_file = '%s.bai' % sorted_bam_file
         if args.overwrite or not os.path.isfile( sorted_bam_index_file ):
@@ -330,13 +362,15 @@ else: # use RNAFramework
     print()
     rf_count_dir = wd + '3_rf_count'
     os.makedirs(rf_count_dir,exist_ok = True)
+    bowtie2_tag = 'bowtie2.sorted'
+    if dedup:  bowtie2_tag = 'bowtie2.sorted.dedup'
     for (n,primer_name) in enumerate(primer_names):
         bowtie_align_dir = wd + '2_bowtie2/%s/' % (primer_name)
-        bam_file = '%s/bowtie2.sorted.bam' % bowtie_align_dir
-        if not os.path.isfile( sam_file ): continue
+        bam_file = '%s/%s.bam' % (bowtie_align_dir,bowtie2_tag)
+        if not os.path.isfile( bam_file ): continue
 
         outdir = '%s/%s' % (rf_count_dir,primer_name)
-        if args.overwrite or not os.path.isfile(outdir+'/bowtie2.sorted.rc'):
+        if args.overwrite or not os.path.isfile(outdir+'/'+bowtie2_tag+'.rc'):
             # need to remove dir and start job; rf-count's overwrite option does crazy things.
             if os.path.isdir(outdir): shutil.rmtree(outdir)
             rf_count_outfile = rf_count_dir+'/rf-count_%s.out' % primer_name
@@ -356,7 +390,7 @@ else: # use RNAFramework
             os.system( command )
 
             if not args.no_output_raw_counts:
-                raw_counts_file = rf_count_dir+'/%s/raw_counts/bowtie2.sorted.txt' % primer_name
+                raw_counts_file = rf_count_dir+'/%s/raw_counts/%s.txt' % (primer_name,bowtie2_tag)
                 assert( os.path.isfile(raw_counts_file) )
                 command = 'gzip %s' % raw_counts_file
                 print(command)
@@ -370,7 +404,7 @@ else: # use RNAFramework
     # rf-rctools view to create an easy to parse .csv
     print()
     for primer_name in primer_names:
-        rc_file = wd + '3_rf_count/%s/bowtie2.sorted.rc' % (primer_name)
+        rc_file = wd + '3_rf_count/%s/%s.rc' % (primer_name,bowtie2_tag)
 
         outdir = wd + '4_rctools/%s' % (primer_name)
         rf_count_file = outdir + '/rf_count.csv'

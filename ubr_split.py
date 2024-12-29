@@ -24,6 +24,7 @@ parser.add_argument('-nmp','--no_merge_pairs',action = 'store_true',help='do not
 parser.add_argument('--cmuts',action = 'store_true',help='use cmuts instead of RNAFramework' )
 parser.add_argument('--precomputed_bowtie_build_dir',default='',help=argparse.SUPPRESS) # precomputed bowtie-build directory, which otherwise takes forever to generate on the fly for >1M seqs
 parser.add_argument('-f','--force',action='store_true',help='override some warnings' )
+parser.add_argument('--dedup',action='store_true',help='dedup if N''s in barcode' )
 
 # Deprecated
 parser.add_argument('--skip_gzip',action='store_true',help=argparse.SUPPRESS) # if FASTQ is not gzipped, leave it gzipped
@@ -192,6 +193,7 @@ for i in range(1,nsplits+1):
     if args.max_edit_distance > 0:  extra_flags += ' --max_edit_distance %f' % args.max_edit_distance
     if args.score_min != None:  extra_flags += ' --score_min %s' % args.score_min
     if args.no_merge_pairs:  extra_flags += ' --no_merge_pairs'
+    if args.dedup:  extra_flags += ' --dedup'
     if args.merge_pairs_pear:  extra_flags += ' --merge_pairs_pear'
     if args.force_merge_pairs:  extra_flags += ' --force_merge_pairs'
     if args.ultima:  extra_flags += ' --ultima'
