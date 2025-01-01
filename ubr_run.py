@@ -463,7 +463,7 @@ else: # use RNAFramework
     outdir = wd+'raw_counts/'
     os.makedirs(outdir,exist_ok = True)
     for primer_name in primer_names:
-        infile = wd + '3_rf_count/%s/raw_counts/bowtie2.txt.gz' % (primer_name)
+        infile = wd + '3_rf_count/%s/raw_counts/%s.txt.gz' % (primer_name,bowtie2_tag)
         if os.path.isfile( infile ):
             lines = gzip.open(infile,'rt').readlines()
             N = int(len(lines)/16)
