@@ -42,6 +42,7 @@ parser.add_argument('--cutadapt',action = 'store_true',help=argparse.SUPPRESS) #
 parser.add_argument('--no_collapse',action = 'store_true',help=argparse.SUPPRESS) # no collapse option in rf-count
 parser.add_argument('--use_tmp_dir',action = 'store_true',help=argparse.SUPPRESS) # For cmuts, run job in /tmp/ to try to reduce disk i/o
 parser.add_argument('--ultima',action='store_true',help=argparse.SUPPRESS) # recognize Ultima adapter in ultraplex
+parser.add_argument('--minimap2',action='store_true',help=argparse.SUPPRESS) # use minimap2 instead of bowtie2
 
 args = parser.parse_args()
 assert( not( args.no_merge_pairs and args.merge_pairs_pear ) )
@@ -50,8 +51,11 @@ time_start = time.time()
 
 # Check executables!
 if not args.skip_ultraplex: assert( shutil.which( 'ultraplex' ) )
-assert( shutil.which( 'bowtie2-build' ) )
-assert( shutil.which( 'bowtie2' ) )
+if args.minimap2:
+    assert( shutil.which( 'minimap2' ) )
+else:
+    assert( shutil.which( 'bowtie2-build' ) )
+    assert( shutil.which( 'bowtie2' ) )
 if args.cmuts: assert( shutil.which( 'cmuts' ))
 else: assert( shutil.which( 'rf-count' ) )
 assert( shutil.which( 'samtools' ) )
@@ -245,7 +249,7 @@ for primer_barcode,primer_name in zip(primer_barcodes,primer_names):
     if args.no_mixed: extra_flags += ' --no-mixed'
     if args.score_min != None:  extra_flags += ' --score-min %s' % args.score_min
     if not os.path.isfile( sam_file ) or args.overwrite:
-        if not os.path.isfile(bt2_file) or args.overwrite:
+        if (not os.path.isfile(bt2_file) or args.overwrite) and not args.minimap2:
             if len(args.precomputed_bowtie_build_dir)>0:
                 #os.symlink( os.path.abspath(args.precomputed_bowtie_build_dir), bowtie_build_dir,target_is_directory=True )
                 #print( 'Symlinked %s to %s.' % (args.precomputed_bowtie_build_dir, bowtie_build_dir) )
@@ -255,10 +259,24 @@ for primer_barcode,primer_name in zip(primer_barcodes,primer_names):
             print(command)
             os.system( command )
 
-        # previously used --local --sensitive-local, but bowtie2 would punt on aligning 3' ends and misalign reads to some short parasite replicons.
-        command = 'bowtie2 --end-to-end --sensitive --maxins=800 --ignore-quals --no-unal --mp 3,1 --rdg 5,1 --rfg 5,1 --dpad 30 -x %s %s -S %s --threads %d %s > %s/bowtie2.out 2> %s/bowtie2.err' % (bt2_prefix,fastq_flags,sam_file,args.threads,extra_flags,outdir,outdir)
-        print(command)
-        os.system( command )
+        if args.minimap2:
+            # a bit of a hack -- really should change names of directories and files to be minimap2 instead of bowtie2
+            # note: minimap2 also allows precompilation of index and special options customized for illumina or pacbio -- would be worth trying.
+            assert(not read2_fastq)
+            minimap2_sam_file = '%s/minimap2.sam' % outdir
+            command = 'minimap2 -c -a %s %s > %s  2> %s/minimap2.err' % (seq_file,i1,minimap2_sam_file,outdir)
+            print(command)
+            os.system( command )
+
+            # need CIGAR strings, so use samtools calmd and output to 'bowtie2.sam'
+            command = 'samtools calmd %s %s > %s 2> %s/calmd.err' % (minimap2_sam_file,seq_file,sam_file,outdir)
+            print(command)
+            os.system( command )
+        else:
+            # previously used --local --sensitive-local, but bowtie2 would punt on aligning 3' ends and misalign reads to some short parasite replicons.
+            command = 'bowtie2 --end-to-end --sensitive --maxins=800 --ignore-quals --no-unal --mp 3,1 --rdg 5,1 --rfg 5,1 --dpad 30 -x %s %s -S %s --threads %d %s > %s/bowtie2.out 2> %s/bowtie2.err' % (bt2_prefix,fastq_flags,sam_file,args.threads,extra_flags,outdir,outdir)
+            print(command)
+            os.system( command )
     else:
         print( 'Skipping bowtie2-align for %s' % outdir )
 
