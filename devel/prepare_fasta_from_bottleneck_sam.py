@@ -24,19 +24,21 @@ ref_seq = args.sequence
 rna_length = len(ref_seq)
 sam_file = args.sam_file
 
-assert( shutil.which( 'samtools' ) )
+SAMTOOLS='samtools'
+if os.path.isfile('/home/groups/rhiju/rhiju/src/samtools-1.20/samtools'): SAMTOOLS='/home/groups/rhiju/rhiju/src/samtools-1.20/samtools'
+assert( shutil.which( SAMTOOLS ) )
 
 if args.markdup:
     assert( sam_file.find('.sam') > -1 )
     sort_file = sam_file.replace('.sam','.sorted.sam')
     if not os.path.isfile( sort_file ):
-        command = 'samtools sort %s -o %s' % (sam_file, sort_file)
+        command = '%s sort %s -o %s' % (SAMTOOLS,sam_file, sort_file)
         print( command )
         os.system( command )
     assert( os.path.isfile( sort_file ) )
     markdup_file = sam_file.replace('.sam','.sorted.markdup.sam')
     if not os.path.isfile( markdup_file ):
-        command = 'samtools markdup -r -s -f %s %s %s --duplicate-count' % (markdup_file+'.txt',sort_file,markdup_file)
+        command = '%s markdup -r -s -f %s %s %s --duplicate-count' % (SAMTOOLS,markdup_file+'.txt',sort_file,markdup_file)
         print( command )
         os.system( command )
     assert( os.path.isfile( markdup_file ) )
