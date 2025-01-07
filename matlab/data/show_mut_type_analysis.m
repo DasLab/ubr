@@ -2,10 +2,8 @@ function show_mut_type_analysis( mut_rate_matrix,rfcount_mut_rate_profiles,tags,
 % run_mut_type_analysis( m,c,rc,tags,labels,BLANK_OUT5, BLANK_OUT3)
 %
 % Inputs
-%   m  = [Ndesigns x Nres x Ntags] mutation counts 
-%   c  = [Ndesigns x Nres x Ntags] coverage counts 
-%   rc = [Ndesigns x Nres x Nmuttypes x Ntags] coverage counts, divided by
-%            mutation type (comes out of RNA-framework with -orc flag)
+%   mut_rate_matrix  = [Nres x Nmuttypes x Ntags] mutation rates, subdivided by mutation type 
+%   rfcount_mut_rate_profiles  = [Nres x Ntags] mutation counts  
 %   tags = {cell of Ntags strings} tags for each condition. Ex:
 %                               {'RTB000_1M7','RTB002_nomod'};
 %   labels =   {cell of Ntags strings} human-readable labels for each
@@ -23,7 +21,7 @@ clf
 mut_types = {'AC','AG','AT','CA','CG','CT','GA','GC','GT','TA','TC','TG','ins','del'};
 for i = 1:length(tags)
     subplot( length(tags),1,i); 
-    imagesc(mut_rate_matrix(:,:,i)',[0 0.01])
+    imagesc(mut_rate_matrix(:,:,i)',[0 0.01]);
     set(gca,'ytick',[1:length(mut_types)],'YTickLabels',mut_types,'tickdir','out')
     title( labels{i},'interp','none');
     colorbar();
