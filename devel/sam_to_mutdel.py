@@ -60,8 +60,9 @@ cols = line.split()
 
 while line:
     cols = line.split()
+    start_pos = int(cols[3])
     cigar = cols[5]
-    aln_pos = int(cols[8])
+    signed_tmpl_len = int(cols[8])
     seq = cols[9]
     if ( id != cols[2] ): (full_sequence,id) = figure_out_sequence(cols[2])
 
@@ -72,6 +73,7 @@ while line:
     cpos = 0 # cigar position
     spos = 0 # sequence position
     seqa = ''
+    seqa += '.'*(start_pos-1)
     for k,s in enumerate(cigar):
         num = cigar[cpos:(k+1)]
         if not num.isnumeric():
@@ -86,9 +88,11 @@ while line:
             elif indelcode == 'I':
                 spos += nres
             cpos = k+1 # advance to next chunk of cigar string
+    print(full_sequence)
+    print(seqa)
     assert(len(seqa) <= len(full_sequence))
-    #TODO actually take into account aln_pos, rather than assuming aligned to beginning/end of sequence.
-    if aln_pos < 0:
+    #TODO actually take into account signed_tmpl_len, rather than assuming aligned to beginning/end of sequence.
+    if signed_tmpl_len < 0:
         seqa = '.'*(len(full_sequence)-len(seqa)) + seqa
     else:
         seqa = seqa + '.'*(len(full_sequence)-len(seqa))
