@@ -257,7 +257,7 @@ for filename in merge_files:
 
                 chunk = ds_all[0][ds_type][s]
                 for (q,ds) in enumerate(ds_all[1:]):
-                    print( 'Adding chunk %d of %d from file %d of %d' % (k+1,len(chunks),q+2,len(ds_all)) )
+                    if args.start_seq > 0: print( 'Adding chunk %d of %d from file %d of %d' % (k+1,len(chunks),q+2,len(ds_all)) )
                     chunk += ds[ds_type][s]
                     if (q % 10) == 0: ds_out[ds_type][s] = chunk # to allow tracking of progress...
                 time_end_read = time.time()
