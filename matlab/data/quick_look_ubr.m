@@ -104,6 +104,7 @@ if ~exist( 'BLANK_OUT5','var') BLANK_OUT5 = []; end;
 if ~exist( 'BLANK_OUT3','var') BLANK_OUT3 = []; end;
 if ~exist( 'structure_csv_file','var') structure_csv_file = ''; end;
 if ~exist( 'shape_nomod_idx','var') | isempty(shape_nomod_idx); shape_nomod_idx = {}; end;
+if ~iscell(shape_nomod_idx) & isnumeric(shape_nomod_idx); shape_nomod_idx = cell(shape_nomod_idx); end;
 if ~exist( 'options', 'var') options = {}; end;
 if ~exist( 'seq_range', 'var') seq_range = []; end;
 if length(seq_range)==1; seq_range = [1 seq_range(1)]; end;
