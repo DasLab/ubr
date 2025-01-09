@@ -52,6 +52,16 @@ def check_stats( ubr_run_dir ):
                 if line.find('exactly')>-1: numreads_align += int(line.split()[0])
                 if line.find('>1 times')>-1: numreads_align += int(line.split()[0])
 
+    #minimap2 (alternative to bowtie2)
+    logfiles = glob.glob('%s/2_bowtie2/*/minimap2.err' % ubr_run_dir)
+    numreads_align_minimap2 = 0
+    if len( logfiles ) > 0:
+        for logfile in logfiles:
+            lines = open( logfile ).readlines()
+            numreads = 0
+            for line in lines:
+                if line.find('mapped')>-1: numreads_align_minimap2 += int(line.split()[2])
+
     # rf-count
     numreads_into_rfcount = numreads_counted = 0
     logfiles = glob.glob('%s/3_rf_count/*out' % ubr_run_dir)
@@ -66,6 +76,21 @@ def check_stats( ubr_run_dir ):
                         cols = line.split()[15].split('/')
                         numreads_into_rfcount += int(cols[1])
                         numreads_counted += int(cols[0])
+
+    # cmuts (alternative to rf-count)
+    numreads_into_cmuts = numreads_counted_cmuts = 0
+    logfiles = glob.glob('%s/3_cmuts/*log' % ubr_run_dir)
+    if len( logfiles ) > 0:
+        for logfile in logfiles:
+            lines = open( logfile ).readlines()
+            numreads = 0
+            for line in lines:
+                if line.find('Total')>-1 and line.find('reads')>-1:
+                    cols = line.split()
+                    numreads_into_cmuts += int(cols[-1])
+                if line.find('Mapped')>-1:
+                    cols = line.split()
+                    numreads_counted_cmuts += int(cols[-1])
 
     def writeout(tag,numreads,numreads_prev, allreads):
         if numreads>0:
@@ -84,8 +109,14 @@ def check_stats( ubr_run_dir ):
     writeout( 'Demultiplexed', numreads_demultiplexed, numreads_into_demux, allreads )
     writeout( 'Into bowtie2', numreads_into_bt2, numreads_demultiplexed, allreads )
     writeout( 'Aligned bowtie2', numreads_align, numreads_into_bt2, allreads )
+    writeout( 'Aligned minimap2', numreads_align_minimap2, numreads_demultiplexed, allreads )
     writeout( 'Into rf-count', numreads_into_rfcount, numreads_align, allreads )
     writeout( 'Counted rf-count', numreads_counted, numreads_into_rfcount, allreads )
+    if numreads_align_minimap2>0:
+        writeout( 'Into cmuts', numreads_into_cmuts, numreads_align_minimap2, allreads )
+    else:
+        writeout( 'Into cmuts', numreads_into_cmuts, numreads_align, allreads )
+    writeout( 'Counted cmuts', numreads_counted_cmuts, numreads_into_cmuts, allreads )
     if len(allreads)>0: print( 'Overall: %9d/%9d = %6.2f%% ' % (min(allreads),max(allreads),100*min(allreads)/max(allreads)))
     print()
 
