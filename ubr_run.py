@@ -264,14 +264,20 @@ for primer_barcode,primer_name in zip(primer_barcodes,primer_names):
             # note: minimap2 also allows precompilation of index and special options customized for illumina or pacbio -- would be worth trying.
             assert(not read2_fastq)
             minimap2_sam_file = '%s/minimap2.sam' % outdir
-            command = 'minimap2 -c -a %s %s > %s  2> %s/minimap2.err' % (seq_file,i1,minimap2_sam_file,outdir)
+            command = 'minimap2 -c -t %d --MD -a %s %s > %s  2> %s/minimap2.err' % (args.threads,seq_file,i1,minimap2_sam_file,outdir)
             print(command)
             os.system( command )
 
-            # need CIGAR strings, so use samtools calmd and output to 'bowtie2.sam'
-            command = 'samtools calmd %s %s > %s 2> %s/calmd.err' % (minimap2_sam_file,seq_file,sam_file,outdir)
+            ## need CIGAR strings, so use samtools calmd and output to 'bowtie2.sam'
+            #command = 'samtools calmd %s %s > %s 2> %s/calmd.err' % (minimap2_sam_file,seq_file,sam_file,outdir)
+            #print(command)
+            #os.system( command )
+
+            ## Filter out supplemental alignments and output to 'bowtie2.sam'
+            command = 'samtools view -h -F 256 -F 2048 %s -o %s ' % (minimap2_sam_file,sam_file)
             print(command)
             os.system( command )
+
         else:
             # previously used --local --sensitive-local, but bowtie2 would punt on aligning 3' ends and misalign reads to some short parasite replicons.
             command = 'bowtie2 --end-to-end --sensitive --maxins=800 --ignore-quals --no-unal --mp 3,1 --rdg 5,1 --rfg 5,1 --dpad 30 -x %s %s -S %s --threads %d %s > %s/bowtie2.out 2> %s/bowtie2.err' % (bt2_prefix,fastq_flags,sam_file,args.threads,extra_flags,outdir,outdir)
