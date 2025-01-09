@@ -105,6 +105,7 @@ for line in lines:
     for (i,pos) in enumerate(n_pos):
         if (i>0 and pos > n_pos[i-1]+1): header += '_'
         header += rna_seq[pos]
+    header += ' counts:%d' % int(count)
 
     headers.append(header)
     rna_seqs.append(rna_seq)
