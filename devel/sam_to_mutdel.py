@@ -88,8 +88,6 @@ while line:
             elif indelcode == 'I':
                 spos += nres
             cpos = k+1 # advance to next chunk of cigar string
-    print(full_sequence)
-    print(seqa)
     assert(len(seqa) <= len(full_sequence))
     #TODO actually take into account signed_tmpl_len, rather than assuming aligned to beginning/end of sequence.
     if signed_tmpl_len < 0:
