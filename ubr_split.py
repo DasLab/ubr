@@ -40,6 +40,7 @@ parser.add_argument('--force_merge_pairs',action = 'store_true',help=argparse.SU
 parser.add_argument('--cutadapt',action = 'store_true',help=argparse.SUPPRESS) # force cutadapt trimming of Read2 side for pre-demuxed Ultima
 parser.add_argument('--use_tmp_dir',action = 'store_true',help=argparse.SUPPRESS) # For cmuts, run job in /tmp/ to try to reduce disk i/o
 parser.add_argument('--ultima',action='store_true',help=argparse.SUPPRESS) # recognize Ultima adapter in ultraplex
+parser.add_argument('--minimap2',action='store_true',help=argparse.SUPPRESS) # use minimap2 instead of bowtie2
 
 args = parser.parse_args()
 
@@ -53,8 +54,11 @@ time_start = time.time()
 # Check for executable!
 assert( shutil.which( 'seqkit' ) )
 assert( shutil.which( 'ultraplex' ) )
-assert( shutil.which( 'bowtie2-build' ) )
-assert( shutil.which( 'bowtie2' ) )
+if args.minimap2:
+    assert( shutil.which( 'minimap2' ) )
+else:
+    assert( shutil.which( 'bowtie2-build' ) )
+    assert( shutil.which( 'bowtie2' ) )
 assert( shutil.which( 'rf-count' ) )
 assert( shutil.which( 'samtools' ) )
 assert( shutil.which( 'bbmerge.sh' ) )
@@ -197,6 +201,7 @@ for i in range(1,nsplits+1):
     if args.merge_pairs_pear:  extra_flags += ' --merge_pairs_pear'
     if args.force_merge_pairs:  extra_flags += ' --force_merge_pairs'
     if args.ultima:  extra_flags += ' --ultima'
+    if args.minimap2:  extra_flags += ' --minimap2'
     if args.cmuts:  extra_flags += ' --cmuts'
     if args.cutadapt:  extra_flags += ' --cutadapt'
     if args.use_tmp_dir:  extra_flags += ' --use_tmp_dir'
