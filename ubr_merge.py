@@ -8,6 +8,7 @@ import shutil
 import time
 import gzip
 import math
+import importlib.util
 
 parser = argparse.ArgumentParser(
                     prog = 'ubr_merge.py',
@@ -67,11 +68,16 @@ if merge_files == None:
 if args.no_overwrite:
     merge_files = [x for x in merge_files if not os.path.isfile(x) and not os.path.isfile('raw_counts/%s' % x) ]
 
-has_hdf5 = False
+use_h5py = False
 print('\nWill merge:')
 for merge_file in merge_files:
     print(merge_file)
-    if merge_file.find( '.hdf5')>-1: has_hdf5 = True
+    if merge_file.find( '.hdf5')>-1: use_h5py = True
+
+if use_h5py:
+    if importlib.util.find_spec('h5py') == None:
+        print( '\nPlease install h5py before running this command, e.g., using\n module load py-h5py/3.10.0_py312' )
+        exit()
 
 if args.setup_slurm and args.nsplits==0:
     if len(merge_files) < args.jobs_per_slurm_node:
@@ -79,7 +85,7 @@ if args.setup_slurm and args.nsplits==0:
         fid_slurm = open( sbatch_file, 'w' )
         sbatch_preface = '#!/bin/bash\n#SBATCH --job-name=ubr_merge\n#SBATCH --output=ubr_merge.o%%j\n#SBATCH --error=ubr_merge.e%%j\n#SBATCH --partition=biochem,owners\n#SBATCH --time=8:00:00\n#SBATCH -n %d\n#SBATCH -N 1\n#SBATCH --mem=%dG\n\n' % (len(merge_files),4*len(merge_files))
         fid_slurm.write( sbatch_preface )
-        if has_hdf5: fid_slurm.write('ml py-h5py/3.10.0_py312\n')
+        if use_h5py: fid_slurm.write('ml py-h5py/3.10.0_py312\n')
         outdir_tag = ''
         if len(args.outdir)>0: outdir_tag = ' --outdir %s' % args.outdir
         for merge_file in merge_files:
@@ -96,7 +102,7 @@ if args.setup_slurm and args.nsplits==0:
         fid_slurm = open( '%s/run_ubr_merge_%03d.sh' % (slurm_file_dir, slurm_file_count), 'w' )
         sbatch_preface = '#!/bin/bash\n#SBATCH --job-name=ubr_merge\n#SBATCH --output=ubr_merge.o%%j\n#SBATCH --error=ubr_merge.e%%j\n#SBATCH --partition=biochem,owners\n#SBATCH --time=8:00:00\n#SBATCH -n %d\n#SBATCH -N 1\n#SBATCH --mem=%dG\n\n' % (args.jobs_per_slurm_node,4*args.jobs_per_slurm_node)
         fid_slurm.write( sbatch_preface )
-        if has_hdf5: fid_slurm.write('ml py-h5py/3.10.0_py312\n')
+        if use_h5py: fid_slurm.write('ml py-h5py/3.10.0_py312\n')
         fid_sbatch_commands = open( 'sbatch_merge_commands.sh', 'w')
 
         for (i,merge_file) in enumerate(merge_files):
