@@ -6,6 +6,8 @@ import glob
 import shutil
 import time
 import gzip
+import importlib.util
+from ubr_util import read_fasta
 
 parser = argparse.ArgumentParser(
                     prog = 'ubr_subdivide.py',
@@ -46,8 +48,15 @@ if subdivide_files == None:
     subdivide_files = unique_files
 
 print('\nWill subdivide:')
+use_h5py = False
 for subdivide_file in subdivide_files:
     print(subdivide_file)
+    if subdivide_file.find('.hdf5')>-1: use_h5py = True
+
+if use_h5py:
+    if importlib.util.find_spec('h5py') == None:
+        print( '\nPlease install h5py before running this command, e.g., using\n module load py-h5py/3.10.0_py312' )
+        exit()
 
 if args.setup_slurm:
     # TODO: unify with same code block in ubr_merge.py
@@ -87,29 +96,6 @@ if args.setup_slurm:
         print( '\nCreated %s slurm files containing %d commands. Run:\n source %s\n\n' % (slurm_file_count,len(subdivide_files),fid_sbatch_commands.name) )
     exit(0)
 
-
-# Check FASTA
-# TODO: use biopython or at least shared util.py
-def read_fasta( fasta_file ):
-    lines = open( fasta_file ).readlines()
-    sequences = []
-    headers = []
-    header = None
-    sequence = ''
-    for line in lines:
-        if len(line) > 0 and line[0] == '>':
-            if header is not None:
-                headers.append(header)
-                sequences.append(sequence)
-            sequence = ''
-            header = line[1:].strip('\n')
-            continue
-        sequence = sequence + line.strip('\n')
-    if header is not None:
-        headers.append(header)
-        sequences.append(sequence)
-    assert( len(sequences) == len(headers ) )
-    return (sequences,headers)
 (sequences,headers) = read_fasta( args.sequences_fasta )
 print( '\nRead in %d sequences from %s.' % (len(sequences),args.sequences_fasta) )
 
