@@ -43,6 +43,7 @@ parser.add_argument('--no_collapse',action = 'store_true',help=argparse.SUPPRESS
 parser.add_argument('--use_tmp_dir',action = 'store_true',help=argparse.SUPPRESS) # For cmuts, run job in /tmp/ to try to reduce disk i/o
 parser.add_argument('--ultima',action='store_true',help=argparse.SUPPRESS) # recognize Ultima adapter in ultraplex
 parser.add_argument('--minimap2',action='store_true',help=argparse.SUPPRESS) # use minimap2 instead of bowtie2
+parser.add_argument('--min_cov_base_quality', default=0, type=int, help=argparse.SUPPRESS ) #for cmuts. ubr default is 0, though cmuts default is 20
 
 args = parser.parse_args()
 assert( not( args.no_merge_pairs and args.merge_pairs_pear ) )
@@ -358,7 +359,7 @@ if args.cmuts:
                 os.makedirs(rand_dir,exist_ok = True)
                 hdf5_outfile = '%s/%s.hdf5' % (rand_dir,primer_name)
                 # also consider rsync of sorted_bam_file to /tmp/ to reduce *input* from disk
-            command = 'cmuts --fasta=%s --overwrite  --min-cov-base-quality=0 --output %s %s > %s.cmuts.log 2> %s.cmuts.err' % (seq_file,hdf5_outfile,sorted_bam_file,outdir,outdir)
+            command = 'cmuts --fasta=%s --overwrite  --min-cov-base-quality=%d --output %s %s > %s.cmuts.log 2> %s.cmuts.err' % (seq_file,args.min_cov_base_quality,hdf5_outfile,sorted_bam_file,outdir,outdir)
             print(command)
             os.system( command )
             if args.use_tmp_dir:

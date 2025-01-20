@@ -26,7 +26,7 @@ parser.add_argument('--precomputed_bowtie_build_dir',default='',help=argparse.SU
 parser.add_argument('-f','--force',action='store_true',help='override some warnings' )
 parser.add_argument('--dedup',action='store_true',help='dedup if N''s in barcode' )
 
-# Deprecated
+# Deprecated/secret
 parser.add_argument('--skip_gzip',action='store_true',help=argparse.SUPPRESS) # if FASTQ is not gzipped, leave it gzipped
 parser.add_argument('--excise_barcode',default=0,type=int,help=argparse.SUPPRESS) # 'remove this many nucleotides from merged FASTQ and sequences' )
 parser.add_argument('-nm','--no_mixed',action = 'store_true',help=argparse.SUPPRESS )# 'No mixed reads in Bowtie2')
@@ -41,6 +41,7 @@ parser.add_argument('--cutadapt',action = 'store_true',help=argparse.SUPPRESS) #
 parser.add_argument('--use_tmp_dir',action = 'store_true',help=argparse.SUPPRESS) # For cmuts, run job in /tmp/ to try to reduce disk i/o
 parser.add_argument('--ultima',action='store_true',help=argparse.SUPPRESS) # recognize Ultima adapter in ultraplex
 parser.add_argument('--minimap2',action='store_true',help=argparse.SUPPRESS) # use minimap2 instead of bowtie2
+parser.add_argument('--min_cov_base_quality', default=0, type=int, help=argparse.SUPPRESS ) #for cmuts. ubr default is 0, though cmuts default is 20
 
 args = parser.parse_args()
 
@@ -203,6 +204,7 @@ for i in range(1,nsplits+1):
     if args.ultima:  extra_flags += ' --ultima'
     if args.minimap2:  extra_flags += ' --minimap2'
     if args.cmuts:  extra_flags += ' --cmuts'
+    if args.min_cov_base_quality > 0:  extra_flags += ' --min_cov_base_quality %d' % args.min_cov_base_quality
     if args.cutadapt:  extra_flags += ' --cutadapt'
     if args.use_tmp_dir:  extra_flags += ' --use_tmp_dir'
     if len(args.precomputed_bowtie_build_dir)>0: extra_flags += ' --precomputed_bowtie_build_dir %s' % args.precomputed_bowtie_build_dir
