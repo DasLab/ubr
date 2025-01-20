@@ -87,10 +87,10 @@ def check_stats( ubr_run_dir ):
             for line in lines:
                 if line.find('Total')>-1 and line.find('reads')>-1:
                     cols = line.split()
-                    numreads_into_cmuts += int(cols[-1])
+                    numreads_into_cmuts += int(cols[-1].replace(',',''))
                 if line.find('Mapped')>-1:
                     cols = line.split()
-                    numreads_counted_cmuts += int(cols[-1])
+                    numreads_counted_cmuts += int(cols[-1].replace(',',''))
 
     def writeout(tag,numreads,numreads_prev, allreads):
         if numreads>0:
