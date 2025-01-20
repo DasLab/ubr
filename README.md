@@ -193,7 +193,7 @@ The above data processing step is efficient for, say, 400,000 lines but becomes 
 
 For preparing that split and the separate run directories, we can run `ubr_split.py`.
 
-An example is given in `example/ubr_test_split`. In that directory, run:
+An example is given in `example/ubr_split`. In that directory, run:
 
 ```
 FASTQ_DIR=../data
@@ -322,7 +322,7 @@ Again, note that the above example is for 400,000 reads, split into 4 partitions
 
 In actuality, a MiSeq run will produce 15-30M reads, which you'll want to partition into, say,  8 splits of 2M-4M reads each, by providing an option like `-q 2000000` to `ubr_split.py` above. It would then take roughly 10-30 mins to run each split on one thread on a typical desktop.  
 
-Example output is available in the directory `example/EXAMPLE_OUTPUT/ubr_test_split/`.
+Example output is available in the directory `example/EXAMPLE_OUTPUT/ubr_split/`.
 
 #### Option 1C. Cluster runs (SLURM; needed for NovaSeq scale runs)
 
