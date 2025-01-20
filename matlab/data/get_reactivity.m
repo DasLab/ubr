@@ -1,5 +1,5 @@
-function [r,r_err,f,f_err,coverage,signal_to_noise,r_nomod] = get_reactivity(rc,c,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,sequences,no_GA,only_GA)
-% [r,r_err,f,f_err,coverage,signal_to_noise,r_nomod] = get_reactivity(rc,c,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,sequences,no_GA,only_GA)
+function [r,r_err,f,f_err,coverage,signal_to_noise,r_nomod] = get_reactivity(rc,c,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,sequences,options )
+% [r,r_err,f,f_err,coverage,signal_to_noise,r_nomod] = get_reactivity(rc,c,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,sequences,options)
 %
 % Main data processing routine for UBR. Includes step where deletions,
 % which are assumed to be collected as counts placed at 3' end of same-nt
@@ -26,9 +26,15 @@ function [r,r_err,f,f_err,coverage,signal_to_noise,r_nomod] = get_reactivity(rc,
 %  sequences = (cell of Ndesigns strings) RNA sequences. If not provided or
 %                if empty, will not spread out deletions at homopolymer
 %                stretches.
-%  no_GA   = [Optional] Don't count G to A mutations (default: 0, i.e. count GA)
-%  only_GA = [Optional] Only count G to A mutations (default: 0, i.e. count all mutations)
-%                
+%  options    = cell of strings specifying possible options. (Default: {})
+%                Current option strings are:
+%                 'no_spread_deletions': for same-nucleotide stretches,
+%                   deletions are ambigous and here, by default, are spread across the
+%                   stretch according to the mutation signal. Supply
+%                   'no_spread_deletions' to suppress this procedure.
+%                 'no_GA': Exclude G to A mutations
+%                 'only_GA': Only count G to A mutations (e.g. DMS at N7)
+%                 'only_AG': Only count A to G mutations (e.g. deaminase)%                
 %
 % Outputs
 %  r     = [Ndesign x Nres x Nmodconditions] Reactivity matrix, as fraction at each position that leads to mutation, background subtracted.
@@ -44,8 +50,12 @@ function [r,r_err,f,f_err,coverage,signal_to_noise,r_nomod] = get_reactivity(rc,
 %
 % (C) Rhiju Das, Stanford University & HHMI, 2023.
 %
-if ~exist('no_GA','var') no_GA = 0; end;
-if ~exist('only_GA','var') only_GA = 0; end;
+
+spread_deletions = ~any(strcmp(options,'no_spread_deletions'));
+no_GA = any(strcmp(options,'no_GA'));
+only_GA = any(strcmp(options,'only_GA'));
+only_AG = any(strcmp(options,'only_AG'));
+
 mut_types = {'AC','AG','AT','CA','CG','CT','GA','GC','GT','TA','TC','TG','ins','del'};
 Nmuttypes = length(mut_types);
 if length(size(rc))~=4 & size(rc,3)~=Nmuttypes;
@@ -73,10 +83,15 @@ del_idx = [14];
 if no_GA 
     mut_del_idx   = [1:6,8:12,14];
     strictmut_idx = [1:6,8:12];
-end
-if only_GA
+elseif only_GA
+    fprintf('Only counting mutations of G to A\n')
     mut_del_idx   = [7];
     strictmut_idx = [7];
+    del_idx = [];
+elseif only_AG
+    fprintf('Only counting mutations of A to G\n')
+    mut_del_idx   = [2];
+    strictmut_idx = [2];
     del_idx = [];
 end
 
@@ -112,6 +127,9 @@ toc
 
 if ~exist('sequences') | isempty(sequences)
     fprintf(['\n\nWARNING! Get_reactivity requires sequences to spread out deletions at same-nt stretches.\nPlease provide sequences as last input.\nFor now, proceeding without spread out of deletion.\n\n']);
+    spread_deletions = 0;
+end
+if ~spread_deletions
     [r, r_err, signal_to_noise] = get_r_from_strictmut_del( rsub_strictmut, rsub_del, rsub_strictmut_err, rsub_del_err, BLANK_OUT5, BLANK_OUT3, rsub_pseudocount_err, sequences);
     return;
 end
