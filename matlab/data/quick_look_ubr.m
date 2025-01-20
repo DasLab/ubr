@@ -47,7 +47,8 @@ function d = quick_look_ubr(filedir,sequence_file,shape_nomod_idx,structure_csv_
 %                 'no_print': Don't export figures, which can take
 %                       a long time
 %                 'no_GA': Exclude G to A mutations
-%                 'only_GA': Only count G to A mutations
+%                 'only_GA': Only count G to A mutations (e.g. DMS at N7)
+%                 'only_AG': Only count A to G mutations (e.g. deaminase)
 % seq_range    =  [start_idx, end_idx] two integers with range of sequences
 %                   to read in. If oneinteger is specified, assumed to be maximum number of 
 %                   sequences to read in. Default [], read all sequences.
@@ -142,16 +143,8 @@ if focus_on_shape_nomod; [m,c,rc,tags,shape_nomod_idx] = focus_on_idx(m,c,rc,tag
 [ structures, structure_map ] = read_structure_csv_file( structure_csv_file, sequences );
 [BLANK_OUT5, BLANK_OUT3] = figure_out_BLANK_OUT( BLANK_OUT5, BLANK_OUT3, sequences );
 
-spread_deletions = ~any(strcmp(options,'no_spread_deletions'));
-no_GA = any(strcmp(options,'no_GA'));
-only_GA = any(strcmp(options,'only_GA'));
 if ~use_raw_counts; rc = m; end;
-if spread_deletions 
-    % default is to spread deletions.
-    [r,r_err,f,f_err,coverage,signal_to_noise] = get_reactivity(rc,c,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,sequences,no_GA,only_GA);
-else
-    [r,r_err,f,f_err,coverage,signal_to_noise] = get_reactivity(rc,c,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,[],no_GA,only_GA);
-end
+[r,r_err,f,f_err,coverage,signal_to_noise] = get_reactivity(rc,c,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,sequences,options);
 
 for i = 1:length(shape_nomod_idx); conditions{i} = tags{ shape_nomod_idx{i}(1)}; end
 
@@ -212,90 +205,7 @@ output_ubr_stats_summary(d);
 %% Make some heatmaps
 if any(strcmp(options,'no_figures')); finish_quick_look(); return; end;
 
-tic
-fprintf('\nCreating figures (provide no_figures in options to skip)...\n')
-Ntags = size(m,3);
-toggle_to_figure(1);
-set(gcf,'color','white','Position',[100   100  max(50+Ntags*100,800)   526],'name','fraction reacted, first 500 designs')
-Nplot = min(size(f,1),500);
-for i = 1:Ntags
-    subplot(1,Ntags,i)
-    imagesc(sum(f(1:Nplot,:,i),3),[0 0.1]);
-    colormap(1-gray(100));
-    title(strsplit(tags{i},'_'),'interpreter','none')
-    ylim([0.5 Nplot+0.5])
-    colorbar('Location','SouthOutside');
-end
-
-%% Make plot of signal-to-noise vs. coverage
-toggle_to_figure(2);
-set(gcf,'color','white','position',[450   991   355   322],'name','S/N vs. reads'); clf
-clf
-for k = 1:size(reads,2)
-    semilogx(reads(:,k),signal_to_noise(:,k),'.'); hold on
-    xlabel('Reads (signal+background channels)')
-    ylabel('Signal/noise');
-end
-hold off
-legend(conditions,'Interpreter','none');
-
-%% Histogram of signal to noise
-toggle_to_figure(3);
-set(gcf,'color','white','position',[694   960   400   600],'name','Mean S/N')
-clf
-for i = 1:size(r,3)
-    subplot(size(r,3),1,i);
-    s2n = signal_to_noise(:,i); s2n( find(isnan(s2n)) ) = 0.0;
-    histogram( s2n )
-    xlabel( 'Signal/noise' );
-    cols = strsplit(what(filedir).path,'/');
-    dirname = strjoin(cols(end-1:end),'/');
-    title( [conditions{i},' Mean signal/noise = ',num2str(mean(s2n))],'interp','none');
-end
-
-%% Make heat map, up to 500 with high signal to noise 
-toggle_to_figure(4);
-set(gcf,'color','white','name','first designs with good S/N (up to 500)')
-clf
-good_idx = find( signal_to_noise(:,end)>=1.0 & reads(:,end) > 100);
-Nplot = min(length(good_idx),500);
-good_idx = good_idx(1:Nplot);
-make_library_heat_map( r_norm, good_idx, structure_map, headers, BLANK_OUT5, BLANK_OUT3, conditions);
-
-%% Make heat map, up to 10000 with high signal to noise
-toggle_to_figure(5);
-good_idx = find( signal_to_noise(:,end)>=1.0 & reads(:,end) > 100);
-if length(good_idx)>500
-    set(gcf,'color','white','name','first designs with good S/N (up to 10000)')
-    clf
-    Nplot = min(length(good_idx),10000);
-    good_idx = good_idx(1:Nplot);
-    make_library_heat_map( r_norm, good_idx, structure_map, headers, BLANK_OUT5, BLANK_OUT3, conditions);
-else
-   close(5);
-end
-
-
-%% Take a close look at one of the constructs with high apparent signal to noise
-toggle_to_figure(6);
-set(gcf,'color','white','position',[599   477   560   420],'name','Top S/N design')
-clf
-[~,idx] = max(sum(signal_to_noise,2));
-for i = 1:length(shape_nomod_idx)
-    subplot(length(shape_nomod_idx),1,i);
-    cidx = shape_nomod_idx{i}; %(end:-1:1);
-    plot( squeeze(f(idx,:,cidx)),'LineWidth',2 )
-    h = legend( tags{cidx});
-    set(h,'interp','none');
-end
-h=title(headers(idx));
-set(h,'interpreter','none')
-
-%% Look through each of the conditions - mutational profiles (mean over designs)
-if use_raw_counts
-    show_mut_type_analysis(mut_rate_matrix,rfcount_mut_rate_profiles,tags,tags,BLANK_OUT5, BLANK_OUT3);
-end
-toc
+make_quick_look_figures( d, f );
 
 % Print out .png's.
 no_print = any(strcmp(options,'no_print'));
