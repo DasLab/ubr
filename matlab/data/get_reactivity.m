@@ -88,11 +88,13 @@ elseif only_GA
     mut_del_idx   = [7];
     strictmut_idx = [7];
     del_idx = [];
+    frc = put_nan_except_at_nt(frc,sequences,'G');
 elseif only_AG
     fprintf('Only counting mutations of A to G\n')
     mut_del_idx   = [2];
     strictmut_idx = [2];
     del_idx = [];
+    frc = put_nan_except_at_nt(frc,sequences,'A');
 end
 
 f = reshape(sum(frc(:,:,mut_del_idx,:),3) ,size(frc,1),size(frc,2),size(frc,4));
@@ -198,5 +200,19 @@ function   [r, r_err, signal_to_noise] = get_r_from_strictmut_del( rsub_strictmu
 if size(rsub_del,3) == 0; rsub_del = 0*rsub_strictmut; rsub_del_err = 0*rsub_strictmut; end;
 r     = rsub_strictmut + rsub_del;
 r_err = sqrt(rsub_strictmut_err.^2 + rsub_del_err.^2 + rsub_pseudocount_err.^2);
+%r_err = r_err .* sqrt(1-r); % closer to correct formula w/ high reactivity.
 signal_to_noise = get_signal_to_noise(r,r_err,BLANK_OUT5,BLANK_OUT3, sequences);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function frc = put_nan_except_at_nt(frc,sequences,nt);
+% Provide nt as character like 'A' or 'G'
+non_nt = find(char(sequences) ~= nt);
+for i = 1:size(frc,3);
+    for j = 1:size(frc,4);
+        tmp = frc(:,:,i,j);
+        tmp(non_nt) = NaN;
+        frc(:,:,i,j) = tmp;
+    end
+end
+
 

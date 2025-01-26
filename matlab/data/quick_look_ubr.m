@@ -46,6 +46,7 @@ function d = quick_look_ubr(filedir,sequence_file,shape_nomod_idx,structure_csv_
 %                 'no_figures': Don't make figures.
 %                 'no_print': Don't export figures, which can take
 %                       a long time
+%                 'no_norm': Don't apply normalization
 %                 'no_GA': Exclude G to A mutations
 %                 'only_GA': Only count G to A mutations (e.g. DMS at N7)
 %                 'only_AG': Only count A to G mutations (e.g. deaminase)
@@ -149,10 +150,12 @@ if ~use_raw_counts; rc = m; end;
 for i = 1:length(shape_nomod_idx); conditions{i} = tags{ shape_nomod_idx{i}(1)}; end
 
 total_coverage = sum(coverage,2);
-norm_idx = figure_out_idx_for_normalization( total_coverage );
-r_norm = []; r_norm_err = [];
-if length(norm_idx)>0; 
-    [r_norm, r_norm_err,~,norm_val] = normalize_reactivity(r,r_err,norm_idx,BLANK_OUT5, BLANK_OUT3, conditions, [], sequences );
+r_norm = r; r_norm_err = r_err; norm_val = ones(1,length(conditions)); norm_idx = [];
+if ~any(strcmp(options,'no_norm')); 
+    norm_idx = figure_out_idx_for_normalization( total_coverage );
+    if length(norm_idx)>0
+        [r_norm, r_norm_err,~,norm_val] = normalize_reactivity(r,r_err,norm_idx,BLANK_OUT5, BLANK_OUT3, conditions, [], sequences );
+    end
 end
 
 for i = 1:length(shape_nomod_idx)

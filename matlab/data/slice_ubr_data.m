@@ -44,3 +44,14 @@ d_out.mut_rate_matrix = d.mut_rate_matrix;
 d_out.rfcount_mut_rate_profiles = d.rfcount_mut_rate_profiles;
 
 
+r = []; r_err = [];
+for i = 1:size(d.r_norm,3)
+    r(:,:,i)     = d_out.r_norm(:,:,i)*d.norm_val(i);
+    r_err(:,:,i) = d_out.r_norm_err(:,:,i)*d.norm_val(i);
+end
+
+d_out.total_coverage = sum(d_out.coverage,2);
+norm_idx = figure_out_idx_for_normalization( d_out.total_coverage );
+if length(norm_idx)>0; 
+    [d_out.r_norm, d_out.r_norm_err,~,d_out.norm_val] = normalize_reactivity(r,r_err,norm_idx,d_out.BLANK_OUT5, d_out.BLANK_OUT3, d_out.conditions, [], d_out.sequences );
+end
