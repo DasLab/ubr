@@ -44,6 +44,10 @@ d_out.coverage = zeros(count,size(d.coverage,2));
 d_out.signal_to_noise = zeros(count,size(d.signal_to_noise,2));
 d_out.sequences = cell(1,count);
 d_out.headers   = cell(1,count);
+d_out.ids = zeros(1,count)
+d_out.titles   = cell(1,count);
+d_out.authors   = cell(1,count);
+d_out.id_strings   = cell(1,count);
 
 if isfield(d,'coverage_matrix')
     mut_count = zeros('like',d.mut_rate_matrix);
@@ -63,6 +67,10 @@ for q = 1:length( all_d )
     d_out.signal_to_noise(idx,:) = d.signal_to_noise;
     d_out.sequences(idx) = d.sequences;
     if length(d.headers) == length(idx); d_out.headers(idx) = d.headers; else; warning('Could not create headers since it is not filled correctly.'); end;
+    if length(d.ids) == length(idx); d_out.ids(idx) = d.ids; else; warning('Could not create ids since it is not filled correctly.'); end;
+    if length(d.authors) == length(idx); d_out.authors(idx) = d.authors; else; warning('Could not create authors since it is not filled correctly.'); end;
+    if length(d.titles) == length(idx); d_out.titles(idx) = d.titles; else; warning('Could not create titles since it is not filled correctly.'); end;
+    if length(d.id_strings) == length(idx); d_out.id_strings(idx) = d.id_strings; else; warning('Could not create id_strings since it is not filled correctly.'); end;
 
     r_tmp = []; r_tmp_err = [];
     for i = 1:size(d.r_norm,3)
@@ -94,6 +102,7 @@ norm_idx = figure_out_idx_for_normalization( d_out.total_coverage );
 if length(norm_idx)>0; 
     [d_out.r_norm, d_out.r_norm_err,~,d_out.norm_val] = normalize_reactivity(r,r_err,norm_idx,d_out.BLANK_OUT5, d_out.BLANK_OUT3, d_out.conditions, [], d_out.sequences );
 end
+d_out.norm_idx = norm_idx;
 
 if isfield(d,'coverage_matrix');
     for i =  1:size(d.coverage_matrix,2)

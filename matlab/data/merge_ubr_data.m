@@ -35,6 +35,9 @@ d_out.shape_nomod_idx = {};
 d_out.norm_val = [];
 
 if isfield(d,'coverage_matrix');
+    d_out.coverage_matrix = [];
+    d_out.mut_rate_matrix = [];
+    d_out.rfcount_mut_rate_profiles = [];
     for i = 1:size(d.coverage_matrix,2)
         coverage_matrix_tmp = repmat(reshape( d.coverage_matrix(:,i),[],1), 1, size(d.mut_rate_matrix,2));
         mut_count(:,:,i) = d.mut_rate_matrix(:,:,i) .* coverage_matrix_tmp;
@@ -78,7 +81,7 @@ for n = 1:length(cidx_all)
     d_out.tags = [d_out.tags, { strjoin(d.tags( sh_idx ),'_'), strjoin(d.tags( nm_idx ),'_')} ];
     d_out.shape_nomod_idx = [d_out.shape_nomod_idx, length(d_out.tags) + [-1,0]];
 
-    if isfield(d,'coverage_matrix');
+    if isfield(d,'coverage_matrix')
         d_out.coverage_matrix(:,2*n-1) = sum( d.coverage_matrix(:,sh_idx),2 );
         d_out.coverage_matrix(:,2*n  ) = sum( d.coverage_matrix(:,nm_idx),2 );
 
@@ -106,6 +109,7 @@ if RENORM
     if length(norm_idx)>0;
         [d_out.r_norm, d_out.r_norm_err,~,d_out.norm_val] = normalize_reactivity(r,r_err,norm_idx,d_out.BLANK_OUT5, d_out.BLANK_OUT3, d_out.conditions, [], d_out.sequences );
     end
+    d_out.norm_idx = norm_idx;
 end
 
 for n = 1:length(cidx_all)

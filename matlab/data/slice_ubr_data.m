@@ -55,3 +55,4 @@ norm_idx = figure_out_idx_for_normalization( d_out.total_coverage );
 if length(norm_idx)>0; 
     [d_out.r_norm, d_out.r_norm_err,~,d_out.norm_val] = normalize_reactivity(r,r_err,norm_idx,d_out.BLANK_OUT5, d_out.BLANK_OUT3, d_out.conditions, [], d_out.sequences );
 end
+d_out.norm_idx = norm_idx;
