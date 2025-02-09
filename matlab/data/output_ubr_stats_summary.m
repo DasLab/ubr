@@ -50,6 +50,7 @@ end
 fprintf('\n\n');
 fprintf( '%s %11s %8s %6s %8s | %7s %7s | %7s %6s %7s\n',pad('Condition',padlen,'left'),'reads','mean','median','mn2md','normval','mnreact','mednorm','s2n','fracSN1' );
 reads  = []; meanreads = []; medianreads = []; mn2med = [];
+norm_val = d.norm_val;
 for i = 1:length(d.conditions)
     conditions{i} = d.conditions{i};
     reads(i) = sum(d.reads(:,i));
@@ -70,7 +71,7 @@ for i = 1:length(d.conditions)
         meanreads(i),...
         medianreads(i),...
         mn2med(i),...
-        d.norm_val(i),...
+        norm_val(i),...
         meanreact(i),...
         medreact_norm(i),...
         meanSN(i),...
@@ -82,10 +83,12 @@ reads = reads';
 meanreads = meanreads';
 medianreads = medianreads';
 mn2med = mn2med';
-meanSN = meanSN';
+norm_val = norm_val';
 meanreact = meanreact';
+medreact_norm = medreact_norm';
+meanSN = meanSN';
 fracSN1 = fracSN1';
-t = table(conditions,reads,meanreads,medianreads,mn2med,meanSN,meanreact);
+t = table(conditions,reads,meanreads,medianreads,mn2med,norm_val,meanreact,medreact_norm,meanSN,fracSN1);
 
 
 
