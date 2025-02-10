@@ -81,8 +81,8 @@ end
 for i = 1:length(tags)
     tag = tags{i};
     fprintf('Reading from ... %s%s\n',filedir,tag)
-    m(:,:,i) = load_file( [filedir,'/',tag,'.muts.txt']);
-    c(:,:,i) = load_file( [filedir,'/',tag,'.coverage.txt']);
+    m(:,:,i) = read_table_file( [filedir,'/',tag,'.muts.txt']);
+    c(:,:,i) = read_table_file( [filedir,'/',tag,'.coverage.txt']);
 end
 
 if read_raw_counts
@@ -92,7 +92,7 @@ if read_raw_counts
         fprintf('Reading raw counts from ... %s%s\n',filedir,tag)
         for k = 1:length(mut_types)
             mut_type = mut_types{k};
-            rc(:,:,k,i) = load_file( [filedir,'/raw_counts/',tag,'.',mut_type,'.txt']);
+            rc(:,:,k,i) = read_table_file( [filedir,'/raw_counts/',tag,'.',mut_type,'.txt']);
         end
     end
 end
@@ -104,23 +104,6 @@ if ~isempty(seq_range)
     rc = rc(chunk,:,:,:);
 end
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function m = load_file( filename );
-gzip_file = [filename,'.gz'];
-if ~exist(filename,'file')
-    %fprintf( 'Unzipping %s... \n',gzip_file);
-    if ~exist(gzip_file,'file') fprintf( '\n\nDid not find %s or %s! \n\n',filename,gzip_file); end;
-    assert(exist(gzip_file,'file'));
-    gunzip( gzip_file );
-end
-
-t = readtable(filename);
-m = table2array(t,'unt32');
-
-if exist(gzip_file,'file')
-    delete(filename); % to save space.
-end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function d = load_hdf5_file(hdf5_file, tag, seq_range);
