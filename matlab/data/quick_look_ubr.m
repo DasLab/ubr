@@ -34,6 +34,8 @@ function d = quick_look_ubr(filedir,sequence_file,shape_nomod_idx,structure_csv_
 %                Current option strings are:
 %                 'output_all': return all the intermediate data arrays 
 %                    in output struct 
+%                 'output_rsep_norm': return rsep_norm with mutA/mutC/mutG/mutT/del/ins as
+%                    6 separate tracks
 %                 'focus_on_shape_nomod': do not use counts across all
 %                     conditions to normalize, just the ones specified in
 %                     shape_nomod_idx
@@ -88,6 +90,9 @@ function d = quick_look_ubr(filedir,sequence_file,shape_nomod_idx,structure_csv_
 %   .filedir       = (string) Input filedir
 %   .sequence_file = (string) Input sequence_file
 %   .structure_csv_file = (string) Input structure_csv_file ('' if not specified)
+%   .rsep_norm     = [Ndesigns x Nres x 6 x Nconditions]
+%                        Mut(A/C/G/U),del,ins, normalized. Sum of 5 should
+%                        equal r_norm.
 %
 %  If "output_all" specified in options, d will also contain these potentially big
 %        arrays:
@@ -145,7 +150,7 @@ if focus_on_shape_nomod; [m,c,rc,tags,shape_nomod_idx] = focus_on_idx(m,c,rc,tag
 [BLANK_OUT5, BLANK_OUT3] = figure_out_BLANK_OUT( BLANK_OUT5, BLANK_OUT3, sequences );
 
 if ~use_raw_counts; rc = m; end;
-[r,r_err,f,f_err,coverage,signal_to_noise] = get_reactivity(rc,c,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,sequences,options);
+[r,r_err,f,f_err,coverage,signal_to_noise,~,rsub] = get_reactivity(rc,c,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,sequences,options);
 
 for i = 1:length(shape_nomod_idx); conditions{i} = tags{ shape_nomod_idx{i}(1)}; end
 
@@ -160,6 +165,19 @@ end
 
 for i = 1:length(shape_nomod_idx)
     reads(:,i) = sum(coverage(:,shape_nomod_idx{i}),2);
+end
+
+if any(strcmp(options,'output_rsep_norm'))
+    mut_types = {'AC','AG','AT','CA','CG','CT','GA','GC','GT','TA','TC','TG','ins','del'};
+    rsep(:,:,1,:) = sum(rsub(:,:,[4 7 10],:),3); % mut to A
+    rsep(:,:,2,:) = sum(rsub(:,:,[1 8 11],:),3); % mut to C
+    rsep(:,:,3,:) = sum(rsub(:,:,[2 5 12],:),3); % mut to G
+    rsep(:,:,4,:) = sum(rsub(:,:,[3 6  9],:),3); % mut to T
+    rsep(:,:,5,:) = sum(rsub(:,:,[14],:),3); % del
+    rsep(:,:,6,:) = sum(rsub(:,:,[13],:),3); % ins
+    for i = 1:length(norm_val); rsep_norm(:,:,:,i) = rsep(:,:,:,i)/norm_val(i); end;
+    rsep_norm(:,[1                 :BLANK_OUT5],:,:) = NaN;
+    rsep_norm(:,[(end-BLANK_OUT3+1):end       ],:,:) = NaN;
 end
 
 [mut_rate_matrix, rfcount_mut_rate_profiles, coverage_matrix] = get_mut_rate_matrix( m,c,rc );
@@ -192,6 +210,7 @@ d.structure_csv_file = structure_csv_file;
 d.mut_rate_matrix = mut_rate_matrix;
 d.rfcount_mut_rate_profiles = rfcount_mut_rate_profiles;
 d.coverage_matrix = coverage_matrix;
+if ~isempty(find(strcmp(options,'output_rsep_norm'))); d.rsep_norm = rsep_norm; end
 if ~isempty(find(strcmp(options,'output_all')));
     d.m = m;
     d.c = c;

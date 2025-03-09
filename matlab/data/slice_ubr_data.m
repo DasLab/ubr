@@ -42,12 +42,13 @@ d_out.r_norm = d.r_norm( slice_idx, :, :);
 d_out.r_norm_err = d.r_norm_err( slice_idx, :, :);
 d_out.mut_rate_matrix = d.mut_rate_matrix;
 d_out.rfcount_mut_rate_profiles = d.rfcount_mut_rate_profiles;
-
+if isfield(d,'rsep_norm'); d_out.rsep_norm = d.rsep_norm( slice_idx, :, :, :); end;
 
 r = []; r_err = [];
 for i = 1:size(d.r_norm,3)
     r(:,:,i)     = d_out.r_norm(:,:,i)*d.norm_val(i);
     r_err(:,:,i) = d_out.r_norm_err(:,:,i)*d.norm_val(i);
+    if isfield(d,'rsep_norm'); rsep(:,:,:,i) = d_out.rsep_norm(:,:,:,i)*d.norm_val(i); end;
 end
 
 d_out.total_coverage = sum(d_out.coverage,2);
@@ -56,3 +57,10 @@ if length(norm_idx)>0;
     [d_out.r_norm, d_out.r_norm_err,~,d_out.norm_val] = normalize_reactivity(r,r_err,norm_idx,d_out.BLANK_OUT5, d_out.BLANK_OUT3, d_out.conditions, [], d_out.sequences );
 end
 d_out.norm_idx = norm_idx;
+
+if isfield(d,'rsep_norm');
+    d_out.rsep_norm = [];
+    for i = 1:size(rsep,4)
+        d_out.rsep_norm(:,:,:,i) = rsep(:,:,:,i)/d_out.norm_val(i);
+    end
+end

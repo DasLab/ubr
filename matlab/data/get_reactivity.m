@@ -1,4 +1,4 @@
-function [r,r_err,f,f_err,coverage,signal_to_noise,r_nomod] = get_reactivity(rc,c,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,sequences,options )
+function [r,r_err,f,f_err,coverage,signal_to_noise,r_nomod,rsub] = get_reactivity(rc,c,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,sequences,options )
 % [r,r_err,f,f_err,coverage,signal_to_noise,r_nomod] = get_reactivity(rc,c,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,sequences,options)
 %
 % Main data processing routine for UBR. Includes step where deletions,
@@ -190,6 +190,8 @@ for i = 1:size(rsub_del,1);
         rsub_del_spread_err(i,:,m) = del_profile2_err;
     end
 end
+
+for m = 1:size(rsub_del,3); rsub(:,:,strcmp(mut_types,'del'),m) = rsub_del_spread(:,:,m); end
 
 [r, r_err, signal_to_noise] = get_r_from_strictmut_del( rsub_strictmut, rsub_del_spread, rsub_strictmut_err, rsub_del_spread_err, BLANK_OUT5, BLANK_OUT3, rsub_pseudocount_err, sequences);
 

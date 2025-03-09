@@ -95,6 +95,11 @@ for q = 1:length( all_d )
         rfcount_tmp( isnan(rfcount_tmp) ) = 0;
         rfcount = rfcount + rfcount_tmp;
     end
+    if isfield(d,'rsep_norm');
+        for i = 1:size(d.rsep_norm,4)
+            rsep(idx,:,:,i)     = d.rsep_norm(:,:,:,i)*d.norm_val(i);
+        end
+    end
 end
 
 d_out.total_coverage = sum(d_out.coverage,2);
@@ -113,4 +118,10 @@ if isfield(d,'coverage_matrix');
     d_out.coverage_matrix = coverage_matrix;
 end
 
+if isfield(d,'rsep_norm');
+    d_out.rsep_norm = [];
+    for i = 1:size(rsep,4)
+        d_out.rsep_norm(:,:,:,i) = rsep(:,:,:,i)/d_out.norm_val(i);
+    end
+end
 
