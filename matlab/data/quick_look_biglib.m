@@ -114,7 +114,7 @@ for q = 1:num_chunks;
     fprintf('\nCOMPLETED: %d of %d\n\n',q,num_chunks)
 end
 
-%%
+% Concatenate everything into one data structure!
 d = concat_ubr_data( all_d );
 output_ubr_stats_summary( d );
 

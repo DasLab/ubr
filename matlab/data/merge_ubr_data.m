@@ -75,31 +75,54 @@ for n = 1:length(cidx_all)
     sh_idx = []; nm_idx = [];
     for i = cidx
         sh_idx = [sh_idx, d.shape_nomod_idx{i}(1)];
-        nm_idx = [nm_idx, d.shape_nomod_idx{i}(2)];
+        if length(d.shape_nomod_idx{i})>1;  nm_idx = [nm_idx, d.shape_nomod_idx{i}(2)]; else ; nm_idx = NaN; end;
     end
-    d_out.coverage = [d_out.coverage, sum(d.coverage(:,sh_idx),2), sum(d.coverage(:,nm_idx),2) ];
-    d_out.tags = [d_out.tags, { strjoin(d.tags( sh_idx ),'_'), strjoin(d.tags( nm_idx ),'_')} ];
-    d_out.shape_nomod_idx = [d_out.shape_nomod_idx, length(d_out.tags) + [-1,0]];
 
-    if isfield(d,'coverage_matrix')
-        d_out.coverage_matrix(:,2*n-1) = sum( d.coverage_matrix(:,sh_idx),2 );
-        d_out.coverage_matrix(:,2*n  ) = sum( d.coverage_matrix(:,nm_idx),2 );
+    if ~any( isnan( nm_idx) ) 
+        d_out.coverage = [d_out.coverage, sum(d.coverage(:,sh_idx),2), sum(d.coverage(:,nm_idx),2) ];
+        d_out.tags = [d_out.tags, { strjoin(d.tags( sh_idx ),'_'), strjoin(d.tags( nm_idx ),'_')} ];
+        d_out.shape_nomod_idx = [d_out.shape_nomod_idx, length(d_out.tags) + [-1,0]];
 
-        d_out.mut_rate_matrix(:,:,2*n-1) = sum( mut_count(:,:,sh_idx), 3 )./ d_out.coverage_matrix(:,2*n-1) ;
-        d_out.mut_rate_matrix(:,:,2*n  ) = sum( mut_count(:,:,nm_idx), 3 )./ d_out.coverage_matrix(:,2*n  ) ;
+        if isfield(d,'coverage_matrix')
+            d_out.coverage_matrix(:,2*n-1) = sum( d.coverage_matrix(:,sh_idx),2 );
+            d_out.coverage_matrix(:,2*n  ) = sum( d.coverage_matrix(:,nm_idx),2 );
 
-        d_out.rfcount_mut_rate_profiles(:,2*n-1) = sum( rfcount(:,sh_idx), 2 )./ d_out.coverage_matrix(:,2*n-1) ;
-        d_out.rfcount_mut_rate_profiles(:,2*n  ) = sum( rfcount(:,nm_idx), 2 )./ d_out.coverage_matrix(:,2*n  ) ;
-    else % legacy -- in workspaces where we did not save coverage_matrix, just take mean.
-        if isfield(d,'mut_rate_matrix');
-            d_out.mut_rate_matrix(:,:,2*n-1) = mean( d.mut_rate_matrix(:,:,sh_idx), 3 );
-            d_out.mut_rate_matrix(:,:,2*n  ) = mean( d.mut_rate_matrix(:,:,nm_idx), 3 );
+            d_out.mut_rate_matrix(:,:,2*n-1) = sum( mut_count(:,:,sh_idx), 3 )./ d_out.coverage_matrix(:,2*n-1) ;
+            d_out.mut_rate_matrix(:,:,2*n  ) = sum( mut_count(:,:,nm_idx), 3 )./ d_out.coverage_matrix(:,2*n  ) ;
+
+            d_out.rfcount_mut_rate_profiles(:,2*n-1) = sum( rfcount(:,sh_idx), 2 )./ d_out.coverage_matrix(:,2*n-1) ;
+            d_out.rfcount_mut_rate_profiles(:,2*n  ) = sum( rfcount(:,nm_idx), 2 )./ d_out.coverage_matrix(:,2*n  ) ;
+        else % legacy -- in workspaces where we did not save coverage_matrix, just take mean.
+            if isfield(d,'mut_rate_matrix');
+                d_out.mut_rate_matrix(:,:,2*n-1) = mean( d.mut_rate_matrix(:,:,sh_idx), 3 );
+                d_out.mut_rate_matrix(:,:,2*n  ) = mean( d.mut_rate_matrix(:,:,nm_idx), 3 );
+            end
+            if isfield(d,'rfcount_mut_rate_profiles');
+                d_out.rfcount_mut_rate_profiles(:,2*n-1) = mean( d.rfcount_mut_rate_profiles(:,sh_idx), 2 );
+                d_out.rfcount_mut_rate_profiles(:,2*n  ) = mean( d.rfcount_mut_rate_profiles(:,nm_idx), 2 );
+            end
         end
-        if isfield(d,'rfcount_mut_rate_profiles');    
-            d_out.rfcount_mut_rate_profiles(:,2*n-1) = mean( d.rfcount_mut_rate_profiles(:,sh_idx), 2 );
-            d_out.rfcount_mut_rate_profiles(:,2*n  ) = mean( d.rfcount_mut_rate_profiles(:,nm_idx), 2 );
+    else
+        assert( all(isnan(nm_idx))); % require nomods to be all defined or all undefined
+        d_out.coverage = [d_out.coverage, sum(d.coverage(:,sh_idx),2)];
+        d_out.tags = [d_out.tags, { strjoin(d.tags( sh_idx ),'_') } ];
+        d_out.shape_nomod_idx = [d_out.shape_nomod_idx, length(d_out.tags) ];
+
+        if isfield(d,'coverage_matrix')
+            d_out.coverage_matrix(:,n) = sum( d.coverage_matrix(:,sh_idx),2 );
+            d_out.mut_rate_matrix(:,:,n) = sum( mut_count(:,:,sh_idx), 3 )./ d_out.coverage_matrix(:,n) ;
+            d_out.rfcount_mut_rate_profiles(:,n) = sum( rfcount(:,sh_idx), 2 )./ d_out.coverage_matrix(:,n) ;
+        else % legacy -- in workspaces where we did not save coverage_matrix, just take mean.
+            if isfield(d,'mut_rate_matrix');
+                d_out.mut_rate_matrix(:,:,n) = mean( d.mut_rate_matrix(:,:,sh_idx), 3 );
+            end
+            if isfield(d,'rfcount_mut_rate_profiles');
+                d_out.rfcount_mut_rate_profiles(:,n) = mean( d.rfcount_mut_rate_profiles(:,sh_idx), 2 );
+            end
         end
     end
+
+
 end
 
 d_out.total_coverage = sum(d_out.coverage,2);
