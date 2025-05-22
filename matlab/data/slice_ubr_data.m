@@ -1,5 +1,5 @@
-function d_out = concat_ubr_data( d, slice_idx )
-% d_out = concat_ubr_data( d, slice_idx )
+function d_out = slice_ubr_data( d, slice_idx )
+% d_out = slice_ubr_data( d, slice_idx )
 %
 % Slices UBR dataspaces to just sequences specified by slice_idx
 %

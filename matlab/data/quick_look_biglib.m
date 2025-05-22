@@ -1,5 +1,5 @@
-function d = quick_look_ubr(filedir,sequence_file,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,options );
-% d = quick_look_ubr(filedir,sequence_file,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,options );
+function d = quick_look_ubr_biglib(filedir,sequence_file,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,options, tags );
+% d = quick_look_ubr_biglib(filedir,sequence_file,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,options, tags );
 %
 %  Wrapper around quick_look_ubr for big libraries (1M or more sequences).
 %  TODO: instead of concatenating in the script, just output chunks to HDF5
@@ -49,6 +49,8 @@ function d = quick_look_ubr(filedir,sequence_file,shape_nomod_idx,BLANK_OUT5,BLA
 %                 'no_GA': Exclude G to A mutations
 %                 'only_GA': Only count G to A mutations (e.g. DMS at N7)
 %                 'only_AG': Only count A to G mutations (e.g. deaminase)
+% tags         = cell of strings: tags to use instead of names of hdf5 or
+%                      .txt.gz files
 %
 % Output
 %  d = MATLAB struct with the following fields:
@@ -94,6 +96,8 @@ if ~exist( 'structure_csv_file','var') structure_csv_file = ''; end;
 if ~exist( 'shape_nomod_idx','var') | isempty(shape_nomod_idx); shape_nomod_idx = {}; end;
 if ~iscell(shape_nomod_idx) & isnumeric(shape_nomod_idx); shape_nomod_idx = cell(shape_nomod_idx); end;
 if ~exist( 'options', 'var') options = {}; end;
+if ~exist('tags','var') tags = []; end; 
+
 if isstruct(sequence_file)
     fasta = sequence_file;
 else
@@ -110,7 +114,7 @@ for q = 1:num_chunks;
     chunk_start = 1+(q-1)*CHUNK_SEP;
     chunk_end = min(chunk_start + chunk_size-1,Nseq);
     seq_range = [chunk_start,chunk_end];
-    all_d{q} = quick_look_ubr(filedir,fasta,shape_nomod_idx,structure_csv_file,BLANK_OUT5,BLANK_OUT3,options,seq_range);
+    all_d{q} = quick_look_ubr(filedir,fasta,shape_nomod_idx,structure_csv_file,BLANK_OUT5,BLANK_OUT3,options,seq_range,tags);
     fprintf('\nCOMPLETED: %d of %d\n\n',q,num_chunks)
 end
 

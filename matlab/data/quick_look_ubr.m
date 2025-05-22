@@ -1,4 +1,4 @@
-function d = quick_look_ubr(filedir,sequence_file,shape_nomod_idx,structure_csv_file,BLANK_OUT5,BLANK_OUT3,options,seq_range);
+function d = quick_look_ubr(filedir,sequence_file,shape_nomod_idx,structure_csv_file,BLANK_OUT5,BLANK_OUT3,options,seq_range,tags);
 % Read in data from ubr (ultraplex-bowtie2-RNAframework pipeline)
 %
 % Usage:
@@ -55,6 +55,8 @@ function d = quick_look_ubr(filedir,sequence_file,shape_nomod_idx,structure_csv_
 % seq_range    =  [start_idx, end_idx] two integers with range of sequences
 %                   to read in. If oneinteger is specified, assumed to be maximum number of 
 %                   sequences to read in. Default [], read all sequences.
+% tags         = cell of strings: tags to use instead of names of hdf5 or
+%                      .txt.gz files
 %                   
 % Output
 %  d = MATLAB struct with the following fields:
@@ -136,7 +138,9 @@ tic
 fprintf('Reading and processing data...\n')
 
 use_raw_counts = ~any(strcmp(options,'no_raw_counts'));
-[m,c,rc,tags] = read_ubr_output( filedir,[],use_raw_counts, 0, seq_range);
+[m,c,rc,tags_on_disk] = read_ubr_output( filedir,[],use_raw_counts, 0, seq_range);
+if exist('tags','var') & ~isempty(tags); assert( length(tags_on_disk)==length(tags)); else, tags = tags_on_disk; end;
+
 if isempty(m); finish_quick_look(); return; end;
 
 shape_nomod_idx = update_shape_nomod_idx( shape_nomod_idx, tags);
