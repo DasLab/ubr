@@ -33,8 +33,8 @@ def check_stats( ubr_run_dir ):
     numreads_into_demux = numreads_demultiplexed = 0
     logfiles = glob.glob('%s/1_ultraplex/ultraplex*log' % ubr_run_dir)
     if len( logfiles ) > 0:
-        assert( len(logfiles) == 1 )
-        logfile = logfiles[0]
+        assert( len(logfiles) > 0 )
+        logfile = logfiles[-1]
         lines = open( logfile ).readlines()
         for line in lines:
             if line.find('Demultiplexing')>-1: numreads_into_demux = int(line.split()[5])
