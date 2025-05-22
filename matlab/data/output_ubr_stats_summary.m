@@ -13,7 +13,7 @@ dirname = strjoin(dir_parts( max(end-2,1): end ),'/');
 fprintf('\n%s\n',dirname)
 tot_reads = sum(d.reads(:));
 fprintf('Statistics over %d sequences with length %d and total reads %d (%s reads):\n',size(d.r_norm,1),size(d.r_norm,2),tot_reads,human_readable(tot_reads));
-padlen = max(50,max( cellfun(@length,d.conditions)));
+padlen = max(10,max( cellfun(@length,d.conditions)));
 
 if isfield(d,'mut_rate_matrix')
 
@@ -25,7 +25,7 @@ if isfield(d,'mut_rate_matrix')
     strictmuts_dels = nansum(mean_mut_rate_by_type([1:12,14],:),1);
     rfcount_mut_rate = nanmean(d.rfcount_mut_rate_profiles(mutpos,:),1);
  
-    padlen = max(50,max( cellfun(@length,d.tags)));
+    padlen = max(10,max( cellfun(@length,d.tags)));
     fprintf( '%s %11s %8s %6s %8s | %7s %7s %7s %7s %7s\n',pad('Expt tag',padlen,'left'),'reads','mean','median','mn2md',...
         'mut','ins','del','mut+del','rfcount');
     for i = 1:length(d.tags) %7s
