@@ -436,7 +436,7 @@ else: # use RNAFramework
         rf_count_file_gz = rf_count_file + '.gz'
         if os.path.isfile(rc_file) and (args.overwrite or not os.path.isfile(rf_count_file_gz)):
             os.makedirs(outdir,exist_ok = True)
-            command = 'rf-rctools view %s > %s && gzip %s' % (rc_file, rf_count_file, rf_count_file)
+            command = 'rf-rctools view %s > %s && gzip -f %s' % (rc_file, rf_count_file, rf_count_file)
             print(command)
             os.system( command )
             assert( len(gzip.open(rf_count_file_gz).readlines()) == 5 * len(sequences) )
