@@ -14,7 +14,7 @@ Note: structure modeling & scoring scripts have mostly moved to https://github.c
 
 You need *Python3*, and the following packages:
 
-- `ultraplex 1.2.5`, available via `pip3 install ultraplex==1.2.5`. (Note: you'll need to use Python3.9, which may require virtualenv; make sure the env directory is in a directory without spaces in the name.)
+- `ultraplex 1.2.5`, available via `pip3 install ultraplex==1.2.5`. (Note: you'll need to use Python3.9, which may require virtualenv; make sure the env directory is in a directory without spaces in the name. In Python 3.9.6, you may need to change line 28 of `__main__.py` to `if value is not None: merged[key] += value` )
 - `bowtie2`, available via [conda](https://anaconda.org/bioconda/bowtie2) or [direct download](https://sourceforge.net/projects/bowtie-bio/files/bowtie2/2.5.1/) 
 - `RNAFramework`, available from GitHub, with install directions [here](https://rnaframework-docs.readthedocs.io/en/latest/#installation).
 - `bbmerge.sh`, available in [bbmap](https://sourceforge.net/projects/bbmap/) -- requires `java`.
