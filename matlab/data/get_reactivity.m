@@ -10,7 +10,7 @@ function [r,r_err,f,f_err,coverage,signal_to_noise,r_nomod,rsub] = get_reactivit
 %  single count in each channel, analogous to MAPseeker.
 %
 % Inputs
-%  rc = [Ndesigns x Nres x Ntags x Nmuttypes] raw counts (Ntags = Number of different
+%  rc = [Ndesigns x Nres x Nmuttypes x Ntags] raw counts (Ntags = Number of different
 %                  experimental conditions). Last dimension should have size
 %                  14 and correspond to: AC,AG,AT,CA,CG,CT,GA,GC,GT,TA,TC,TG,ins,del.
 %                  Deletions are assumed to be collected at right side
