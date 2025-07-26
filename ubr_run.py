@@ -329,6 +329,8 @@ if args.cmuts:
 
     for (n,primer_name) in enumerate(primer_names):
         bowtie_align_dir = wd + '2_bowtie2/%s/' % (primer_name)
+        if not( os.path.isdir( bowtie_align_dir ) ): continue
+
         outdir = '%s/%s' % (cmuts_dir,primer_name)
         os.makedirs(outdir,exist_ok = True)
 
@@ -359,7 +361,9 @@ if args.cmuts:
                 os.makedirs(rand_dir,exist_ok = True)
                 hdf5_outfile = '%s/%s.hdf5' % (rand_dir,primer_name)
                 # also consider rsync of sorted_bam_file to /tmp/ to reduce *input* from disk
-            command = 'cmuts --fasta=%s --overwrite  --min-cov-base-quality=%d --output %s %s > %s.cmuts.log 2> %s.cmuts.err' % (seq_file,args.min_cov_base_quality,hdf5_outfile,sorted_bam_file,outdir,outdir)
+            extra_flags = f' --min-cov-base-quality={args.min_cov_base_quality}'
+            if args.map_quality != 10:  extra_flags += ' --min-mapping-quality=%d' % args.map_quality
+            command = 'cmuts --fasta=%s --overwrite %s --output %s %s > %s.cmuts.log 2> %s.cmuts.err' % (seq_file,extra_flags,hdf5_outfile,sorted_bam_file,outdir,outdir)
             print(command)
             os.system( command )
             if args.use_tmp_dir:
