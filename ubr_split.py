@@ -37,6 +37,7 @@ parser.add_argument('-norc','--no_output_raw_counts',action = 'store_true',help=
 parser.add_argument('-me','--max_edit_distance',default=0.0,type=float,help=argparse.SUPPRESS )#help='max edit distance for RNAFramework (0.15)')
 parser.add_argument('-mpp','--merge_pairs_pear',action = 'store_true',help=argparse.SUPPRESS)
 parser.add_argument('--force_merge_pairs',action = 'store_true',help=argparse.SUPPRESS) # force merge pairs (don't bother to check for overlap)
+parser.add_argument('--skip_ultraplex',action = 'store_true',help=argparse.SUPPRESS)
 parser.add_argument('--cutadapt',action = 'store_true',help=argparse.SUPPRESS) # force cutadapt trimming of Read2 side for pre-demuxed Ultima
 parser.add_argument('--use_tmp_dir',action = 'store_true',help=argparse.SUPPRESS) # For cmuts, run job in /tmp/ to try to reduce disk i/o
 parser.add_argument('--ultima',action='store_true',help=argparse.SUPPRESS) # recognize Ultima adapter in ultraplex
@@ -201,6 +202,7 @@ for i in range(1,nsplits+1):
     if args.dedup:  extra_flags += ' --dedup'
     if args.merge_pairs_pear:  extra_flags += ' --merge_pairs_pear'
     if args.force_merge_pairs:  extra_flags += ' --force_merge_pairs'
+    if args.skip_ultraplex:  extra_flags += ' --skip_ultraplex'
     if args.ultima:  extra_flags += ' --ultima'
     if args.minimap2:  extra_flags += ' --minimap2'
     if args.cmuts:  extra_flags += ' --cmuts'
