@@ -61,16 +61,15 @@ if hdf5_format
     for n = 1:length(tags)
         hdf5_file = [filedir,'/',tags{n},'.hdf5'];
         fprintf('Reading from ... %s\n',hdf5_file)
-        muts = load_hdf5_file(hdf5_file, 'mutations', seq_range );
+        % old cmuts format
+        [muts,ins] = load_hdf5_file(hdf5_file, tags{n}, seq_range );
         c(:,:,n) = squeeze(sum(sum(muts,3),4));
         for q = 1:12
             rc(:,:,q,n) = muts(:,:,find(nts==mut_types{q}(1)),find(nts==mut_types{q}(2)));
         end
         rc(:,:,strcmp(mut_types,'del'),n) = squeeze(sum(muts(:,:,:,5),3));
         m(:,:,n) = sum(rc(:,:,~strcmp(mut_types,'ins'),n),3);
-
         if read_raw_counts
-            ins = load_hdf5_file(hdf5_file, 'insertions', seq_range );
             rc(:,:,strcmp(mut_types,'ins'),n) = squeeze(sum(sum(ins,3),4));
         end
     end
@@ -106,18 +105,38 @@ end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function d = load_hdf5_file(hdf5_file, tag, seq_range);
+function [muts,ins] = load_hdf5_file(hdf5_file, tag, seq_range);
+
 hdf5_name = h5info(hdf5_file).Groups(1).Name;
-hdf5_size = h5info(hdf5_file,[hdf5_name,'/',tag]).Dataspace.Size;
+if strcmp(hdf5_name(2:end),tag) % legacy cmuts format
+    muts = get_hdf5_data(hdf5_file, [hdf5_name,'/mutations'], seq_range);
+    ins  = get_hdf5_data(hdf5_file, [hdf5_name,'/insertions'], seq_range);
+    return;
+end
+
+%if newer cmuts format, recursively figure out name of group
+group = h5info(hdf5_file).Groups(1);
+while ~isempty(group.Groups)
+    group = group.Groups(1);
+end
+dataset_name = [group.Name,'/',group.Datasets.Name];
+counts = get_hdf5_data( hdf5_file, dataset_name, seq_range);
+muts = counts(:,:,:,1:5);
+ins  = counts(:,:,:,6);
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function d = get_hdf5_data( hdf5_file, dataset_name, seq_range )
+hdf5_size = h5info(hdf5_file,dataset_name).Dataspace.Size;
 Ndim = length(hdf5_size);
 Nseqs = hdf5_size(end);
 if ~isempty(seq_range) 
     seq_range(2) = min( seq_range(2), Nseqs );
     start = [ones(1,Ndim-1), seq_range(1)];
     count = [hdf5_size(1:end-1), seq_range(2)-seq_range(1)+1];
-    d = h5read(hdf5_file,[hdf5_name,'/',tag],start,count); 
+    d = h5read(hdf5_file,dataset_name,start,count); 
 else
-    d = h5read(hdf5_file,[hdf5_name,'/',tag]);
+    d = h5read(hdf5_file,dataset_name);
 end
 d = permute( d, [Ndim:-1:1]);
 
