@@ -61,7 +61,6 @@ if hdf5_format
     for n = 1:length(tags)
         hdf5_file = [filedir,'/',tags{n},'.hdf5'];
         fprintf('Reading from ... %s\n',hdf5_file)
-        % old cmuts format
         [muts,ins] = load_hdf5_file(hdf5_file, tags{n}, seq_range );
         c(:,:,n) = squeeze(sum(sum(muts,3),4));
         for q = 1:12
@@ -106,9 +105,8 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [muts,ins] = load_hdf5_file(hdf5_file, tag, seq_range);
-
 hdf5_name = h5info(hdf5_file).Groups(1).Name;
-if strcmp(hdf5_name(2:end),tag) % legacy cmuts format
+if endsWith(hdf5_name,tag) % legacy cmuts format
     muts = get_hdf5_data(hdf5_file, [hdf5_name,'/mutations'], seq_range);
     ins  = get_hdf5_data(hdf5_file, [hdf5_name,'/insertions'], seq_range);
     return;
