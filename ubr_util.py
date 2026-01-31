@@ -18,6 +18,7 @@ def check_sequence(sequence):
     return True
 
 def check_dup(mylist,mytag, force = False):
+    mylist = [x for x in mylist if len(x)>0] # remove blank sequences
     if (len(set(mylist)) != len(mylist)):
         print('%s not unique! %d are duplicates.' % (mytag,len(mylist)-len(set(mylist))) )
         myset = set()

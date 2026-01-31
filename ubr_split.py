@@ -18,7 +18,8 @@ parser.add_argument('-1','--read1_fastq', required=True, help='FASTQ (can be gzi
 parser.add_argument('-2','--read2_fastq', help='FASTQ (can be gzipped) of Read 2')
 parser.add_argument('-n','--nsplits', default=0, type=int, help='number of separate partitions' )
 parser.add_argument('-q','--sequences_per_partition', default=0, type=int, help='number of sequences in each partition. overrides -n/--nsplits.' )
-parser.add_argument('-j','--jobs_per_slurm_node', default=24,type=int )
+parser.add_argument('-j','--jobs_per_slurm_node', default=24,type=int, help='number of jobs to request per node (default 24)')
+parser.add_argument('-m','--memory_per_job', default=2,type=int, help='number of Gb for each job (default 2)')
 parser.add_argument('-ow','--overwrite',action = 'store_true', help='overwrite all previous files')
 parser.add_argument('-nmp','--no_merge_pairs',action = 'store_true',help='do not merge paired end reads before Bowtie2' )
 parser.add_argument('--cmuts',action = 'store_true',help='use cmuts instead of RNAFramework' )
@@ -33,6 +34,7 @@ parser.add_argument('-nm','--no_mixed',action = 'store_true',help=argparse.SUPPR
 parser.add_argument('-sm','--score_min',help=argparse.SUPPRESS )#'minimum score for Bowtie2')
 parser.add_argument('-mq','--map_quality',default=10,type=int,help=argparse.SUPPRESS )#help='minimum Bowtie2 MAPQ to consider read')
 parser.add_argument('-lc','--length_cutoff',action = 'store_true',help=argparse.SUPPRESS )#help='Use length cutoff of 0.92 length for RNAFramework')
+parser.add_argument('--norc',action = 'store_true',help=argparse.SUPPRESS )#help='do not align to reverse complement in bowtie2'
 parser.add_argument('-norc','--no_output_raw_counts',action = 'store_true',help=argparse.SUPPRESS )#help='do not output raw counts from RNAFramework')
 parser.add_argument('-me','--max_edit_distance',default=0.0,type=float,help=argparse.SUPPRESS )#help='max edit distance for RNAFramework (0.15)')
 parser.add_argument('-mpp','--merge_pairs_pear',action = 'store_true',help=argparse.SUPPRESS)
@@ -148,7 +150,7 @@ os.makedirs(slurm_file_dir, exist_ok=True )
 
 slurm_file_count = 1
 fid_slurm = open( '%s/run_slurm_%03d.sh' % (slurm_file_dir, slurm_file_count), 'w' )
-sbatch_preface = '#!/bin/bash\n#SBATCH --job-name=ubr_run\n#SBATCH --output=ubr_run.o%%j\n#SBATCH --error=ubr_run.e%%j\n#SBATCH --partition=biochem,owners\n#SBATCH --time=48:00:00\n#SBATCH -n %d\n#SBATCH -N 1\n#SBATCH --mem=%dG\n\n' % (args.jobs_per_slurm_node,8*args.jobs_per_slurm_node)
+sbatch_preface = '#!/bin/bash\n#SBATCH --job-name=ubr_run\n#SBATCH --output=ubr_run.o%%j\n#SBATCH --error=ubr_run.e%%j\n#SBATCH --partition=biochem,owners\n#SBATCH --time=48:00:00\n#SBATCH -n %d\n#SBATCH -N 1\n#SBATCH --mem=%dG\n\n' % (args.jobs_per_slurm_node,args.memory_per_job*args.jobs_per_slurm_node)
 fid_slurm.write( sbatch_preface )
 fid_sbatch_commands = open( 'sbatch_commands.sh', 'w')
 ubr_run_sh_name = 'ubr_run.sh'
@@ -193,6 +195,7 @@ for i in range(1,nsplits+1):
 
     extra_flags = ''
     if args.no_output_raw_counts: extra_flags += ' --no_output_raw_counts'
+    if args.norc: extra_flags += ' --norc'
     if args.length_cutoff:  extra_flags += ' --length_cutoff'
     if args.no_mixed:  extra_flags += ' --no_mixed'
     if args.map_quality != 10:  extra_flags += ' --map_quality %d' % args.map_quality

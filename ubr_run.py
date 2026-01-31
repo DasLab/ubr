@@ -15,8 +15,8 @@ parser = argparse.ArgumentParser(
                     epilog = 'Runs Ultraplex, Bowtie2, RNA-framework with .csv output.\nRead 1 is assumed to be primer barcode, then reverse complement of RNA sequence.')
 
 parser.add_argument('-s','--sequences_fasta', required=True, help='FASTA of RNA sequences')
-parser.add_argument('-b','--primer_barcodes_fasta', required=True, help='FASTA of primer barcodes, first nucleotides of Read 1, prepended to cDNA')
-parser.add_argument('-1','--read1_fastq', required=True, help='FASTQ (can be gzipped) of Illumina run')
+parser.add_argument('-b','--primer_barcodes_fasta', help='FASTA of primer barcodes, first nucleotides of Read 1, prepended to cDNA',default='')
+parser.add_argument('-1','--read1_fastq', nargs='+', help='FASTQ (can be gzipped) of Illumina run')
 parser.add_argument('-2','--read2_fastq', help='FASTQ (can be gzipped) of Read 2')
 parser.add_argument('-ow','--overwrite',action = 'store_true', help='overwrite all previous files')
 parser.add_argument('-O','--outdir',default='',help='output directory for all files')
@@ -34,6 +34,7 @@ parser.add_argument('-sm','--score_min',help=argparse.SUPPRESS )#'minimum score 
 parser.add_argument('-mq','--map_quality',default=10,type=int,help=argparse.SUPPRESS )#help='minimum Bowtie2 MAPQ to consider read')
 parser.add_argument('-lc','--length_cutoff',action = 'store_true',help=argparse.SUPPRESS )#help='Use length cutoff of 0.92 length for RNAFramework')
 parser.add_argument('-norc','--no_output_raw_counts',action = 'store_true',help=argparse.SUPPRESS )#help='do not output raw counts from RNAFramework')
+parser.add_argument('--norc',action = 'store_true',help=argparse.SUPPRESS )#help='do not align to reverse complement in bowtie2'
 parser.add_argument('-me','--max_edit_distance',default=0.0,type=float,help=argparse.SUPPRESS )#help='max edit distance for RNAFramework (0.15)')
 parser.add_argument('-mpp','--merge_pairs_pear',action = 'store_true',help=argparse.SUPPRESS)
 parser.add_argument('--force_merge_pairs',action = 'store_true',help=argparse.SUPPRESS) # force merge pairs (don't bother to check for overlap)
@@ -66,12 +67,28 @@ if args.merge_pairs_pear: assert( shutil.which('pear') )
 if args.cutadapt: assert( shutil.which( 'cutadapt' ) )
 if args.dedup: assert( shutil.which('umi_tools') )
 
+read1_fastqs = args.read1_fastq
+args.read1_fastq = args.read1_fastq[0]
 assert( os.path.isfile( args.sequences_fasta ) )
-assert( os.path.isfile( args.primer_barcodes_fasta ) )
 assert( os.path.isfile( args.read1_fastq ) )
 if args.read2_fastq: assert( os.path.isfile( args.read2_fastq ) )
 read1_fastq = args.read1_fastq
 read2_fastq = args.read2_fastq
+
+# silly hack -- if multiple fastqs assume their names are 'barcodes'; fill primer_barcodes_fasta file with those names as headers and blank sequences.
+if len(args.read1_fastq)>1:
+    print( 'if supplying multiple fastq files, we assume they are already demultiplexed! Do note provide primer barcode file' )
+    assert( args.primer_barcodes_fasta == '' )
+    assert( args.skip_ultraplex )
+    args.primer_barcodes_fasta='fqs.txt' # silly hack
+    fid = open( args.primer_barcodes_fasta, 'w' )
+    for fq in read1_fastqs:
+        assert( os.path.isfile( fq ) )
+        fq_name=os.path.basename(fq).split('.')[0]
+        fid.write( f'>{fq_name}\n\n' )
+    fid.close()
+
+assert( os.path.isfile( args.primer_barcodes_fasta ) )
 
 # Read in FASTA files (sequences, and primer barcodes)
 (sequences,headers) = read_fasta( args.sequences_fasta, args.force )
@@ -113,6 +130,7 @@ if args.excise_barcode > 0:
 
 # Merge
 merge_pairs = not args.no_merge_pairs and args.read2_fastq != None
+if merge_pairs: assert( len( read1_fastqs ) == 1 ) # can't handle multiple fastq's yet.
 
 # Also check if sequence reads are actually long enough to overlap
 if merge_pairs and not args.merge_pairs_pear and not args.force_merge_pairs:
@@ -180,17 +198,18 @@ for primer_barcode,primer_name in zip(primer_barcodes,primer_names):
 # has FASTQ file already been demultiplexed? Look for the barcode string like ACCAGGCGCTGG in the filename.
 skip_ultraplex = args.skip_ultraplex
 for (primer_barcode,primer_name) in zip(primer_barcodes,primer_names):
-    if read1_fastq.find( primer_barcode ) > -1 or read1_fastq.find( primer_name ) > -1:
-        print('Detected primer %s (%s) in name of FASTQ file %s. Assuming FASTQ has already been demultiplexed.' % (primer_name,primer_barcode,read1_fastq))
-        i1 = wd + '1_ultraplex/ultraplex_demux_%s.fastq.gz'  % primer_name
-        if args.cutadapt:
-            command = 'cutadapt --trimmed-only %s -a  AGATCGGAAGAGCACA -o %s' % (read1_fastq,i1)
-        else:
-            command = 'rsync -avL %s %s' % (read1_fastq,i1)
-        print(command)
-        os.system(command)
-        skip_ultraplex = True
-        assert( not read2_fastq )
+    for read1_fastq in read1_fastqs:
+        if (len(primer_barcode)>0 and read1_fastq.find( primer_barcode ) > -1) or read1_fastq.find( primer_name ) > -1:
+            print('Detected primer %s (%s) in name of FASTQ file %s. Assuming FASTQ has already been demultiplexed.' % (primer_name,primer_barcode,read1_fastq))
+            i1 = wd + '1_ultraplex/ultraplex_demux_%s.fastq.gz'  % primer_name
+            if args.cutadapt:
+                command = 'cutadapt --trimmed-only %s -a  AGATCGGAAGAGCACA -o %s' % (read1_fastq,i1)
+            else:
+                command = 'rsync -avL %s %s' % (read1_fastq,i1)
+            print(command)
+            os.system(command)
+            skip_ultraplex = True
+            assert( not read2_fastq )
 
 if args.cutadapt and not skip_ultraplex: print("--cutadapt option is only for files that have been pre-demultiplexed by ultima.")
 
@@ -248,6 +267,7 @@ for primer_barcode,primer_name in zip(primer_barcodes,primer_names):
     sam_file = '%s/bowtie2.sam' % outdir
     extra_flags = ''
     if args.no_mixed: extra_flags += ' --no-mixed'
+    if args.norc: extra_flags += ' --norc'
     if args.score_min != None:  extra_flags += ' --score-min %s' % args.score_min
     if not os.path.isfile( sam_file ) or args.overwrite:
         if (not os.path.isfile(bt2_file) or args.overwrite) and not args.minimap2:
