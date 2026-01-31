@@ -1,5 +1,5 @@
-function d = quick_look_ubr_biglib(filedir,sequence_file,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,options, tags );
-% d = quick_look_ubr_biglib(filedir,sequence_file,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,options, tags );
+function d = quick_look_ubr_biglib(filedir,sequence_file,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,options, tags, seq_range );
+% d = quick_look_ubr_biglib(filedir,sequence_file,shape_nomod_idx,BLANK_OUT5,BLANK_OUT3,options, tags, seq_range );
 %
 %  Wrapper around quick_look_ubr for big libraries (1M or more sequences).
 %  TODO: instead of concatenating in the script, just output chunks to HDF5
@@ -51,6 +51,9 @@ function d = quick_look_ubr_biglib(filedir,sequence_file,shape_nomod_idx,BLANK_O
 %                 'only_AG': Only count A to G mutations (e.g. deaminase)
 % tags         = cell of strings: tags to use instead of names of hdf5 or
 %                      .txt.gz files
+% seq_range    =  [start_idx, end_idx] two integers with range of sequences
+%                   to read in. If oneinteger is specified, assumed to be maximum number of 
+%                   sequences to read in. Default [], read all sequences.
 %
 % Output
 %  d = MATLAB struct with the following fields:
@@ -97,6 +100,7 @@ if ~exist( 'shape_nomod_idx','var') | isempty(shape_nomod_idx); shape_nomod_idx 
 if ~iscell(shape_nomod_idx) & isnumeric(shape_nomod_idx); shape_nomod_idx = cell(shape_nomod_idx); end;
 if ~exist( 'options', 'var') options = {}; end;
 if ~exist('tags','var') tags = []; end; 
+if ~exist('seq_range','var') seq_range = []; end; 
 
 if isstruct(sequence_file)
     fasta = sequence_file;
@@ -108,13 +112,17 @@ else
 end
 
 CHUNK_SEP = 1e4; chunk_size = 1e4; % full run.
-Ntot = length(fasta); Nseq = Ntot;
+Nseq = length(fasta); 
+if isempty(seq_range); seq_range = [1,Nseq]; end;
+assert(length(seq_range)==2);
+
+Ntot = seq_range(2)-seq_range(1)+1;
 num_chunks = ceil(Ntot/CHUNK_SEP);
 for q = 1:num_chunks;
-    chunk_start = 1+(q-1)*CHUNK_SEP;
-    chunk_end = min(chunk_start + chunk_size-1,Nseq);
-    seq_range = [chunk_start,chunk_end];
-    all_d{q} = quick_look_ubr(filedir,fasta,shape_nomod_idx,structure_csv_file,BLANK_OUT5,BLANK_OUT3,options,seq_range,tags);
+    chunk_start = seq_range(1)+(q-1)*CHUNK_SEP;
+    chunk_end   = min(chunk_start + chunk_size-1,seq_range(2));
+    chunk_seq_range = [chunk_start,chunk_end];
+    all_d{q} = quick_look_ubr(filedir,fasta,shape_nomod_idx,structure_csv_file,BLANK_OUT5,BLANK_OUT3,options,chunk_seq_range,tags);
     fprintf('\nCOMPLETED: %d of %d\n\n',q,num_chunks)
 end
 

@@ -36,6 +36,7 @@ for q = 2:length( all_d )
     assert( length(all_d{q}.sequences) == length(d_out.sequences) );
     assert( all(strcmp(all_d{q}.sequences,d_out.sequences)) );
     NDIMS = length(size(d_out.r_norm));
+    if size(d_out.r_norm,NDIMS)~=num_cidx & size(d_out.r_norm,NDIMS+1)==num_cidx; NDIMS = NDIMS+1; end;
     d_out.r_norm = cat(NDIMS, d_out.r_norm, all_d{q}.r_norm);
     d_out.r_norm_err = cat(NDIMS, d_out.r_norm_err, all_d{q}.r_norm_err);
     d_out.conditions =[d_out.conditions, all_d{q}.conditions];
@@ -51,7 +52,9 @@ for q = 2:length( all_d )
     num_tags = length(d_out.tags);
     num_shape_nomod_idx = length(d_out.shape_nomod_idx);
     shape_nomod_idx = all_d{q}.shape_nomod_idx;
-    for k = 1:length(shape_nomod_idx); d_out.shape_nomod_idx( num_shape_nomod_idx + k ) = shape_nomod_idx(k) + num_tags; end;
+    for k = 1:length(shape_nomod_idx); 
+        d_out.shape_nomod_idx{ num_shape_nomod_idx + k } = shape_nomod_idx{k} + num_tags; 
+    end;
     d_out.tags = [d_out.tags, all_d{q}.tags];
 
     if ~isfield(d_out,'norm_val') continue; end
