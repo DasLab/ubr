@@ -17,7 +17,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument('-s','--sequences_fasta', required=True, help='FASTA of RNA sequences')
 parser.add_argument('-b','--primer_barcodes_fasta', help='FASTA of primer barcodes, first nucleotides of Read 1, prepended to cDNA',default='')
 parser.add_argument('-1','--read1_fastq', nargs='+', help='FASTQ (can be gzipped) of Illumina run')
-parser.add_argument('-2','--read2_fastq', help='FASTQ (can be gzipped) of Read 2')
+parser.add_argument('-2','--read2_fastq', nargs='+', help='FASTQ (can be gzipped) of Read 2')
 parser.add_argument('-ow','--overwrite',action = 'store_true', help='overwrite all previous files')
 parser.add_argument('-O','--outdir',default='',help='output directory for all files')
 parser.add_argument('-t','--threads',default=1, type=int, help='Number of threads for Bowtie2 and RNAFramework')
@@ -26,6 +26,8 @@ parser.add_argument('--cmuts',action = 'store_true',help='use cmuts instead of R
 parser.add_argument('--precomputed_bowtie_build_dir',default='',help=argparse.SUPPRESS) # precomputed bowtie-build directory, which otherwise takes forever to generate on the fly for >1M seqs
 parser.add_argument('-f','--force',action='store_true',help='override some warnings' )
 parser.add_argument('--dedup',action='store_true',help='dedup if N''s in barcode' )
+parser.add_argument('--remove_3prime_adapter','-a',default='',help='remove specified 5'' adapter string with cutadapt') # force cutadapt trimming of Read2 side for pre-demuxed Ultima
+parser.add_argument('--remove_5prime_adapter','-g',default='',help='remove specified 3'' adapter string with cutadapt') # force cutadapt trimming of Read2 side for pre-demuxed Ultima
 
 # Deprecated/secret
 parser.add_argument('--excise_barcode',default=0,type=int,help=argparse.SUPPRESS) # 'remove this many nucleotides from merged FASTQ and sequences' )
@@ -64,11 +66,15 @@ assert( shutil.which( 'samtools' ) )
 assert( shutil.which( 'bbmerge.sh' ) )
 assert( shutil.which( 'java' ) )
 if args.merge_pairs_pear: assert( shutil.which('pear') )
-if args.cutadapt: assert( shutil.which( 'cutadapt' ) )
+if args.cutadapt: args.remove_3prime_adapter='AGATCGGAAGAGCACA'
+if len(args.remove_3prime_adapter)>0 or len(args.remove_5prime_adapter)>0: assert( shutil.which( 'cutadapt' ) )
+assert( not( len(args.remove_3prime_adapter)>0 and len(args.remove_5prime_adapter)>0 ) ) # should be doable but not handled for now
 if args.dedup: assert( shutil.which('umi_tools') )
 
 read1_fastqs = args.read1_fastq
 args.read1_fastq = args.read1_fastq[0]
+read2_fastqs = args.read2_fastq
+args.read2_fastq = args.read2_fastq[0] if len( args.read2_fastq) > 0 else None
 assert( os.path.isfile( args.sequences_fasta ) )
 assert( os.path.isfile( args.read1_fastq ) )
 if args.read2_fastq: assert( os.path.isfile( args.read2_fastq ) )
@@ -130,7 +136,6 @@ if args.excise_barcode > 0:
 
 # Merge
 merge_pairs = not args.no_merge_pairs and args.read2_fastq != None
-if merge_pairs: assert( len( read1_fastqs ) == 1 ) # can't handle multiple fastq's yet.
 
 # Also check if sequence reads are actually long enough to overlap
 if merge_pairs and not args.merge_pairs_pear and not args.force_merge_pairs:
@@ -144,22 +149,29 @@ if merge_pairs and not args.merge_pairs_pear and not args.force_merge_pairs:
     #exit()
 
 if merge_pairs:
-    out_prefix = os.path.basename(args.read1_fastq).replace('.fq','').replace('.fastq','').replace('.gz','') + '_MERGED'
-    merged_fastq = wd+out_prefix+'.assembled.fastq.gz'
-    if os.path.isfile( merged_fastq ):
-        print('Merged file already exists, skipping merge:',merged_fastq)
-    else:
-        if args.merge_pairs_pear:
-            command = 'pear -f %s -r %s -o  %s > %s0_merge_pairs.out 2> %s0_merge_pairs.err && gzip %s' % (args.read1_fastq, args.read2_fastq, out_prefix, wd, wd, merged_fastq.replace('.gz',''))
+    assert( len(read1_fastqs )==len(read2_fastqs) )
+    merged_fastqs = []
+    for r1_fq,r2_fq in zip( read1_fastqs, read2_fastqs ):
+        out_prefix = os.path.basename(r1_fq).replace('.fq','').replace('.fastq','').replace('.gz','') + '_MERGED'
+        merged_fastq = wd+out_prefix+'.assembled.fastq.gz'
+        if os.path.isfile( merged_fastq ):
+            print('Merged file already exists, skipping merge:',merged_fastq)
         else:
-            # Default is to use bbmerge.sh
-            # turn off pigz/unpigz which does not accelerate things but spins up extra threads.
-            command = 'bbmerge.sh in=%s in2=%s out=%s pigz=f unpigz=f > %s0_merge_pairs.out 2> %s0_merge_pairs.err' % (args.read1_fastq, args.read2_fastq, merged_fastq, wd, wd)
-        print(command)
-        os.system( command )
-    assert(os.path.isfile( merged_fastq ) )
-    read1_fastq = merged_fastq
+            if args.merge_pairs_pear:
+                command = 'pear -f %s -r %s -o  %s > %s0_merge_pairs.out 2> %s0_merge_pairs.err && gzip %s' % (r1_fq, r2_fq, out_prefix, wd, wd, merged_fastq.replace('.gz',''))
+            else:
+                # Default is to use bbmerge.sh
+                # turn off pigz/unpigz which does not accelerate things but spins up extra threads.
+                command = 'bbmerge.sh in=%s in2=%s out=%s pigz=f unpigz=f > %s0_merge_pairs.out 2> %s0_merge_pairs.err' % (r1_fq, r2_fq, merged_fastq, wd, wd)
+            print(command)
+            os.system( command )
+        assert(os.path.isfile( merged_fastq ) )
+        merged_fastqs.append( merged_fastq )
+    read1_fastqs = merged_fastqs
+    read1_fastq = merged_fastqs[0]
+    read2_fastqs = []
     read2_fastq = None
+
 time_merge_pairs = time.time()
 
 # Ultraplex -- round 1 to demultiplex with respect to reverse transcription primers (e.g., RTB barcodes).
@@ -202,8 +214,10 @@ for (primer_barcode,primer_name) in zip(primer_barcodes,primer_names):
         if (len(primer_barcode)>0 and read1_fastq.find( primer_barcode ) > -1) or read1_fastq.find( primer_name ) > -1:
             print('Detected primer %s (%s) in name of FASTQ file %s. Assuming FASTQ has already been demultiplexed.' % (primer_name,primer_barcode,read1_fastq))
             i1 = wd + '1_ultraplex/ultraplex_demux_%s.fastq.gz'  % primer_name
-            if args.cutadapt:
-                command = 'cutadapt --trimmed-only %s -a  AGATCGGAAGAGCACA -o %s' % (read1_fastq,i1)
+            if len( args.remove_3prime_adapter ) > 0:
+                command = 'cutadapt --trimmed-only %s -a  %s -o %s' % (read1_fastq,args.remove_3prime_adapter,i1)
+            elif len( args.remove_5prime_adapter ) > 0:
+                command = 'cutadapt --trimmed-only %s -g  %s -o %s' % (read1_fastq,args.remove_5prime_adapter,i1)
             else:
                 command = 'rsync -avL %s %s' % (read1_fastq,i1)
             print(command)
@@ -211,7 +225,7 @@ for (primer_barcode,primer_name) in zip(primer_barcodes,primer_names):
             skip_ultraplex = True
             assert( not read2_fastq )
 
-if args.cutadapt and not skip_ultraplex: print("--cutadapt option is only for files that have been pre-demultiplexed by ultima.")
+if args.cutadapt and not skip_ultraplex: print("--cutadapt option is only for files that have been pre-demultiplexed.")
 
 if not skip_ultraplex and (not any_ultraplex_out_files or args.overwrite):
     extra_flags = ''
