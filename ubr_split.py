@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser(
                     epilog = 'Split FASTQ files and prepare independent job directories and command-lines.')
 
 parser.add_argument('-s','--sequences_fasta', required=True, help='FASTA of RNA sequences')
-parser.add_argument('-b','--primer_barcodes_fasta', required=True, help='FASTA of primer barcodes, first nucleotides of Read 1, prepended to cDNA')
+parser.add_argument('-b','--primer_barcodes_fasta', help='FASTA of primer barcodes, first nucleotides of Read 1, prepended to cDNA')
 parser.add_argument('-1','--read1_fastq', required=True, help='FASTQ (can be gzipped) of Illumina run')
 parser.add_argument('-2','--read2_fastq', help='FASTQ (can be gzipped) of Read 2')
 parser.add_argument('-n','--nsplits', default=0, type=int, help='number of separate partitions' )
@@ -26,6 +26,8 @@ parser.add_argument('--cmuts',action = 'store_true',help='use cmuts instead of R
 parser.add_argument('--precomputed_bowtie_build_dir',default='',help=argparse.SUPPRESS) # precomputed bowtie-build directory, which otherwise takes forever to generate on the fly for >1M seqs
 parser.add_argument('-f','--force',action='store_true',help='override some warnings' )
 parser.add_argument('--dedup',action='store_true',help='dedup if N''s in barcode' )
+parser.add_argument('--remove_3prime_adapter','-a',default='',help='remove specified 5'' adapter string with cutadapt') # force cutadapt trimming of Read2 side for pre-demuxed Ultima
+parser.add_argument('--remove_5prime_adapter','-g',default='',help='remove specified 3'' adapter string with cutadapt') # force cutadapt trimming of Read2 side for pre-demuxed Ultima
 
 # Deprecated/secret
 parser.add_argument('--skip_gzip',action='store_true',help=argparse.SUPPRESS) # if FASTQ is not gzipped, leave it gzipped
@@ -71,16 +73,20 @@ if args.merge_pairs_pear: assert( shutil.which('pear') )
 
 # Check for files
 assert( os.path.isfile( args.sequences_fasta ) )
-assert( os.path.isfile( args.primer_barcodes_fasta ) )
+if not args.skip_ultraplex: assert( os.path.isfile( args.primer_barcodes_fasta ) )
 assert( os.path.isfile( args.read1_fastq ) )
 assert( args.read2_fastq == None or os.path.isfile( args.read2_fastq ) )
 assert( args.read1_fastq != args.read2_fastq )
 
 (sequences,headers) = read_fasta( args.sequences_fasta )
 print( 'Read in %d sequences from %s.' % (len(sequences),args.sequences_fasta) )
-(primer_barcodes,primer_names) = read_fasta( args.primer_barcodes_fasta )
-print( 'Read in %d primer barcodes from %s.\n' % (len(primer_barcodes),args.primer_barcodes_fasta) )
-for primer_name in primer_names: assert( primer_name.find(' ')==-1 )
+primer_barcodes = []
+if args.primer_barcodes_fasta is None:
+    assert( args.skip_ultraplex )
+else:
+    (primer_barcodes,primer_names) = read_fasta( args.primer_barcodes_fasta )
+    print( 'Read in %d primer barcodes from %s.\n' % (len(primer_barcodes),args.primer_barcodes_fasta) )
+    for primer_name in primer_names: assert( primer_name.find(' ')==-1 )
 
 if len(sequences)>1000000:
     if not args.precomputed_bowtie_build_dir:
@@ -185,7 +191,7 @@ for i in range(1,nsplits+1):
     if not os.path.isfile( outdir + '/' + os.path.basename(args.sequences_fasta) ):
         shutil.copy( args.sequences_fasta, outdir + '/' + os.path.basename(args.sequences_fasta) )
 
-    if not os.path.isfile( outdir + '/' + os.path.basename(args.primer_barcodes_fasta) ):
+    if args.primer_barcodes_fasta is not None and not os.path.isfile( outdir + '/' + os.path.basename(args.primer_barcodes_fasta) ):
         shutil.copy( args.primer_barcodes_fasta, outdir + '/' + os.path.basename(args.primer_barcodes_fasta) )
 
     assert( os.path.isfile(outdir+'/'+os.path.basename(args.sequences_fasta)) )
@@ -212,18 +218,23 @@ for i in range(1,nsplits+1):
     if args.min_cov_base_quality > 0:  extra_flags += ' --min_cov_base_quality %d' % args.min_cov_base_quality
     if args.cutadapt:  extra_flags += ' --cutadapt'
     if args.use_tmp_dir:  extra_flags += ' --use_tmp_dir'
+    if len(args.remove_3prime_adapter)>0: extra_flags += ' --remove_3prime_adapter %s' % args.remove_3prime_adapter
+    if len(args.remove_5prime_adapter)>0: extra_flags += ' --remove_5prime_adapter %s' % args.remove_5prime_adapter
+
     if len(args.precomputed_bowtie_build_dir)>0: extra_flags += ' --precomputed_bowtie_build_dir %s' % args.precomputed_bowtie_build_dir
     if args.excise_barcode>0:  extra_flags += ' --excise_barcode %d' % args.excise_barcode
 
     fid = open( outdir + '/'+ubr_run_sh_name, 'w' )
     fastq2_tag = ''
     if args.read2_fastq: fastq2_tag = ' -2 %s' % os.path.basename(f2)
-    fid.write( 'ubr_run.py -s %s -b %s -1 %s%s%s > ubr_run.out 2> ubr_run.err & \n' % ( os.path.basename(args.sequences_fasta), os.path.basename(args.primer_barcodes_fasta), os.path.basename(f1),fastq2_tag,extra_flags) )
+    primer_barcodes_flag = ' -b %s' % os.path.basename(args.primer_barcodes_fasta) if args.primer_barcodes_fasta else ''
+    fid.write( 'ubr_run.py -s %s %s -1 %s%s%s > ubr_run.out 2> ubr_run.err & \n' % ( os.path.basename(args.sequences_fasta), primer_barcodes_flag, os.path.basename(f1),fastq2_tag,extra_flags) )
     fid.close()
 
     fastq2_tag = ''
     if args.read2_fastq: fastq2_tag = ' -2 %s/%s' % (outdir,f2)
-    command = 'ubr_run.py -s %s/%s -b %s/%s -1 %s/%s%s -O %s%s > %s/ubr_run.out 2> %s/ubr_run.err &' % ( outdir, args.sequences_fasta, outdir, args.primer_barcodes_fasta, outdir, f1, fastq2_tag, outdir, extra_flags, outdir, outdir)
+    primer_barcodes_flag = ' -b %s/%s' % (outdir, args.primer_barcodes_fasta) if args.primer_barcodes_fasta else ''
+    command = 'ubr_run.py -s %s/%s %s -1 %s/%s%s -O %s%s > %s/ubr_run.out 2> %s/ubr_run.err &' % ( outdir, args.sequences_fasta, primer_barcodes_flag, outdir, f1, fastq2_tag, outdir, extra_flags, outdir, outdir)
     fid_all.write( command + '\n' )
 
     fid_slurm.write( command +'\n' )
