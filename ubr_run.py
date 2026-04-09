@@ -214,6 +214,7 @@ for (primer_barcode,primer_name) in zip(primer_barcodes,primer_names):
         if (len(primer_barcode)>0 and read1_fastq.find( primer_barcode ) > -1) or read1_fastq.find( primer_name ) > -1:
             print('Detected primer %s (%s) in name of FASTQ file %s. Assuming FASTQ has already been demultiplexed.' % (primer_name,primer_barcode,read1_fastq))
             i1 = wd + '1_ultraplex/ultraplex_demux_%s.fastq.gz'  % primer_name
+            if args.read2_fastq: i1 = wd + '1_ultraplex/ultraplex_demux_%s_Fwd.fastq.gz'  % primer_name
             if len( args.remove_3prime_adapter ) > 0:
                 command = 'cutadapt --trimmed-only %s -a  %s -o %s' % (read1_fastq,args.remove_3prime_adapter,i1)
             elif len( args.remove_5prime_adapter ) > 0:
@@ -222,8 +223,20 @@ for (primer_barcode,primer_name) in zip(primer_barcodes,primer_names):
                 command = 'rsync -avL %s %s' % (read1_fastq,i1)
             print(command)
             os.system(command)
+
+            if args.read2_fastq:
+                i2 = wd + '1_ultraplex/ultraplex_demux_%s_Rev.fastq.gz'  % primer_name
+                if len( args.remove_3prime_adapter ) > 0:
+                    command = 'cutadapt --trimmed-only %s -a  %s -o %s' % (read1_fastq,args.remove_3prime_adapter,i2)
+                elif len( args.remove_5prime_adapter ) > 0:
+                    command = 'cutadapt --trimmed-only %s -g  %s -o %s' % (read1_fastq,args.remove_5prime_adapter,i2)
+                else:
+                    command = 'rsync -avL %s %s' % (read2_fastq,i2)
+                print(command)
+                os.system(command)
+
             skip_ultraplex = True
-            assert( not read2_fastq )
+
 
 if args.cutadapt and not skip_ultraplex: print("--cutadapt option is only for files that have been pre-demultiplexed.")
 
