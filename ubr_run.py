@@ -74,7 +74,7 @@ if args.dedup: assert( shutil.which('umi_tools') )
 read1_fastqs = args.read1_fastq
 args.read1_fastq = args.read1_fastq[0]
 read2_fastqs = args.read2_fastq
-args.read2_fastq = args.read2_fastq[0] if len( args.read2_fastq) > 0 else None
+args.read2_fastq = args.read2_fastq[0] if (args.read2_fastq is not None and len( args.read2_fastq) > 0) else None
 assert( os.path.isfile( args.sequences_fasta ) )
 assert( os.path.isfile( args.read1_fastq ) )
 if args.read2_fastq: assert( os.path.isfile( args.read2_fastq ) )
