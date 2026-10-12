@@ -82,7 +82,7 @@ read1_fastq = args.read1_fastq
 read2_fastq = args.read2_fastq
 
 # silly hack -- if multiple fastqs assume their names are 'barcodes'; fill primer_barcodes_fasta file with those names as headers and blank sequences.
-if len(args.read1_fastq)>1:
+if len(read1_fastqs)>1:
     print( 'if supplying multiple fastq files, we assume they are already demultiplexed! Do note provide primer barcode file' )
     assert( args.primer_barcodes_fasta == '' )
     assert( args.skip_ultraplex )
