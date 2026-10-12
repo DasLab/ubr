@@ -26,8 +26,8 @@ parser.add_argument('--cmuts',action = 'store_true',help='use cmuts instead of R
 parser.add_argument('--precomputed_bowtie_build_dir',default='',help=argparse.SUPPRESS) # precomputed bowtie-build directory, which otherwise takes forever to generate on the fly for >1M seqs
 parser.add_argument('-f','--force',action='store_true',help='override some warnings' )
 parser.add_argument('--dedup',action='store_true',help='dedup if N''s in barcode' )
-parser.add_argument('--remove_3prime_adapter','-a',default='',help='remove specified 5'' adapter string with cutadapt') # force cutadapt trimming of Read2 side for pre-demuxed Ultima
-parser.add_argument('--remove_5prime_adapter','-g',default='',help='remove specified 3'' adapter string with cutadapt') # force cutadapt trimming of Read2 side for pre-demuxed Ultima
+parser.add_argument('--remove_3prime_adapter','-a',default='',help='remove specified 3'' adapter string with cutadapt') # force cutadapt trimming of Read1 side for pre-demuxed Ultima
+parser.add_argument('--remove_5prime_adapter','-g',default='',help='remove specified 5'' adapter string with cutadapt') # force cutadapt trimming of Read2 side for pre-demuxed Ultima
 
 # Deprecated/secret
 parser.add_argument('--excise_barcode',default=0,type=int,help=argparse.SUPPRESS) # 'remove this many nucleotides from merged FASTQ and sequences' )
@@ -68,7 +68,7 @@ assert( shutil.which( 'java' ) )
 if args.merge_pairs_pear: assert( shutil.which('pear') )
 if args.cutadapt: args.remove_3prime_adapter='AGATCGGAAGAGCACA'
 if len(args.remove_3prime_adapter)>0 or len(args.remove_5prime_adapter)>0: assert( shutil.which( 'cutadapt' ) )
-assert( not( len(args.remove_3prime_adapter)>0 and len(args.remove_5prime_adapter)>0 ) ) # should be doable but not handled for now
+#assert( not( len(args.remove_3prime_adapter)>0 and len(args.remove_5prime_adapter)>0 ) ) # should be doable but not handled for now
 if args.dedup: assert( shutil.which('umi_tools') )
 
 read1_fastqs = args.read1_fastq
@@ -216,11 +216,18 @@ for (primer_barcode,primer_name) in zip(primer_barcodes,primer_names):
             i1 = wd + '1_ultraplex/ultraplex_demux_%s.fastq.gz'  % primer_name
             if read2_fastq: i1 = wd + '1_ultraplex/ultraplex_demux_%s_Fwd.fastq.gz'  % primer_name
             if len( args.remove_3prime_adapter ) > 0:
-                command = 'cutadapt --trimmed-only %s -a  %s -o %s' % (read1_fastq,args.remove_3prime_adapter,i1)
-            elif len( args.remove_5prime_adapter ) > 0:
-                command = 'cutadapt --trimmed-only %s -g  %s -o %s' % (read1_fastq,args.remove_5prime_adapter,i1)
-            else:
-                command = 'rsync -avL %s %s' % (read1_fastq,i1)
+                read1_fastq_out = i1.replace('.fastq.gz','.trim3prime.fastq.gz')
+                command = 'cutadapt --trimmed-only %s -a  %s -o %s' % (read1_fastq,args.remove_3prime_adapter,read1_fastq_out)
+                print(command)
+                os.system(command)
+                read1_fastq = read1_fastq_out
+            if len( args.remove_5prime_adapter ) > 0:
+                read1_fastq_out = i1.replace('.fastq.gz','.trim5prime.fastq.gz')
+                command = 'cutadapt --trimmed-only %s -g  %s -o %s' % (read1_fastq,args.remove_5prime_adapter,read1_fastq_out)
+                print(command)
+                os.system(command)
+                read1_fastq = read1_fastq_out
+            command = 'rsync -avL %s %s' % (read1_fastq,i1)
             print(command)
             os.system(command)
 
